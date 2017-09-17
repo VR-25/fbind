@@ -1,0 +1,3 @@
+# Disable sdcardfs -- necessary for "mount -o bind" to work properly with fbind.
+
+persist.sys.sdcardfs=force_off

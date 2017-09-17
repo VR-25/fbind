@@ -1,0 +1,412 @@
+#!/system/bin/sh
+
+# fbind Toolkit
+# VR25 @ XDA Developers
+
+# Use Magisk's internal busybox
+export PATH=/system/xbin:/sbin:/dev/magisk/bin
+
+echo
+source /magisk/fbind/core.sh
+toolkit
+
+
+
+###FUNCTIONS###
+
+#Yes/No prompt
+yn() {
+	case "$1" in
+		[Yy]* ) "$2";;
+		[Nn]* ) exit 0;;
+		* ) echo "(!) Invalid INPUT! Please re-run the command and answer yes or no."; exit 1;;
+	esac
+}
+
+usage() {
+	cat <<END
+Magic Folder Binder Toolkit
+
+Usage: fbind OPTION(s) ARGUMENT(s)
+
+-a		Add line(s) to config.txt (interactive)
+-b		Bind all
+-c		Storage cleanup
+-d		Disable autobind service
+-e		Re-enable autobind service
+-f		Disable this toolkit
+-l		Show config.txt
+-m		Move data to the sdcard
+-r		Remove lines(s) from config.txt (interactive)
+-u		Unbind everything
+-x		Disable the module
+-mb		Move data, bind folders
+-ref		Show README
+-log		Show debug.log
+-chlog		Show changelog
+
+-dd		Add "app_data AppDIR" line(s) to config.txt (interactive)
+
+-umb		Unbind all, move data, rebind (CAUTION!)
+
+-rollback	Unbind all, uninstall fbind & restore files
+
+-uninstall	Unbind all & uninstall fbind
+
+The "-m" option affects unbound folders only.
+Caution: it replaces destination data!
+
+(!) Warning: only use "fbind -umb" if you know exactly what you're doing! That option is only intended for first time use -- i.e., in case you forgot to move data after installing the module for the very first time and rebooted. Since "-m" only moves unbound folders data, the "-u" option makes it work. Again, once everything is unmounted, "-m" will then replace destination data.
+
+"fbind -mb" is the safer alternative, since it only moves new data. Let's say you just added a few lines to your config.txt file and the corresponding folders are not bound & data was not moved yet -- that's when you use this.
+END
+	echo
+}
+
+
+enable_service() {
+	mv -f $service_disabled $service_enabled
+	chmod 777 $service_enabled
+	echo "- Autobind on boot enabled."
+	echo
+}
+
+disable_service() {
+	mv -f $service_enabled $service_disabled
+	echo "- Autobind on boot disabled."
+	echo
+}
+
+
+# Add line(s) to fbind config
+add_line() {
+	: > $tmp
+	INPUT=0
+	[ `tail -c 1 $config_file` ] && printf "\n" >> $config_file
+	
+	if [ "$1" = '-dd' ]; then
+		: > $tmp2
+		echo "$(ls -1 /data/data)" >> $tmp
+
+		cat $tmp
+		echo
+		echo 'Input a matching WORD at once. Press RETURN twice when done.'
+		until [ -z "$INPUT" ]; do
+			read INPUT
+			[ "$INPUT" ] && grep "$INPUT" $tmp | sed 's/^/app_data /' >> $tmp2
+		done
+		
+		cat $tmp2 >> $config_file
+		echo "Added line(s):"
+		cat $tmp2
+		rm -f $tmp $tmp2
+
+	else
+		echo 'Input 1 line at once. Press RETURN twice when done.'
+		until [ -z "$INPUT" ]; do
+			read INPUT
+			[ "$INPUT" ] && echo "$INPUT" >> $tmp
+		done
+		
+		echo "Added line(s):"
+		cat $tmp
+		cat $tmp >> $config_file
+		chmod 777 $config_file
+		rm -f $tmp
+	fi
+	echo
+}
+
+
+list_cfg() {
+	echo "Your fbind Config"
+	echo
+	grep -Ev '#|^$' $config_file
+	echo
+}
+
+
+move_data() {
+	# entire obb folder
+	echo '<Move Data>'
+	echo
+	obb() {
+		echo '[obb]'
+		if ! mntpt $intobb && [ "$(ls $intobb)" ]; then
+			echo "Moving $intobb/*..."
+			[ -d $extobb ] || mkdir -p -m 777 $extobb
+			cp -a $intobb/* $extobb 2>/dev/null
+			rm -rf $intobb/*
+			echo
+		else
+			echo '- Nothing to move.'
+			echo
+		fi
+	}
+	# game/app obb folder
+	obbf() {
+		echo "[obbf $1]"
+		if ! mntpt $intobb/$1 && [ "$(ls $intobb/$1)" ]; then
+			echo "Moving $intobb/$1/*..."
+			[ -d $extobb/$1 ] || mkdir -p -m 777 $extobb/$1
+			cp -a $intobb/$1/* $extobb/$1 2>/dev/null
+			cd $intobb/$1
+			rm -rf $intobb/$1/*
+			echo
+		else
+			echo '- Nothing to move.'
+			echo
+		fi
+	}
+	# target folder
+	target() {
+		echo "[target \"$1\"]"
+		if ! mntpt "$intsd/$1" && [ "$(ls "$intsd/$1")" ]; then
+			echo "Moving $intsd/$1/*..."
+			[ -d "$extsd/$1" ] || mkdir -p -m 777 "$extsd/$1"
+			cp -a $intsd/"$1"/* $extsd/"$1" 2>/dev/null
+			rm -rf $intsd/"$1"/*
+			echo
+		else
+			echo '- Nothing to move.'
+			echo
+		fi
+	}
+	# source <--> destination
+	from_to() {
+		echo "[from_to \"$1\" \"$2\"]"
+		if ! mntpt "$intsd/$1" && [ "$(ls "$intsd/$1")" ]; then
+			echo "Moving $intsd/$1/*..."
+			[ -d "$extsd/$2" ] || mkdir -p -m 777 "$extsd/$2"
+			cp -a $intsd/"$1"/* $extsd/"$2" 2>/dev/null
+			rm -rf $intsd/"$1"/*
+			echo
+		else
+			echo '- Nothing to move.'
+			echo
+		fi
+	}
+	# data/data/app_data_folder <--> $extsd/.app_data/app_data_folder
+	# $1=/data/data/app_data_folder
+	app_data() {
+		echo "[app_data $1]"
+		if ! mntpt /data/data/$1 && [ "$(ls /data/data/$1)" ]; then
+			echo "Copying /data/data/$1 to $extsd/.app_data..."
+			[ -d $extsd/.app_data/$1 ] || mkdir -p -m 751 $extsd/.app_data/$1
+			cp -a /data/data/$1/* $extsd/.app_data/$1 2>/dev/null
+			echo "rm -rf /data/data/$1" >>/data/.fbind_cleanup_list
+			echo "- Original files will be removed on post-fs-data (fail-safe)."
+			echo
+		echo '- Nothing to move.'
+			echo
+		fi
+	}
+	source $bind_list
+	echo "Done."
+	echo
+}
+
+
+rm_line() {
+	: > $tmp
+	: > $tmp2
+	INPUT=0
+	
+	cat $config_file
+	echo
+	echo 'Input a matching WORD at once. Press RETURN twice when done.'
+	until [ -z "$INPUT" ]; do
+		read INPUT
+		[ "$INPUT" ] && grep -v "$INPUT" $config_file >> $tmp && grep "$INPUT" $config_file >> $tmp2
+	done
+	
+	cat $tmp > $config_file
+	chmod 777 $config_file
+	echo
+	echo "Removed line(s):"
+	cat $tmp2
+	rm -f $tmp $tmp2
+	echo
+}
+
+
+unmount_folders() {	
+	echo '<Unmount Folders>'
+	echo
+	# entire obb folder
+	obb() {
+		if mntpt $intobb; then
+			echo "[$intobb]"
+			umount $intobb
+		fi
+	}	
+	# game/app obb folder
+	obbf() {
+		if mntpt $intobb/$1; then
+			echo "[$intobb/$1]"
+			umount $intobb/$1
+		fi
+	}
+	# target folder
+	target() {
+		if mntpt "$intsd/$1"; then
+			echo "l[$intsd/$1]"
+			umount "$intsd/$1"
+		fi
+	}
+	# source <--> destination
+	from_to() {
+		if mntpt "$intsd/$1"; then
+			echo "[$intsd/$1]"
+			umount "$intsd/$1"
+		fi
+	}
+	# data/data/app <--> $extsd/.app_data/app
+	app_data() {
+		if mntpt /data/data/$1; then
+	#		echo "Releasing [/data/data/$1]..."
+	#		umount /data/data/$1
+			echo "Unmounting /data/data/$1 is unsafe. If you really want that, do it manually at your own risk by running \"umount /data/data/$1\"."
+		fi
+	}
+	source $bind_list
+	echo
+	echo "- Done."
+	echo
+}
+
+
+uninstall() {
+	echo "<fbind Uninstall>"
+	touch $module_path/remove
+	echo "- Done."
+	echo "- Reboot to apply change."
+}
+
+
+rollback() {
+	echo "<Rollback>"
+	echo
+	echo "fbind Uninstall"
+	touch $module_path/remove
+	echo "- Done."
+	echo "- Reboot to apply change."
+	echo
+	echo 'Now restoring $intsd data...'
+	echo
+	# entire obb folder
+	obb() {
+		if mntpt $intobb; then
+			echo "[$intobb]"
+			umount $intobb
+			cp -a $extobb/* $intobb 2>/dev/null
+			rm -rf $extobb/*
+			echo
+		fi
+	}
+	# game/app obb folder
+	obbf() {
+		if mntpt $intobb/$1; then
+			echo "[$intobb/$1]"
+			umount $intobb/$1
+			cp -a $extobb/$1/* $intobb/$1 2>/dev/null
+			rm -rf $extobb/$1/*
+			echo
+		fi
+	}
+	# target folder
+	target() {
+		if mntpt "$intsd/$1"; then
+			echo "[$intsd/$1]"
+			umount "$intsd/$1"
+			cp -a $extsd/"$1"/* $intsd/"$1"
+			rm -rf "$extsd/$1"
+			echo
+		fi
+	}
+	# source <--> destination
+	from_to() {
+		if mntpt "$intsd/$1"; then
+			echo "[$intsd/$1]"
+			umount "$intsd/$1"
+			cp -a $extsd/"$2"/* $intsd/"$1" 2>/dev/null
+			rm -rf "$extsd/$2"
+		fi
+	}
+	# data/data/app <--> $extsd/.app_data/app
+	app_data() {
+		if mntpt /data/data/$1; then
+			mkdir -p /data/_restore/data_data 2>/dev/null
+			echo "Copying $extsd/.app_data/* to /data/_restore/data_data..."
+			cp -a $extsd/.app_data/* /data/_restore/data_data
+			echo "Restoring /data/data..." > /data/_restore/restore.sh
+			echo "cp -a /data/_restore/data_data/* /data/data" >> /data/_restore/restore.sh
+			echo "rm -rf /data/_restore" >> /data/_restore/restore.sh
+			echo "Done." >> /data/_restore/restore.sh
+			chmod 777 /data/_restore/restore.sh
+			echo "Source the script \"/data/_restore/restore.sh\" to finish the job after a normal reboot or (highly recommended) do that from recovery."
+			echo "Remove \"$extsd/.app_data\" folder manually afterwards."
+		fi
+	}
+	source $bind_list
+	echo "Done."
+}
+
+
+
+if grep -v '#' $config_file | grep -q 'cryptsetup=true'; then
+	update_cfg
+	apply_cfg
+else
+	update_cfg &> /dev/null
+	apply_cfg &> /dev/null
+fi
+bkp_cfg
+intsd_fbind
+
+if [ "$1" = "-a" ]; then add_line
+elif [ "$1" = "-dd" ]; then add_line '-dd'
+elif [ "$1" = "-b" ]; then bind_folders
+elif [ "$1" = "-c" ]; then cleanupf
+elif [ "$1" = "-l" ]; then list_cfg
+elif [ "$1" = "-m" ]; then move_data
+elif [ "$1" = "-r" ]; then rm_line
+elif [ "$1" = "-u" ]; then unmount_folders
+
+elif [ "$1" = "-umb" ]; then
+	echo "Are you sure you know exactly what you're doing? (y/n)"
+	read ans
+	yn $ans "unmount_folders; move_data; bind_folders"
+	
+elif [ "$1" = "-mb" ]; then move_data; bind_folders
+elif [ "$1" = "-d" ]; then disable_service
+elif [ "$1" = "-e" ]; then enable_service
+
+elif [ "$1" = "-uninstall" ]; then
+	echo "Are you sure you want to uninstall fbind? (y/n)"
+	read ans
+	yn $ans uninstall
+	
+elif [ "$1" = "-rollback" ]; then
+	echo 'Are you sure you want to uninstall fbind & move data back to $intsd? (y/n)'
+	read ans
+	yn $ans rollback
+	
+elif [ "$1" = '-f' ]; then
+	rm -f magisk/fbind/auto_mount
+	echo "fbind toolkit disabled. Reboot to apply change."
+	echo "- Re-enable by running \"touch $module_path/auto_mount\"."
+	
+elif [ "$1" = "-x" ]; then
+	touch magisk/fbind/disable
+	echo "Module disabled. Reboot to apply change."
+	echo "- Re-enable from Magisk Manager or run \"rm -f $module_path/disable\"."
+	
+elif [ "$1" = "-log" ]; then cat $logfile
+
+elif [ "$1" = "-ref" ]; then cat /data/media/0/fbind/info/README.txt; echo; echo
+elif [ "$1" = "-chlog" ]; then cat /data/media/0/fbind/info/changelog.txt; echo; echo
+
+else usage
+fi
+exit 0

@@ -1,0 +1,12 @@
+# v2017.9.14 (20179140)
+- Fixed wrong 'from_to -e' log
+- Better altpart() disk usage log
+- Minor optimizations
+
+# v2017.9.15 (20179150)
+- Ability to fully replace insd with extsd.
+- Massive redesigns & optimizations
+- Marshmallow storage access permissions fix -- perm() (WIP)
+
+# v2017.9.16 (20179160)
+- "from_to -e" replaced by "bind_mnt". The latter follows the standard "mount -o bind" syntax.
