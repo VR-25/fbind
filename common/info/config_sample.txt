@@ -45,6 +45,8 @@ bind_mnt $extsd/FOLDER $u11/FOLDER
 u13=/data/media/13 # specifies intsd_path for user 13.
 bind_mnt $extsd/FOLDER $u13/FOLDER
 
+u# & u## are user variables -- these can be set to any value(s) you wish.
+
 
 
 ###ADVANCED SETUP###

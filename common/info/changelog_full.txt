@@ -1,7 +1,12 @@
+# v2017.9.18.1 (20179181)
+- Fixed bind_mnt()
+- Fixed fbind cmd
+- Updated reference
+
 # v2017.9.18 (20179180)
 - [TEST] auto-add storage access permissions to /data/system/packages.xml -- perm pkg_name
 - Ability to move bind_mnt() data (fbind -m) when a 3rd argument is present (i.e., "bind_mnt data/FOLDER $intsd/FOLDER X")
-- Multi-user variables
+- User variables
 - No longer bind-mounting /data/_fbind to $intsd/_fbind.
 - Minor optimizations
 - Updated reference

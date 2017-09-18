@@ -137,11 +137,11 @@ update_cfg() {
 		else
 			[ -d $config_path ] || mkdir $config_path
 			grep -v '#' $config_file | grep -E 'Permissive_SELinux|altpart |extsd_path |intsd_path |intobb_path ' > $debug_config
-			grep -vE '#|intobb_path ' $config_file | grep -E 'app_data |obb|obbf |from_to |target ' > $bind_list
-			grep -v '#' $config_file | grep 'cleanup ' > $cleanup_config
+			grep -vE '#|intobb_path ' $config_file | grep -E 'bind_mnt |app_data |obb|obbf |from_to |target ' > $bind_list
+			grep -v '#' $config_file | grep 'cleanup' > $cleanup_config
 			
 			# Enable additional intsd paths for multi-user support
-			grep '#' $config_file | grep -Eq 'u[0-9]{1}=|u[0-9]{2}=' > $config_path/uVars
+			grep '#' $config_file | grep -Eq 'u[0-9]{1}=|u[0-9]{2}=' > $config_path/uvars
 			
 			chmod -R 777 $config_path
 			echo "- Done."
@@ -150,7 +150,7 @@ update_cfg() {
 	echo
 }
 apply_cfg() {
-	source $config_path/uVars
+	source $config_path/uvars
 	source $debug_config
 	if ! $altpart && ! $alt_extsd; then default_extsd; fi
 }

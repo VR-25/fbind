@@ -41,6 +41,8 @@
 
 An additional argument to any of the binding functions above excludes additional Android folders from being deleted. For bind_mnt(), it also enables data to be moved with fbind -m.
 
+You can add user variables to the config file. These must be in the format "u# or u##" -- i.e., u9=/data/media/9, u11=YouGetThePoint.
+
 
 ***
 **DEBUGGING**
