@@ -1,3 +1,2 @@
-# Disable sdcardfs -- necessary for "mount -o bind" to work properly with fbind.
-
+# Disable sdcardfs -- necessary for "mount -o bind" to work properly.
 persist.sys.sdcardfs=force_off

@@ -36,6 +36,17 @@ cleanup Android/data/.um
 obb
 
 
+
+###MULTI-USER SETUP###
+
+u11=/data/media/11 # specifies intsd_path for user 11.
+bind_mnt $extsd/FOLDER $u11/FOLDER
+
+u13=/data/media/13 # specifies intsd_path for user 13.
+bind_mnt $extsd/FOLDER $u13/FOLDER
+
+
+
 ###ADVANCED SETUP###
 
 # USE AN ALTERNATE PARTITION & BIND IT TO $intsd/.extsd FOR EASIER ACCESS
@@ -48,6 +59,7 @@ obb
 # FULLY REPLACE intsd WITH extsd
 #altpart /dev/block/mmcblk1 $intsd f2fs
 #obb
+
 
 
 ###MISC###

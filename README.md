@@ -1,4 +1,4 @@
-# Magic Folder Binder (fbind)                                           # VR25 @ XDA Developers              
+# Magic Folder Binder (fbind)     
 # VR25 @ XDA Developers
 
 ***
@@ -15,8 +15,8 @@
 **QUICK SETUP**
 1. Install the module.
 2. Reboot.
-3. Read "Config Syntax" below & $intsd/_fbind/info/config_example.txt.
-4. Setup $intsd/_fbind/config.txt.
+3. Read "Config Syntax" below & /data/_fbind/info/config_example.txt.
+4. Setup /data/_fbind/config.txt.
 5. Run "fbind -mb" as root to move data & bind corresponding folders automatically.
 6. Forget.
 
@@ -27,7 +27,7 @@
 **Function + Parameter(s)**
 - altpart [block device] [mount point] [filesystem] ["fsck OPTION(s)" (filesystem dependent, optional)] --> auto-mount alternate partition & use it as extsd
 - app_data [folder] --> data/data <--> $extsd/.data (needs altpart or LinuxFS formated SD card)
-- bind_mnt [target mount_point] --> same as "mount -o bind [target mount_point]"
+- bind_mnt [TARGET mount_point] --> same as "mount -o bind [TARGET mount_point]"
 - cleanup [file/folder] --> auto-remove unwanted files/folders from intsd & extsd -- including by default, unwanted "Android" directories
 - cryptsetup=true --> disable Auto-bind service (necessary for opening a LUKS volume)
 - extsd_path [path] (i.e., /mnt/media_rw/NAME) --> ignore for default -- /mnt/media_rw/XXXX-XXXX
@@ -39,11 +39,13 @@
 - perm [package_name(s)] --> grant full storage access permission to specified package(s) (WIP)
 - target [target folder] --> great for standard paths (i.e., Android/data, TWRP/BACKUPS)
 
+An additional argument to any of the binding functions above excludes additional Android folders from being deleted. For bind_mnt(), it also enables data to be moved with fbind -m.
+
 
 ***
 **DEBUGGING**
 
-* Logfile --> $intsd/_fbind/debug.log
+* Logfile --> /data/_fbind/debug.log
 
 * Most likely, you don't need this
 - Permissive_SELinux -- sets SElinux mode to "permissive" (case sensitive).

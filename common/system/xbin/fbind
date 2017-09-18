@@ -3,12 +3,12 @@
 # fbind Toolkit
 # VR25 @ XDA Developers
 
-# Use Magisk's internal busybox
+# Environment prep
 export PATH=/system/xbin:/sbin:/dev/magisk/bin
-
-echo
 source /magisk/fbind/core.sh
 toolkit
+echo
+
 
 
 
@@ -137,11 +137,10 @@ move_data() {
 			[ -d $extobb ] || mkdir -p -m 777 $extobb
 			cp -a $intobb/* $extobb 2>/dev/null
 			rm -rf $intobb/*
-			echo
 		else
 			echo '- Nothing to move.'
-			echo
 		fi
+		echo
 	}
 	# game/app obb folder
 	obbf() {
@@ -152,11 +151,10 @@ move_data() {
 			cp -a $intobb/$1/* $extobb/$1 2>/dev/null
 			cd $intobb/$1
 			rm -rf $intobb/$1/*
-			echo
 		else
 			echo '- Nothing to move.'
-			echo
 		fi
+		echo
 	}
 	# target folder
 	target() {
@@ -166,11 +164,10 @@ move_data() {
 			[ -d "$extsd/$1" ] || mkdir -p -m 777 "$extsd/$1"
 			cp -a $intsd/"$1"/* $extsd/"$1" 2>/dev/null
 			rm -rf $intsd/"$1"/*
-			echo
 		else
 			echo '- Nothing to move.'
-			echo
 		fi
+		echo
 	}
 	# source <--> destination
 	from_to() {
@@ -180,11 +177,10 @@ move_data() {
 			[ -d "$extsd/$2" ] || mkdir -p -m 777 "$extsd/$2"
 			cp -a $intsd/"$1"/* $extsd/"$2" 2>/dev/null
 			rm -rf $intsd/"$1"/*
-			echo
 		else
 			echo '- Nothing to move.'
-			echo
 		fi
+		echo
 	}
 	# data/data/app_data_folder <--> $extsd/.app_data/app_data_folder
 	# $1=/data/data/app_data_folder
@@ -196,10 +192,21 @@ move_data() {
 			cp -a /data/data/$1/* $extsd/.app_data/$1 2>/dev/null
 			echo "rm -rf /data/data/$1" >>/data/.fbind_cleanup_list
 			echo "- Original files will be removed on post-fs-data (fail-safe)."
-			echo
 		echo '- Nothing to move.'
-			echo
 		fi
+		echo
+	}
+	# other(for multi-user & non-standard bindings)
+	bind_mnt() {
+		echo "[bind_mnt $1]"
+		if ! mntpt "$2" && [ "$(ls "$2")" ] && [ "$3" ]; then
+			echo "Moving $2/*..."
+			[ -d "$1" ] || mkdir -p -m 777 "$1"
+			cp -a "$2"/* "$1" 2>/dev/null
+			rm -rf "$2"/*
+		echo '- Nothing to move.'
+		fi
+		echo
 	}
 	source $bind_list
 	echo "Done."
@@ -296,7 +303,7 @@ rollback() {
 	echo
 	# entire obb folder
 	obb() {
-		if mntpt $intobb; then
+		if mntpt $intobb && [ "$(ls $intobb)" ]; then
 			echo "[$intobb]"
 			umount $intobb
 			cp -a $extobb/* $intobb 2>/dev/null
@@ -306,7 +313,7 @@ rollback() {
 	}
 	# game/app obb folder
 	obbf() {
-		if mntpt $intobb/$1; then
+		if mntpt $intobb/$1 && [ "$(ls $intobb/$1)" ]; then
 			echo "[$intobb/$1]"
 			umount $intobb/$1
 			cp -a $extobb/$1/* $intobb/$1 2>/dev/null
@@ -316,7 +323,7 @@ rollback() {
 	}
 	# target folder
 	target() {
-		if mntpt "$intsd/$1"; then
+		if mntpt "$intsd/$1" && [ "$(ls "$intsd/$1")" ]; then
 			echo "[$intsd/$1]"
 			umount "$intsd/$1"
 			cp -a $extsd/"$1"/* $intsd/"$1"
@@ -326,7 +333,7 @@ rollback() {
 	}
 	# source <--> destination
 	from_to() {
-		if mntpt "$intsd/$1"; then
+		if mntpt "$intsd/$1" && [ "$(ls "$intsd/$1")" ]; then
 			echo "[$intsd/$1]"
 			umount "$intsd/$1"
 			cp -a $extsd/"$2"/* $intsd/"$1" 2>/dev/null
@@ -335,7 +342,7 @@ rollback() {
 	}
 	# data/data/app <--> $extsd/.app_data/app
 	app_data() {
-		if mntpt /data/data/$1; then
+		if mntpt /data/data/$1 && [ "$(ls "/data/data/$1")" ]; then
 			mkdir -p /data/_restore/data_data 2>/dev/null
 			echo "Copying $extsd/.app_data/* to /data/_restore/data_data..."
 			cp -a $extsd/.app_data/* /data/_restore/data_data
@@ -348,8 +355,18 @@ rollback() {
 			echo "Remove \"$extsd/.app_data\" folder manually afterwards."
 		fi
 	}
+	# other
+	bind_mnt() {
+		echo "[bind_mnt $1]"
+		if mntpt "$2" && [ "$(ls "$2")" ] && [ "$3" ]; then
+			echo "$2"
+			umount "$2"
+			cp -a "$1"/* "$2" 2>/dev/null
+			rm -rf "$1"/*
+		fi
 	source $bind_list
 	echo "Done."
+	}
 }
 
 
@@ -362,7 +379,6 @@ else
 	apply_cfg &> /dev/null
 fi
 bkp_cfg
-intsd_fbind
 
 if [ "$1" = "-a" ]; then add_line
 elif [ "$1" = "-dd" ]; then add_line '-dd'

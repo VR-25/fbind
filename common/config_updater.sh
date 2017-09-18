@@ -56,5 +56,4 @@ cat $INSTALLER/tmp2 >> $config_file
 
 # Bind-mount /data/_fbind /data/media/0/_fbind
 mkdir -m 777 /data/media/0/_fbind
-mount -o bind /data/_fbind /data/media/0/_fbind
 } 2>/dev/null

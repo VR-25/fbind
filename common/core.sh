@@ -29,12 +29,6 @@ mk_cfg=false
 
 ###TOOLBOX###
 
-# Bind-mount fbind_dir to $intsd/fbind
-intsd_fbind() {
-	[ -d $intsd/_fbind ] || mkdir -m 777 $intsd/_fbind
-	mount -o bind /data/_fbind $intsd/_fbind
-} 2>/dev/null
-
 # Auto-recreate config file (fbind won't work without it)
 if [ ! -f "$config_file" ]; then
 	mk_cfg=true
@@ -145,6 +139,10 @@ update_cfg() {
 			grep -v '#' $config_file | grep -E 'Permissive_SELinux|altpart |extsd_path |intsd_path |intobb_path ' > $debug_config
 			grep -vE '#|intobb_path ' $config_file | grep -E 'app_data |obb|obbf |from_to |target ' > $bind_list
 			grep -v '#' $config_file | grep 'cleanup ' > $cleanup_config
+			
+			# Enable additional intsd paths for multi-user support
+			grep '#' $config_file | grep -Eq 'u[0-9]{1}=|u[0-9]{2}=' > $config_path/uVars
+			
 			chmod -R 777 $config_path
 			echo "- Done."
 		fi
@@ -152,6 +150,7 @@ update_cfg() {
 	echo
 }
 apply_cfg() {
+	source $config_path/uVars
 	source $debug_config
 	if ! $altpart && ! $alt_extsd; then default_extsd; fi
 }
@@ -228,6 +227,7 @@ bind_folders() {
 			bind $extsd/.app_data/$1 /data/data/$1
 		fi
 	}
+	# other
 	bind_mnt() {
 		ECHO
 		[ -d "$1" ] || mkdir -p -m 777 "$1"
