@@ -93,7 +93,7 @@ obb
 
 ###MISC###
 
-# If you your SD card name is different from the standard XXXX-XXXX.
+# If you your SD card name is different from the standard XXXX-XXXX
 extsd_path /mnt/media_rw/NAME
 
 # Some users experiencing bind issues may need to to set these lines (especially true for some Samsung devices/ROMs)
@@ -105,3 +105,6 @@ cryptsetup=true
 
 # "pm grant" storage permissions to all apps (including future installations), use only if the default method (platform.xml patch) doesn't work for you
 perms
+
+# Check for/fix SD card errors before system has a chance to mount it
+fsck -OPTION(s) /path/to/partition (i.e., fsck.f2fs -f /dev/block/mmcblk1)

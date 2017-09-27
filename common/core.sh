@@ -145,7 +145,7 @@ update_cfg() {
 		else
 			[ -d $config_path ] || mkdir $config_path
 			grep -v '#' $config_file | grep -E 'Permissive_SELinux|altpart |extsd_path |intsd_path |intobb_path ' > $debug_config
-			grep -vE '#|intobb_path ' $config_file | grep -E 'bind_mnt |app_data |int_extf|obb|obbf |from_to |target ' > $bind_list
+			grep -vE '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' > $bind_list
 			grep -v '#' $config_file | grep 'cleanup' > $cleanup_config
 			
 			# Enable additional intsd paths for multi-user support
@@ -190,7 +190,7 @@ bind_folders() {
 	target() { bind_mnt "$extsd/$1" "$intsd/$1" "[intsd/$1] <--> [extsd/$1]"; }
 	
 	# source <--> destination
-	from_to() { bind_mnt "extsd/$2" "intsd/$1" "[intsd/$1] <--> [extsd/$2]"; }
+	from_to() { bind_mnt "$extsd/$2" "$intsd/$1" "[intsd/$1] <--> [extsd/$2]"; }
 	
 	# data/data/app <--> extsd/.app_data/app
 	app_data() {
@@ -202,7 +202,7 @@ bind_folders() {
 			
 	# intsd <--> extsd/.fbind
 	int_extf() {
-		bind_mnt $extsd/.fbind $intsd
+		bind_mnt $extsd/.fbind $intsd "[int_extf]"
 		{ target Android
 		target data
 		obb; } &>/dev/null

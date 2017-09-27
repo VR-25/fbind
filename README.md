@@ -15,9 +15,9 @@
 **QUICK SETUP**
 1. Install the module.
 2. Reboot.
-3. Read "Config Syntax" below &/or /data/_fbind/info/config_samples.txt.
+3. Read `Config Syntax` below &/or /data/_fbind/info/config_samples.txt.
 4. Setup /data/_fbind/config.txt.
-5. Run "fbind -mb" as root to move data & bind corresponding folders automatically.
+5. Run `fbind -mb` as root to move data & bind corresponding folders automatically.
 6. Forget.
 
 
@@ -40,9 +40,11 @@
 - perms --> "pm grant" storage permissions to all apps (including future installations), use only if the default method (platform.xml patch) doesn't work for you
 - target [target folder] --> great for standard paths (i.e., Android/data, TWRP/BACKUPS)
 
-An additional argument (any string) to any of the binding functions above excludes additional Android folders from being deleted. For bind_mnt(), if the additional argument is "-mv", then fbind -m will obey that line too -- which is otherwise ignored by default for safety concerns.
+An additional argument (any string) to any of the binding functions above excludes additional Android folders from being deleted. For bind_mnt(), if the additional argument is `-mv`, then fbind -m will obey that line too -- which is otherwise ignored by default for safety concerns.
 
-You can add user variables to the config file. These must be in the format "u# or u##" -- i.e., u9=/data/media/9, u11=YouGetThePoint.
+- You can add user variables to the config file. These must be in the format `u# or u##` -- i.e., u9=/data/media/9, u11=YouGetThePoint.
+
+- You can add `fsck -OPTION(s) /path/to/partition` (i.e., `fsck.f2fs -f /dev/block/mmcblk1`). This will check for/fix SD card errors before system gets a chance to mount it.
 
 
 ***
@@ -51,8 +53,8 @@ You can add user variables to the config file. These must be in the format "u# o
 * Logfile --> /data/_fbind/debug.log
 
 * Most likely, you don't need this
-- Permissive_SELinux -- sets SElinux mode to "permissive" (case sensitive).
-- Permissive_SELinux -bind_only -- sets SELinux mode to "permissive" before binding folders and back to "enforcing" afterwards (case sensitive).
+- Permissive_SELinux -- sets SElinux mode to `permissive`.
+- Permissive_SELinux -bind_only -- sets SELinux mode to `permissive` before binding folders and back to `enforcing` afterwards.
 
 * Default internal storage paths (auto-configured)
 - intsd_path /data/media/0
@@ -63,12 +65,10 @@ You can add user variables to the config file. These must be in the format "u# o
 - intobb_path /storage/emulated/obb
 
 * Bind issues
-- Make sure you have busybox or similar binary (i.e., toybox) installed.
-- Try the alternate internal storage paths above.
-- Change "Namespace Mode" in Magisk Manager settings.
-- Google "Marshmallow SD Fix."
+- Try the `alternate internal storage paths` above.
+- Change `Namespace Mode` in Magisk Manager settings.
 
-* If the module causes a bootloop, try excluding system/xbin from installation, by running "touch /data/_x".
+* If you suspect fbind causes a bootloop, try excluding `system/xbin` from installation, by running `touch /data/_x`.
 
 
 ***

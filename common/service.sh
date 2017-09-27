@@ -18,6 +18,15 @@ fi
 
 
 log_start
+
+# Check/fix SD Card fs
+if grep -v '#' $config_file | grep -q fsck; then
+	echo "<Check/fix SD card fs>"
+	until [ -b "$(grep -v '#' $config_file | grep fsck | cut -d' ' -f3)" ]; do sleep 1; done &>/dev/null
+	$(grep -v '#' $config_file | grep fsck)
+	echo
+fi
+
 update_cfg
 apply_cfg
 bkp_cfg

@@ -1,11 +1,3 @@
-# v2017.9.18 (20179180)
-- [TEST] auto-add storage access permissions to /data/system/packages.xml -- perm pkg_name
-- Ability to move bind_mnt() data (fbind -m) when a 3rd argument is present (i.e., "bind_mnt data/FOLDER $intsd/FOLDER X")
-- User variables
-- No longer bind-mounting /data/_fbind to $intsd/_fbind.
-- Minor optimizations
-- Updated reference
-
 # v2017.9.18.1 (20179181)
 - Fixed bind_mnt()
 - Fixed fbind cmd
@@ -26,3 +18,8 @@
 - Auto-grant storage permissions to ALL apps by default (platform.xml patch & auto-re-patch across ROM updates).
 -- Alternate method uses "pm grant" -- add the line "perms" to your config file if the above method doesn't work.
 --- This one might take a while to complete (first time only)
+
+# v2017.9.27 (20179270)
+- Fixed from_to bind error.
+- You can now add `fsck -OPTION(s) /path/to/partition` to your config file (i.e., `fsck.f2fs -f /dev/block/mmcblk1`). This will check for/fix SD card errors before system gets a chance to mount it.
+- Updated reference.
