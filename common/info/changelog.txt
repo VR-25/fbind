@@ -26,3 +26,6 @@
 # v2017.9.27.2 (20179272)
 - Default SD card search path is no longer limited to "/mnt/media_rw/XXXX-XXXX". So, setting "extsd_path PATH" is no longer necessary if the path to the storage device starts with "/mnt/media_rw".
 - Updated reference
+
+# v2017.9.27.3 (20179273)
+- Fixed SD card detection mechanism.

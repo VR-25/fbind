@@ -116,7 +116,7 @@ altpart() {
 # Set Default extsd Path
 default_extsd() {
 	echo "<SD Card Information>"
-	until [ "$(ls /mnt/media_rw)" ]; do sleep 1; done &>/dev/null
+	until grep -q "/mnt/media_rw" /proc/mounts; do sleep 1; done
 	grep "$(ls /mnt/media_rw)" /proc/mounts
 	grep "$(ls /mnt/media_rw)" /proc/mounts | grep -Eq 'ext2|ext3|ext4|f2fs' && LinuxFS=true
 	extsd="/mnt/media_rw/$(ls /mnt/media_rw)"
@@ -158,6 +158,8 @@ update_cfg() {
 			
 			# Enable additional intsd paths for multi-user support
 			grep '#' $config_file | grep -Eq 'u[0-9]{1}=|u[0-9]{2}=' > $config_path/uvars
+			
+			#sed -Ei "/bind_mnt/s/ u/ $(echo "$intsd" | sed 's/\/0//')" $bind_list
 			
 			chmod -R 777 $config_path
 			echo "- Done."

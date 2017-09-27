@@ -140,7 +140,7 @@ rm -rf $MODPATH 2>/dev/null
 mkdir -p $MODPATH
 
 # Update $fbind_dir/* (preserves config.txt)
-[ "$CurVersionCode" -lt '20179270' ] && source $config_updater
+[ "$CurVersionCode" -lt '20179273' ] && source $config_updater
 
 # Copy files
 ui_print "- Copying files"
