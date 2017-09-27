@@ -1,3 +1,19 @@
+# v2017.9.26 (20179260)
+- Those facing bind issues, please double check your config file for errors...
+-- there's a small chance config_updater.sh might have messed with it a bit during 20179160 build update.
+- Updated reference (please READ/RE-READ config_samples.txt & README.txt).
+- Added critical flag -- bind_mnt, mv only if $3 = "-mv".
+- Added ability to unmount (fbind -u) /data/data/app -- flag -u -- i.e., app_data com.spotify.music -u).
+- app_data() works with internal storage too -- reduce the size of TWRP backups by saving huge app data to $intsd/.app_data.
+-- The line "extsd_path $intsd" must be present in your config file.
+- fbind -u affects bind_mnt() as well.
+- Rearranged $PATH elements to avoid/fix busybox issues.
+- int_extf() is back.
+- MASSIVE optimizations
+- Auto-grant storage permissions to ALL apps by default (platform.xml patch & auto-re-patch across ROM updates).
+-- Alternate method uses "pm grant" -- add the line "perms" to your config file if the above method doesn't work.
+--- This one might take a while to complete (first time only)
+
 # v2017.9.18.1 (20179181)
 - Fixed bind_mnt()
 - Fixed fbind cmd

@@ -15,8 +15,6 @@ debug=$config_file
 logfile=$fbind_dir/debug.log
 cleanup_list=$config_file
 cleanup_config=$config_path/cleanup
-service_enabled=$module_path/service.sh
-service_disabled=$module_path/service.disabled
 altpart=false
 bind_only=false
 alt_extsd=false
@@ -37,8 +35,6 @@ if [ ! -f "$config_file" ]; then
 	chmod 777 $config_file
 fi
 
-bind() { mount -o bind "$1" "$2"; }
-
 toolkit() { tk=true; }
 
 ECHO() { $tk && echo; }
@@ -46,6 +42,18 @@ ECHO() { $tk && echo; }
 mntpt() { mountpoint -q "$1"; } 2>/dev/null
 
 wait_emulated() { until mntpt /storage/emulated; do sleep 1; done; }
+
+# A "better" mount -o bind
+bind_mnt() {
+	if ! mntpt "$2"; then
+		ECHO
+		[ -d "$1" ] || mkdir -p -m 777 "$1"
+		[ -d "$2" ] || mkdir -p -m 777 "$2"
+		echo "$1 $2" | grep -Eq "$extsd|$intsd" && wait_emulated
+		[ "$3" ] && echo "$3" || echo "bind_mount [$1] [$2]"
+		mount -o bind "$1" "$2"
+	fi
+}
 
 
 ###DEBUGGING FUNCTIONS###
@@ -79,7 +87,7 @@ log_end() {
 altpart() {
 	if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then echo "(!) altpart(): missing argument(s)!"; exit 2; fi
 	echo "<Partition Information>"
-	PARTITION=$(echo $1 | sed 's|.*/||')
+	PARTITION=$(echo $1 | sed 's/.*\///')
 	altpart=true
 	extsd=$2
 	extobb=$extsd/Android/obb
@@ -88,7 +96,7 @@ altpart() {
 		[ -d $2 ] || mkdir -p -m 777 $extobb
 		until [ -b $1 ]; do sleep 1; done
 		
-		# cryptsetup (LUKS) support ( BinPath: $module_path/system/xbin/cryptsetup)
+		# cryptsetup (LUKS) support ( BinPath: module_path/system/xbin/cryptsetup)
 		if grep -v '#' $config_file | grep -q 'cryptsetup=true'; then
 			cryptsetup luksOpen $1 $PARTITION
 			[ $? ] && echo '***'
@@ -137,7 +145,7 @@ update_cfg() {
 		else
 			[ -d $config_path ] || mkdir $config_path
 			grep -v '#' $config_file | grep -E 'Permissive_SELinux|altpart |extsd_path |intsd_path |intobb_path ' > $debug_config
-			grep -vE '#|intobb_path ' $config_file | grep -E 'bind_mnt |app_data |obb|obbf |from_to |target ' > $bind_list
+			grep -vE '#|intobb_path ' $config_file | grep -E 'bind_mnt |app_data |int_extf|obb|obbf |from_to |target ' > $bind_list
 			grep -v '#' $config_file | grep 'cleanup' > $cleanup_config
 			
 			# Enable additional intsd paths for multi-user support
@@ -171,71 +179,35 @@ bind_folders() {
 	ECHO
 	echo "<Bind Folders>"
 	SetEnforce_0
+	
 	# entire obb folder
-	obb() {
-		wait_emulated
-		if ! mntpt $intobb; then
-			ECHO
-			[ -d $extobb ] || mkdir -p -m 777 $extobb
-			[ -d $intobb ] || mkdir -p -m 777 $intobb
-			echo "[$intobb] <--> [$extobb]"
-			bind $extobb $intobb
-		fi
-	}
+	obb() { bind_mnt $extobb $intobb "[intobb] <--> [extobb]"; }
+	
 	# game/app obb folder
-	obbf() {
-		wait_emulated
-		if ! mntpt $intobb/$1; then
-			ECHO
-			[ -d $extobb/$1 ] || mkdir -p -m 777 $extobb/$1
-			[ -d $intobb/$1 ] || mkdir -p -m 777 $intobb/$1
-			echo "[$intobb/$1] <--> [$extobb/$1]"
-			bind $extobb/$1 $intobb/$1
-		fi
-	}
+	obbf() { bind_mnt $extobb/$1 $intobb/$1 "[obbf $1]"; }
+	
 	# target folder
-	target() {
-		wait_emulated
-		if ! mntpt "$intsd/$1"; then
-			ECHO
-			[ -d "$extsd/$1" ] || mkdir -p -m 777 "$extsd/$1"
-			[ -d "$intsd/$1" ] || mkdir -p -m 777 "$intsd/$1"
-			echo "[$intsd/$1] <--> [$extsd/$1]"
-			bind "$extsd/$1" "$intsd/$1"
-		fi
-	}
+	target() { bind_mnt "$extsd/$1" "$intsd/$1" "[intsd/$1] <--> [extsd/$1]"; }
+	
 	# source <--> destination
-	from_to() {
-			wait_emulated
-			if ! mntpt "$intsd/$1"; then
-				ECHO
-				[ -d "$extsd/$2" ] || mkdir -p -m 777 "$extsd/$2"
-				[ -d "$intsd/$1" ] || mkdir -p -m 777 "$intsd/$1"
-				echo "[$intsd/$1] <--> [$extsd/$2]"
-				bind "$extsd/$2" "$intsd/$1"
-			fi
-	}
-	# data/data/folder <--> $extsd/.app_data/folder
-	# $1=/data/data/folder
+	from_to() { bind_mnt "extsd/$2" "intsd/$1" "[intsd/$1] <--> [extsd/$2]"; }
+	
+	# data/data/app <--> extsd/.app_data/app
 	app_data() {
-		if ! $altpart && ! $LinuxFS; then ECHO; echo "(!) fbind: app_data() won't work without altpart() or extsd_path() (LinuxFS)!"; exit 2; fi
-		if ! mntpt /data/.app_data/$1; then
-			ECHO
-			[ -d "$extsd/.app_data/$1" ] || mkdir -p -m 751 $extsd/.app_data/$1
-			[ -d /data/data/$1 ] || mkdir -p -m 751 /data/data/$1
-			echo "[/data/data/$1] <--> [$extsd/.app_data/$1]"
-			bind $extsd/.app_data/$1 /data/data/$1
+		if ! $altpart && ! $LinuxFS; then ECHO
+			echo "(!) fbind: app_data() won't work without altpart() or extsd_path() (LinuxFS)!"
+			exit 1
 		fi
+		bind_mnt $extsd/.app_data/$1 /data/data/$1 "[/data/data/$1] <--> [extsd/.app_data/$1]"; }
+			
+	# intsd <--> extsd/.fbind
+	int_extf() {
+		bind_mnt $extsd/.fbind $intsd
+		{ target Android
+		target data
+		obb; } &>/dev/null
 	}
-	# other
-	bind_mnt() {
-		ECHO
-		[ -d "$1" ] || mkdir -p -m 777 "$1"
-		[ -d "$2" ] || mkdir -p -m 777 "$2"
-		echo "$1 $2" | grep -Eq '$extsd|$intsd' && wait_emulated
-		echo "bind_mnt [$1] [$2]"
-		bind "$1" "$2"
-	}
+
 	source $bind_list
 	SetEnforce_1
 	ECHO

@@ -15,7 +15,7 @@
 **QUICK SETUP**
 1. Install the module.
 2. Reboot.
-3. Read "Config Syntax" below & /data/_fbind/info/config_example.txt.
+3. Read "Config Syntax" below &/or /data/_fbind/info/config_samples.txt.
 4. Setup /data/_fbind/config.txt.
 5. Run "fbind -mb" as root to move data & bind corresponding folders automatically.
 6. Forget.
@@ -26,20 +26,21 @@
  
 **Function + Parameter(s)**
 - altpart [block device] [mount point] [filesystem] ["fsck OPTION(s)" (filesystem dependent, optional)] --> auto-mount alternate partition & use it as extsd
-- app_data [folder] --> data/data <--> $extsd/.data (needs altpart or LinuxFS formated SD card)
+- app_data [folder] --> data/data <--> extsd/.data (needs altpart or LinuxFS formated SD card), to use with intsd instead, include the config line "extsd_path $intsd"
 - bind_mnt [TARGET mount_point] --> same as "mount -o bind [TARGET mount_point]"
 - cleanup [file/folder] --> auto-remove unwanted files/folders from intsd & extsd -- including by default, unwanted "Android" directories
 - cryptsetup=true --> disable Auto-bind service (necessary for opening a LUKS volume)
 - extsd_path [path] (i.e., /mnt/media_rw/NAME) --> ignore for default -- /mnt/media_rw/XXXX-XXXX
-- from_to [$intsd folder] [$extsd folder] --> great for media folders & extra organization
+- from_to [intsd folder] [extsd folder] --> great for media folders & extra organization
 - intobb_path [path] --> i.e., /storage/emulated/0 (ignore for default -- /data/media/0)
+- intsd_f --> intsd to extsd/.fbind (includes obb)
 - intsd_path [path] --> i.e., /storage/emulated/0/Android/obb (ignore for default -- /data/media/obb)
 - obb --> entire obb
 - obbf [app/game folder] --> individual obb
-- perm [package_name(s)] --> grant full storage access permission to specified package(s) (WIP)
+- perms --> "pm grant" storage permissions to all apps (including future installations), use only if the default method (platform.xml patch) doesn't work for you
 - target [target folder] --> great for standard paths (i.e., Android/data, TWRP/BACKUPS)
 
-An additional argument to any of the binding functions above excludes additional Android folders from being deleted. For bind_mnt(), it also enables data to be moved with fbind -m.
+An additional argument (any string) to any of the binding functions above excludes additional Android folders from being deleted. For bind_mnt(), if the additional argument is "-mv", then fbind -m will obey that line too -- which is otherwise ignored by default for safety concerns.
 
 You can add user variables to the config file. These must be in the format "u# or u##" -- i.e., u9=/data/media/9, u11=YouGetThePoint.
 
@@ -59,7 +60,7 @@ You can add user variables to the config file. These must be in the format "u# o
 
 * Alternate internal storage paths
 - intsd_path /storage/emulated/0
-- intobb_path /storage/emulated/0/Android/obb
+- intobb_path /storage/emulated/obb
 
 * Bind issues
 - Make sure you have busybox or similar binary (i.e., toybox) installed.

@@ -1,0 +1,107 @@
+###REGULAR SETUP###
+
+# Source (intsd) --> Destination extsd)
+# You can replace ".fbind" with a your own folder name
+# The dot (.) avoids duplicates showing up in gallery -- great for media folders
+from_to Download .fbind/Download
+from_to MagiskManager .fbind/MagiskManager
+from_to OGMods .fbind/OGMods
+from_to TitaniumBackup .fbind/TitaniumBackup
+from_to WhatsApp .fbind/WhatsApp
+from_to Hyperionics .fbind/Hyperionics
+from_to DraStic .fbind/DraStic
+from_to Pictures .fbind/Pictures
+from_to DCIM .fbind/DCIM
+from_to Android/data/com.xda.labs .fbind/XDALabsFiles
+from_to MEGA .fbind/MEGA
+from_to docs .fbind/docs
+from_to projects .fbind/projects
+from_to SHAREit .fbind/SHAREit
+from_to FastHub .fbind/FastHub
+from_to ADM .fbind/ADM
+from_to Dukto .fbind/Dukto
+from_to Music .fbind/Music
+
+# When the paths are the same (i.e., intsd/folder & extsd/folder) & target directories contain no media files
+target data # Like "from_to data data", but why bother writing "data" twice? -- again, this is for non-media folders only!
+target TWRP/BACKUPS # This is similar to "from_to TWRP/BACKUPS TWRP/BACKUPS" (see the repetition? Exactly -- Same path!)
+
+# Auto-remove unwanted/stubborn files/folders from intsd & extsd (no need to specify the storage itself, just the folder/file path/name inside it)
+cleanup Podcasts
+cleanup Alarms
+cleanup com.cmcm.whatscalllite
+cleanup Documents
+cleanup Notifications
+cleanup Ringtones
+cleanup Keku
+cleanup .mobvista700
+cleanup Android/obj
+cleanup Android/SLOWDNS_TEMP_DIR
+cleanup Android/TROID_TEMP_DIR
+cleanup Android/.playstor.srf
+cleanup Android/data/.um
+obb
+
+
+
+###ONE-LINE SETUP###
+
+# Bind-mount intsd to extsd/.fbind (includes obb)
+int_extf
+
+
+
+###MULTI-USER SETUP###
+
+u11=/data/media/11 # specifies intsd_path for user 11.
+bind_mnt $extsd/FOLDER $u11/FOLDER
+
+u13=/data/media/13 # specifies intsd_path for user 13.
+bind_mnt $extsd/FOLDER $u13/FOLDER
+
+u# & u## are user variables -- these can be set to any value(s) you wish.
+
+
+
+###Save /data/data/APP to intsd/.app_data or extsd/.app_data###
+
+# To intsd/.app_data/APP
+extsd_path $intsd
+app_data APP
+
+# To extsd/.app_data/APP###
+app_data APP
+
+
+
+###ADVANCED SETUP###
+
+# Auto-mount an alternate partition & bind-mount it to $intsd/.extsd for easier access
+altpart /dev/block/mmcblk1 /data/.extsd f2fs
+bind_mnt /data/.extsd $intsd/.extsd X
+obb
+
+# Fully replace intsd with extsd
+altpart /dev/block/mmcblk1 $intsd f2fs
+obb
+
+# Bind-mount intsd to extsd/.fbind
+bind_mnt $extsd/.fbind $intsd -mv
+obb
+
+
+
+###MISC###
+
+# If you your SD card name is different from the standard XXXX-XXXX.
+extsd_path /mnt/media_rw/NAME
+
+# Some users experiencing bind issues may need to to set these lines (especially true for some Samsung devices/ROMs)
+intsd_path /storage/emulated/0
+intobb_path /storage/emulated/obb
+
+# Open a LUKS volume (works in conjunction with "altpart" -- introduced in ADVANCED SETUP)
+cryptsetup=true
+
+# "pm grant" storage permissions to all apps (including future installations), use only if the default method (platform.xml patch) doesn't work for you
+perms

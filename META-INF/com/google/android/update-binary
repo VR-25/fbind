@@ -105,7 +105,7 @@ ui_print "******************************"
 # Install
 ##########################################################################################
 
-request_zip_size_check "$ZIP"
+request_size_check $INSTALLER ###
 
 if [ -f "$IMG" ]; then
   ui_print "- Found $IMG"
@@ -127,7 +127,7 @@ is_mounted $MOUNTPATH || abort "! $IMG mount failed..."
 
 
 ##########################################################################################
-# Variables & Constants
+# Constants & Variables
 fbind_dir=/data/_fbind
 info_dir=$fbind_dir/info
 config_file=$fbind_dir/config.txt
@@ -140,9 +140,10 @@ rm -rf $MODPATH 2>/dev/null
 mkdir -p $MODPATH
 
 # Update $fbind_dir/* (preserves config.txt)
-[ "$CurVersionCode" -lt '20179160' ] && source $config_updater
+[ "$CurVersionCode" -lt '20179260' ] && source $config_updater
 
 # Copy files
+ui_print "- Copying files"
 mkdir -p $info_dir 2>/dev/null
 mv $INSTALLER/common/info/* $info_dir # I know, I know. This avoids a mv bug -- can't replace folders.
 [ -f /data/_x ] && rm /data/_x || mv $INSTALLER/common/system $MODPATH
@@ -153,6 +154,41 @@ mv $INSTALLER/README.md $info_dir/README.txt
 [ -f $info_dir/License.txt ] || mv $INSTALLER/License.md $info_dir/License.txt
 mv $INSTALLER/common/core.sh $MODPATH
 chmod -R 777 $fbind_dir
+
+
+# Patch platform.xml for full storage access permissions
+XML_mod_dir=$MODPATH/system/etc/permissions
+
+$BOOTMODE && cp /dev/magisk/mirror/system/etc/permissions/platform.xml $INSTALLER \
+	|| cp /system/etc/permissions/platform.xml $INSTALLER
+
+sed -i '/WRITE_MEDIA_STORAGE\" >/a\
+		<group gid="media_rw" \/>\
+		<group gid="sdcard_rw" \/>' $INSTALLER/platform.xml
+	
+sed -i '/WRITE_MEDIA_STORAGE\" \/>/a\
+		<group gid="media_rw" \/>\
+		<group gid="sdcard_rw" \/>\
+	<\/permission>' $INSTALLER/platform.xml
+sed -i '/WRITE_MEDIA_STORAGE\" \/>/s/\/>/>/' $INSTALLER/platform.xml
+
+sed -i '/WRITE_EXTERNAL_STORAGE\" >/a\
+		<group gid="media_rw" \/>\
+		<group gid="sdcard_rw" \/>' $INSTALLER/platform.xml
+	
+sed -i '/WRITE_EXTERNAL_STORAGE\" \/>/a\
+		<group gid="media_rw" \/>\
+		<group gid="sdcard_rw" \/>\
+	<\/permission>' $INSTALLER/platform.xml
+sed -i '/WRITE_EXTERNAL_STORAGE\" \/>/s/\/>/>/' $INSTALLER/platform.xml
+
+mkdir -p $XML_mod_dir
+mv $INSTALLER/platform.xml $XML_mod_dir
+
+
+# Export /system size info for platform.xml auto-re-patching across ROM updates
+$BOOTMODE && echo "$(du -s /dev/magisk/mirror/system | cut -f1)" > $MODPATH/.InstallSystemSizeK \
+	|| echo "$(du -s /system | cut -f1)" > $MODPATH/.InstallSystemSizeK
 ##########################################################################################
 
 
