@@ -1,3 +1,7 @@
+# v2017.9.27.1 (20179271)
+- Fixed bind-mount app_data to intsd.
+- Now, if extsd path is null/unspecified ("extsd_path" with nothing in front), fbind will auto detect it.
+
 # v2017.9.27 (20179270)
 - Fixed from_to bind error.
 - You can now add `fsck -OPTION(s) /path/to/partition` to your config file (i.e., `fsck.f2fs -f /dev/block/mmcblk1`). This will check for/fix SD card errors before system gets a chance to mount it.

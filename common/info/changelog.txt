@@ -1,8 +1,3 @@
-# v2017.9.18.1 (20179181)
-- Fixed bind_mnt()
-- Fixed fbind cmd
-- Updated reference
-
 # v2017.9.26 (20179260)
 - Those facing bind issues, please double check your config file for errors...
 -- there's a small chance config_updater.sh might have messed with it a bit during 20179160 build update.
@@ -23,3 +18,7 @@
 - Fixed from_to bind error.
 - You can now add `fsck -OPTION(s) /path/to/partition` to your config file (i.e., `fsck.f2fs -f /dev/block/mmcblk1`). This will check for/fix SD card errors before system gets a chance to mount it.
 - Updated reference.
+
+# v2017.9.27.1 (20179271)
+- Fixed bind-mount app_data to intsd.
+- Now, if extsd path is null/unspecified ("extsd_path" with nothing in front), fbind will auto detect it.

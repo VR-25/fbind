@@ -183,7 +183,7 @@ move_data() {
 	app_data() {
 		echo "[app_data $1]"
 		if ! mntpt /data/data/$1 && [ "$(ls /data/data/$1)" ]; then
-			echo "Copying /data/data/$1 to $extsd/.app_data..."
+			echo "Copying /data/data/$1 to extsd/.app_data..."
 			[ -d $extsd/.app_data/$1 ] || mkdir -p -m 751 $extsd/.app_data/$1
 			cp -a /data/data/$1/* $extsd/.app_data/$1 2>/dev/null
 			echo "rm -rf /data/data/$1" >> /data/.fbind_cleanup_list
