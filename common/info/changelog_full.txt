@@ -1,3 +1,7 @@
+# v2017.9.27.2 (20179272)
+- Default SD card search path is no longer limited to "/mnt/media_rw/XXXX-XXXX". So, setting "extsd_path PATH" is no longer necessary if the path to the storage device starts with "/mnt/media_rw".
+- Updated reference
+
 # v2017.9.27.1 (20179271)
 - Fixed bind-mount app_data to intsd.
 - Now, if extsd path is null/unspecified ("extsd_path" with nothing in front), fbind will auto detect it.

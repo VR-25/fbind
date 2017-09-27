@@ -30,7 +30,7 @@
 - bind_mnt [TARGET mount_point] --> same as "mount -o bind [TARGET mount_point]"
 - cleanup [file/folder] --> auto-remove unwanted files/folders from intsd & extsd -- including by default, unwanted "Android" directories
 - cryptsetup=true --> disable Auto-bind service (necessary for opening a LUKS volume)
-- extsd_path [path] (i.e., /mnt/media_rw/NAME) --> ignore for default -- /mnt/media_rw/XXXX-XXXX, if extsd path is null/unspecified ("extsd_path" with nothing in front), fbind will auto detect it
+- extsd_path [/path/to/alternate/storage]) --> ignore for default -- /mnt/media_rw/*, include the line `extsd_path $intsd` in your config file if your device hasn't or doesn't support SD card
 - from_to [intsd folder] [extsd folder] --> great for media folders & extra organization
 - intobb_path [path] --> i.e., /storage/emulated/0 (ignore for default -- /data/media/0)
 - intsd_f --> intsd to extsd/.fbind (includes obb)

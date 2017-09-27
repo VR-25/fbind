@@ -93,8 +93,8 @@ obb
 
 ###MISC###
 
-# If you your SD card name is different from the standard XXXX-XXXX
-extsd_path /mnt/media_rw/NAME
+# If you your SD card path is different from the standard /mnt/media_rw/*
+extsd_path /path/to/storage
 
 # Some users experiencing bind issues may need to to set these lines (especially true for some Samsung devices/ROMs)
 intsd_path /storage/emulated/0

@@ -116,27 +116,21 @@ altpart() {
 # Set Default extsd Path
 default_extsd() {
 	echo "<SD Card Information>"
-	until grep -E '[0-9A-F]{4}-[0-9A-F]{4}' /proc/mounts; do sleep 1; done
-	extsd="/mnt/media_rw/$(ls -1 /mnt/media_rw | grep -E '[0-9A-F]{4}-[0-9A-F]{4}')"
+	until [ "$(ls /mnt/media_rw)" ]; do sleep 1; done &>/dev/null
+	grep "$(ls /mnt/media_rw)" /proc/mounts
+	grep "$(ls /mnt/media_rw)" /proc/mounts | grep -Eq 'ext2|ext3|ext4|f2fs' && LinuxFS=true
+	extsd="/mnt/media_rw/$(ls /mnt/media_rw)"
 	extobb=$extsd/Android/obb
 	echo
 }
 
 # Set Alternate extsd Path
-# $1=PATH (i.e., /mnt/media_rw/NAME)
+# $1=/path/to/alternate/storage
 extsd_path() {
 	if [ "$1" = "$intsd" ]; then
 		LinuxFS=true
 		extsd="$1"
 		extobb="$intobb"
-	elif [ -z "$1" ]; then
-		echo "<SD Card Information>"
-		until [ "$(ls /mnt/media_rw)" ] do sleep 1; done &>/dev/null
-		grep "$(ls /mnt/media_rw)" /proc/mounts | grep -Eq 'ext2|ext3|ext4|f2fs' && LinuxFS=true
-		alt_extsd=true
-		extsd="$(ls /mnt/media_rw)"
-		extobb="$extsd/Android/obb"
-		echo
 	else
 		echo "<SD Card Information>"
 		until grep "$1" /proc/mounts; do sleep 1; done
