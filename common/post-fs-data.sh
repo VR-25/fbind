@@ -43,14 +43,4 @@ if [ "$(cat $MODPATH/.InstallSystemSizeK)" -ne "$(du -s /dev/magisk/mirror/syste
 	echo "$(du -s /dev/magisk/mirror/system | cut -f1)" > $MODPATH/.InstallSystemSizeK
 fi
 
-
-# data/data cleanup
-list=/data/.fbind_cleanup_list
-if [ -f $list ]; then
-	exec &>/data/_fbind/app_data_cleanup.log
-	echo "$(date)"
-	echo
-	source $list
-	rm -f $list
-fi
 exit 0

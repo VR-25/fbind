@@ -1,3 +1,13 @@
+# v2017.9.30 (20179300)
+* Fixed
+-- App data move
+-- Bind issues
+* Updated fbind terminal toolkit
+-- Batch operations
+--- fbind -ad --> add "app_data" lines to config.txt (interactive)
+--- fbind -as --> ask for SOURCE dirs (intsd/SOURCE) & add corresponding "from_to" lines to config.txt (interactive)
+--- fbind restore --> move select data back to original locations (interactive)	
+
 # v2017.9.27.3 (20179273)
 - Fixed SD card detection mechanism.
 

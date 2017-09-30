@@ -1,6 +1,7 @@
 # Magic Folder Binder (fbind)     
 # VR25 @ XDA Developers
 
+
 ***
 **DESCRIPTION**
 - Forces Android to save select files/folders to the external_sd (or alternate partition) by default, & clean up the user's storage (select unwanted, stubborn files/folders) automatically.
@@ -45,6 +46,44 @@ An additional argument (any string) to any of the binding functions above exclud
 - You can add user variables to the config file. These must be in the format `u# or u##` -- i.e., u9=/data/media/9, u11=YouGetThePoint.
 
 - You can add `fsck -OPTION(s) /path/to/partition` (i.e., `fsck.f2fs -f /dev/block/mmcblk1`). This will check for/fix SD card errors before system gets a chance to mount it.
+
+
+***
+**fbind Terminal Toolkit**
+
+Usage: fbind OPTION(s) ARGUMENT(s)
+
+-a --> Add line(s) to config.txt (interactive)
+-b --> Bind all
+-c --> Storage cleanup
+-d --> Disable autobind service
+-e --> Re-enable autobind service
+-f --> Disable this toolkit
+-l --> Show config.txt
+-m --> Move data to the sdcard
+-r --> Remove lines(s) from config.txt (interactive)
+-u --> Unbind everything
+-x --> Disable the module
+-mb --> Move data, bind folders
+ref --> Show README
+log --> Show debug.log
+chlog --> Show changelog
+
+-ad --> Add "app_data" line(s) to config.txt (interactive)
+
+-as --> Ask for SOURCE dirs (intsd/SOURCE) & add corresponding "from_to" lines to config.txt (interactive)
+
+-umb --> Unbind all, move data, rebind (CAUTION!)
+
+restore --> Move select data back to original locations (interactive)
+
+rollback --> Unbind all, uninstall fbind & restore files
+
+uninstall --> Unbind all & uninstall fbind
+
+(i) The "-m" option affects unmounted folders only. Caution: it replaces destination data!
+
+(!) Warning: only use "fbind -umb" if you know exactly what you're doing! That option is only intended for first time use -- i.e., in case you forgot to move data after installing the module for the very first time and rebooted. Since "-m" only moves unmounted folders data, the "-u" option makes it work. Again, once everything is unmounted, "-m" will then replace destination data. "fbind -mb" is the safer alternative, since it only moves new data. Let's say you just added a few lines to your config.txt file and the corresponding folders are not bound & data was not moved yet -- that's when you use this.
 
 
 ***

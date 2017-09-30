@@ -1,5 +1,5 @@
 # fbind Core
-# VR25 @ XDA Developers              
+# VR25 @ XDA Developers
 
 
 ###CONSTANTS & VARIABLES###
@@ -20,8 +20,6 @@ bind_only=false
 alt_extsd=false
 tk=false
 LinuxFS=false
-tmp=/data/_tmp
-tmp2=/data/_tmp2
 mk_cfg=false
 
 
@@ -48,6 +46,7 @@ bind_mnt() {
 	if ! mntpt "$2"; then
 		ECHO
 		[ -d "$1" ] || mkdir -p -m 777 "$1"
+		echo "$1" | grep -q ".app_data" && chmod 771 "$1"
 		[ -d "$2" ] || mkdir -p -m 777 "$2"
 		echo "$1 $2" | grep -Eq "$extsd|$intsd" && wait_emulated
 		[ "$3" ] && echo "$3" || echo "bind_mount [$1] [$2]"
@@ -208,7 +207,8 @@ bind_folders() {
 			echo "(!) fbind: app_data() won't work without altpart() or extsd_path() (LinuxFS)!"
 			exit 1
 		fi
-		bind_mnt $extsd/.app_data/$1 /data/data/$1 "[/data/data/$1] <--> [extsd/.app_data/$1]"; }
+		bind_mnt $extsd/.app_data/$1 /data/data/$1 "[/data/data/$1] <--> [extsd/.app_data/$1]"
+	}
 			
 	# intsd <--> extsd/.fbind
 	int_extf() {
@@ -216,6 +216,19 @@ bind_folders() {
 		{ target Android
 		target data
 		obb; } &>/dev/null
+	}
+	
+	# A "better" mount -o bind
+	bind_mnt() {
+		if ! mntpt "$2"; then
+			ECHO
+			[ -d "$1" ] || mkdir -p -m 777 "$1"
+			echo "$1" | grep -q ".app_data" && chmod 771 "$1"
+			[ -d "$2" ] || mkdir -p -m 777 "$2"
+			echo "$1 $2" | grep -Eq "$extsd|$intsd" && wait_emulated
+			[ "$3" ] && echo "$3" || echo "bind_mount [$1] [$2]"
+			mount -o bind "$1" "$2"
+		fi
 	}
 
 	source $bind_list
