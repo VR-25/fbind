@@ -41,11 +41,11 @@
 - perms --> "pm grant" storage permissions to all apps (including future installations), use only if the default method (platform.xml patch) doesn't work for you
 - target [target folder] --> great for standard paths (i.e., Android/data, TWRP/BACKUPS)
 
-An additional argument (any string) to any of the binding functions above excludes additional Android folders from being deleted. For bind_mnt(), if the additional argument is `-mv`, then fbind -m will obey that line too -- which is otherwise ignored by default for safety concerns.
+An additional argument (any string) to any of the binding functions above excludes additional Android folders from being deleted. For bind_mnt(), if the additional argument is `-mv`, then fbind -m will obey that line too -- which is otherwise ignored by default for safety concerns. For app_data, "-u" allows fbind -u to "see" the specified line (also otherwise ignored by default).
 
-- You can add user variables to the config file. These must be in the format `u# or u##` -- i.e., u9=/data/media/9, u11=YouGetThePoint.
+You can add user variables to the config file. These must be in the format `u# or u##` -- i.e., u9=/data/media/9, u11=YouGetThePoint.
 
-- You can add `fsck -OPTION(s) /path/to/partition` (i.e., `fsck.f2fs -f /dev/block/mmcblk1`). This will check for/fix SD card errors before system gets a chance to mount it.
+You can add `fsck -OPTION(s) /path/to/partition` (i.e., `fsck.f2fs -f /dev/block/mmcblk1`). This will check for/fix SD card errors before system gets a chance to mount it.
 
 
 ***

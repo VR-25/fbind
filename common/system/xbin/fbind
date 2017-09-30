@@ -40,10 +40,11 @@ mvdt() {
 
 # Move data (rollback)
 mvdtR() {
-	if ! mntpt "$2" && [ "$(ls "$1")" ]; then
+	if mntpt "$2" && [ "$(ls "$1")" ]; then
+		umount "$2"
 		echo "[$3]"
 		cp -a "$1"/* "$2" 2>/dev/null
-		rm -rf "$1"/*
+		rm -rf "$1"
 	fi
 }
 
@@ -72,9 +73,9 @@ Usage: fbind OPTION(s) ARGUMENT(s)
 -l		Show config.txt
 -m		Move data to the sdcard
 -r		Remove lines(s) from config.txt (interactive)
--u		Unbind everything
--x		Disable the module
--mb		Move data, bind folders
+-u		Unbind all
+-x		Disable fbind
+-mb		Move data & bind corresponding folders
 ref		Show README
 log		Show debug.log
 chlog		Show changelog
@@ -83,9 +84,9 @@ chlog		Show changelog
 
 -as		Ask for SOURCE dirs (intsd/SOURCE) & add corresponding "from_to" lines to config.txt (interactive)
 
--umb		Unbind all, move data, rebind (CAUTION!)
+-umb		(!) Unbind all, move data & rebind
 
-restore	Move select data back to original locations (interactive)
+restore		Move select data back to original locations (interactive)
 
 rollback	Unbind all, uninstall fbind & restore files
 
@@ -178,14 +179,13 @@ add_line() {
 list_cfg() {
 	echo "Your fbind Config"
 	echo
-	grep -Ev '#|^$' $config_file
+	cat $config_file
 	echo
 }
 
 
 move_data() {
-	echo '<Move Data>'
-	echo
+	echo "Moving data..."
 	
 	# entire obb folder
 	obb() { mvdt $intobb $extobb obb; }
@@ -200,36 +200,23 @@ move_data() {
 	from_to() { mvdt "$intsd/$1" "$extsd/$2" "from_to \"$1\" \"$2\""; }
 
 	# data/data/app <--> $extsd/.app_data/app_data_folder
-	app_data() {
-		if ! mntpt /data/data/$1 && [ "$(ls /data/data/$1)" ]; then
-			echo "[app_data $1]"
-			[ -d $extsd/.app_data ] || mkdir -m 771 $extsd/.app_data
-			cp -a /data/data/$1 $extsd/.app_data 2>/dev/null
-			rm -rf /data/data/$1/*
-		fi
-	}
+	app_data() { mvdt "/data/data/$1" "$extsd/.app_data/$1" "app_data $1"; }
 	
 	# intsd <--> extsd/.fbind
-	int_extf() { mvdt $intsd $extsd/.fbind "int_extf"
-		{ obb
-		target Android
-		target data; } &>/dev/null
-	}
+	int_extf() { mvdt $intsd $extsd/.fbind "int_extf"; }
 	
 	# Other
 	bind_mnt() {
 		if ! mntpt "$2" && [ "$(ls "$2")" ] && [ "$3" = "-mv" ]; then
 			echo "[$2]"
 			[ -d "$1" ] || mkdir -p -m 777 "$1"
-			echo "$1" | grep -q ".app_data" && chmod 771 "$1"
 			cp -a "$2"/* "$1" 2>/dev/null
 			rm -rf "$2"/*
 		fi
 	}
 
 	source $bind_list
-	echo
-	echo "Done."
+	echo "- Done."
 	echo
 }
 
@@ -247,20 +234,22 @@ rm_line() {
 		read INPUT
 		[ "$INPUT" ] && grep -v "$INPUT" $config_file >> $tmp && grep "$INPUT" $config_file >> $tmp2
 	done
-	
-	cat $tmp > $config_file
-	chmod 777 $config_file
-	echo
-	echo "Removed line(s):"
-	cat $tmp2
-	rm -f $tmp $tmp2
+
+	if grep -Eq '[0-9]{1}|[a-z]{1}|[A-Z]{1}' $tmp; then
+		cat $tmp > $config_file
+		chmod 777 $config_file
+		echo "Removed line(s):"
+		cat $tmp2
+		rm -f $tmp $tmp2
+	else
+		echo "No line(s) removed."
+	fi
 	echo
 }
 
 
 unmount_folders() {	
-	echo '<Unmount Folders>'
-	echo
+	echo 'Unmounting folders...'
 	
 	# entire obb folder
 	obb() { umnt $intobb "obb"; }
@@ -283,16 +272,16 @@ unmount_folders() {
 	}
 	
 	# intsd <--> extsd/.fbind
-	int_extf() { umnt $intsd "int_extf"
-		{ obb
-		target Android
-		target data; } &>/dev/null
+	int_extf() {
+		umount $intobb
+		umount $intsd/Android
+		umount $intsd/data
+		umnt $intsd "int_extf"
 	}
 	
 	bind_mnt() { umnt "$2" "$2"; }
 	
 	source $bind_list
-	echo
 	echo "- Done."
 	echo
 }
@@ -320,13 +309,14 @@ rollback() {
 	from_to() { mvdtR "$extsd/$2" "$intsd/$1" "intsd/$1"; }
 
 	# data/data/app <--> $extsd/.app_data/app
-	app_data() { mvdtR "$extsd/.app_data/$1" "/data/data/$1" "/data/data/$1"; }
+	app_data() { mvdtR "$extsd/.app_data/$1" "/data/data/$1" "app_data $1"; }
 
 	# intsd <--> extsd/.fbind
-	int_extf() { mvdtR $extsd/.fbind $intsd "intsd"
-		{ obb
-		target Android
-		target data; } &>/dev/null
+	int_extf() {
+		umount $intobb
+		umount $intsd/Android
+		umount $intsd/data
+		mvdtR $extsd/.fbind $intsd "intsd"
 	}
 	
 	# Other
@@ -351,14 +341,17 @@ rollback() {
 			read INPUT
 			[ "$INPUT" ] && grep -v "$INPUT" $config_file >> $tmp && grep "$INPUT" $config_file >> $tmp2
 		done
-	
-		cat $tmp > $config_file
-		chmod 777 $config_file
-		source $tmp2
-		echo
-		echo "Restored"
-		cat $tmp2
-		rm -f $tmp $tmp2
+		
+		if grep -Eq '[0-9]{1}|[a-z]{1}|[A-Z]{1}' $tmp; then
+			cat $tmp > $config_file
+			chmod 777 $config_file
+			echo "Restoring data..."
+			source $tmp2
+			rm -f $tmp $tmp2
+			echo "- Done."
+		else
+			echo "Nothing restored."
+		fi
 		echo
 		
 	else
@@ -400,9 +393,9 @@ elif [ "$1" = "-u" ]; then unmount_folders
 elif [ "$1" = "-umb" ]; then
 	echo "Are you sure you know exactly what you're doing? (y/n)"
 	read ans
-	yn $ans "unmount_folders; move_data; bind_folders"
+	yn $ans "unmount_folders; move_data; fbind -b"
 	
-elif [ "$1" = "-mb" ]; then move_data; bind_folders
+elif [ "$1" = "-mb" ]; then move_data; fbind -b
 elif [ "$1" = "-d" ]; then disable_service
 elif [ "$1" = "-e" ]; then enable_service
 

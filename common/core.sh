@@ -29,7 +29,8 @@ mk_cfg=false
 if [ ! -f "$config_file" ]; then
 	mk_cfg=true
 	[ -d "$fbind_dir" ] || mkdir -p -m 777 $fbind_dir
-	cat "$bind_list" "$cleanup_config" "$debug_config" > $config_file
+	cd $config_path
+	cat bind cleanup debug misc uvars > $config_file
 	chmod 777 $config_file
 fi
 
@@ -46,7 +47,6 @@ bind_mnt() {
 	if ! mntpt "$2"; then
 		ECHO
 		[ -d "$1" ] || mkdir -p -m 777 "$1"
-		echo "$1" | grep -q ".app_data" && chmod 771 "$1"
 		[ -d "$2" ] || mkdir -p -m 777 "$2"
 		echo "$1 $2" | grep -Eq "$extsd|$intsd" && wait_emulated
 		[ "$3" ] && echo "$3" || echo "bind_mount [$1] [$2]"
@@ -155,8 +155,11 @@ update_cfg() {
 			grep -vE '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' > $bind_list
 			grep -v '#' $config_file | grep 'cleanup' > $cleanup_config
 			
+			# Misc config lines
+			grep -Ev '#|altpart ' $config_file | grep -E 'u[0-9]{1}=|u[0-9]{2}=|perms|cryptsetup=|fsck' > $config_path/misc
+			
 			# Enable additional intsd paths for multi-user support
-			grep '#' $config_file | grep -Eq 'u[0-9]{1}=|u[0-9]{2}=' > $config_path/uvars
+			grep '#' $config_file | grep -E 'u[0-9]{1}=|u[0-9]{2}=' > $config_path/uvars
 			
 			#sed -Ei "/bind_mnt/s/ u/ $(echo "$intsd" | sed 's/\/0//')" $bind_list
 			
@@ -185,8 +188,7 @@ bkp_cfg() {
 
 ###BINDING FUNCTION###
 bind_folders() {
-	ECHO
-	echo "<Bind Folders>"
+	$tk && echo "Binding folders..." || echo "<Bind Folders>"
 	SetEnforce_0
 	
 	# entire obb folder
@@ -205,6 +207,7 @@ bind_folders() {
 	app_data() {
 		if ! $altpart && ! $LinuxFS; then ECHO
 			echo "(!) fbind: app_data() won't work without altpart() or extsd_path() (LinuxFS)!"
+			echo
 			exit 1
 		fi
 		bind_mnt $extsd/.app_data/$1 /data/data/$1 "[/data/data/$1] <--> [extsd/.app_data/$1]"
@@ -217,26 +220,12 @@ bind_folders() {
 		target data
 		obb; } &>/dev/null
 	}
-	
-	# A "better" mount -o bind
-	bind_mnt() {
-		if ! mntpt "$2"; then
-			ECHO
-			[ -d "$1" ] || mkdir -p -m 777 "$1"
-			echo "$1" | grep -q ".app_data" && chmod 771 "$1"
-			[ -d "$2" ] || mkdir -p -m 777 "$2"
-			echo "$1 $2" | grep -Eq "$extsd|$intsd" && wait_emulated
-			[ "$3" ] && echo "$3" || echo "bind_mount [$1] [$2]"
-			mount -o bind "$1" "$2"
-		fi
-	}
 
 	source $bind_list
 	SetEnforce_1
 	ECHO
 	echo "- Done."
 	echo
-	ECHO
 }
 
 
@@ -271,9 +260,9 @@ cleanupf() {
 	if [ -f $fbind_dir/cleanup.sh ]; then
 		source $fbind_dir/cleanup.sh
 		echo "Run optional cleanup.sh script"
+		ECHO
 	fi
 	
-	ECHO
 	echo "- Done."
 	ECHO
 } 2>/dev/null
