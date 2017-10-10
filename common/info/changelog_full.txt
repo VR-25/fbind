@@ -1,7 +1,13 @@
-# v2017.10.1 (201710000)
+# v2017.10.10 (201710100)
+- Enable extsd_path() alt_extsd flag when "$1" = "$intsd".
+- rm /data/_fbind on rollback.
+- Disabled post-fs-data.sh (platform.xml patching -- unsuccessful).
+- New versionCode format YYYYMMDD[0-9]
+
+# v2017.10.1 (201710010)
 * Bug fixes & optimizations
 
-# v2017.9.30 (20179300)
+# v2017.9.30 (201709300)
 * Fixed
 -- App data move
 -- Bind issues
@@ -11,25 +17,25 @@
 --- fbind -as --> ask for SOURCE dirs (intsd/SOURCE) & add corresponding "from_to" lines to config.txt (interactive)
 --- fbind restore --> move select data back to original locations (interactive)	
 
-# v2017.9.27.3 (20179273)
+# v2017.9.27.3 (201709273)
 - Fixed SD card detection mechanism.
 
-# v2017.9.27.2 (20179272)
+# v2017.9.27.2 (201709272)
 - Default SD card search path is no longer limited to "/mnt/media_rw/XXXX-XXXX". So, setting "extsd_path PATH" is no longer necessary if the path to the storage device starts with "/mnt/media_rw".
 - Updated reference
 
-# v2017.9.27.1 (20179271)
+# v2017.9.27.1 (201709271)
 - Fixed bind-mount app_data to intsd.
 - Now, if extsd path is null/unspecified ("extsd_path" with nothing in front), fbind will auto detect it.
 
-# v2017.9.27 (20179270)
+# v2017.9.27 (201709270)
 - Fixed from_to bind error.
 - You can now add `fsck -OPTION(s) /path/to/partition` to your config file (i.e., `fsck.f2fs -f /dev/block/mmcblk1`). This will check for/fix SD card errors before system gets a chance to mount it.
 - Updated reference.
 
-# v2017.9.26 (20179260)
+# v2017.9.26 (201709260)
 - Those facing bind issues, please double check your config file for errors...
--- there's a small chance config_updater.sh might have messed with it a bit during 20179160 build update.
+-- there's a small chance config_updater.sh might have messed with it a bit during 201709160 build update.
 - Updated reference (please READ/RE-READ config_samples.txt & README.txt).
 - Added critical flag -- bind_mnt, mv only if $3 = "-mv".
 - Added ability to unmount (fbind -u) /data/data/app -- flag -u -- i.e., app_data com.spotify.music -u).
@@ -43,12 +49,12 @@
 -- Alternate method uses "pm grant" -- add the line "perms" to your config file if the above method doesn't work.
 --- This one might take a while to complete (first time only)
 
-# v2017.9.18.1 (20179181)
+# v2017.9.18.1 (201709181)
 - Fixed bind_mnt()
 - Fixed fbind cmd
 - Updated reference
 
-# v2017.9.18 (20179180)
+# v2017.9.18 (201709180)
 - [TEST] auto-add storage access permissions to /data/system/packages.xml -- perm pkg_name
 - Ability to move bind_mnt() data (fbind -m) when a 3rd argument is present (i.e., "bind_mnt data/FOLDER $intsd/FOLDER X")
 - User variables
@@ -56,25 +62,25 @@
 - Minor optimizations
 - Updated reference
 
-# v2017.9.16 (20179160)
+# v2017.9.16 (201709160)
 - "from_to -e" replaced by "bind_mnt". The latter follows the standard "mount -o bind" syntax.
 
-# v2017.9.15 (20179150)
+# v2017.9.15 (201709150)
 - Ability to fully replace insd with extsd.
 - Massive redesigns & optimizations
 - Marshmallow storage access permissions fix -- perm() (WIP)
 
-# v2017.9.14 (20179140)
+# v2017.9.14 (201709140)
 - Fixed wrong 'from_to -e' log
 - Better altpart() disk usage log
 - Minor optimizations
 
-# v2017.9.12 (20179120)
+# v2017.9.12 (201709120)
 - Reverted cleanup() array implementation due to "space" bug.
 - Updated reference.
 - Enhanced config auto-backup.
 
-# v2017.9.11 (20179110)
+# v2017.9.11 (201709110)
 - Enhanced cleanup function.
 - Ability to add "Android" folders cleanup exceptions -- by passing an extra non-null argument to a binding function (i.e., target FOLDER X, from_to SOURCE DEST X; applies to all binding functions; "X" can be any string).
 - Now using Magisk's internal busybox for all operations.
@@ -82,13 +88,13 @@
 - Updated reference.
 - Under-the-hood optimizations
 
-# v2017.9.10 (20179100)
+# v2017.9.10 (201709100)
 - Fixed potential bind failure.
 - Module template updated to v1400.
 - Added features -- auto-recreate & auto-backup config file.
 - Cosmetic enhancements
 
-# v2017.9.9 (2017990)
+# v2017.9.9 (20170990)
 - Massive overall optimizations
 - Fixed permission issues when creating folders in extsd_path (not altpart) with Linux filesystem.
 - Optimized "move_data" function.

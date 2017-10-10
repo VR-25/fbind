@@ -357,10 +357,8 @@ rollback() {
 	else
 		echo "<Rollback>"
 		echo
-		echo "fbind Uninstall"
-		touch $module_path/remove
-		echo "- Done."
-		echo "(i) Reboot to apply change."
+		uninstall
+		rm -rf /data/_fbind
 		echo
 		echo "Data Restore"
 		source $bind_list

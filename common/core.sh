@@ -128,6 +128,7 @@ default_extsd() {
 extsd_path() {
 	if [ "$1" = "$intsd" ]; then
 		LinuxFS=true
+		alt_extsd=true
 		extsd="$1"
 		extobb="$intobb"
 	else
