@@ -29,7 +29,7 @@ fi
 
 update_cfg
 apply_cfg
-bkp_cfg
+cfg_bkp
 bind_folders
 cleanupf
 echo

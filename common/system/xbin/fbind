@@ -376,7 +376,7 @@ else
 	update_cfg &> /dev/null
 	apply_cfg &> /dev/null
 fi
-bkp_cfg
+cfg_bkp
 
 if [ "$1" = "-a" ]; then add_line
 elif [ "$1" = "-ad" ]; then add_line '-ad'

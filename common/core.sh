@@ -177,12 +177,18 @@ apply_cfg() {
 }
 
 
-###BACKUP CONFIG###
-bkp_cfg() {
-	if [ "$extsd/.fbind_bkp/config.txt" -ot "$config_file" ] && ! $mk_cfg; then
+###BACKUP & RESTORE CONFIG###
+cfg_bkp() {
+	bkp_file=$extsd/.fbind_bkp/config.txt
+	if ! grep -q '[a-z]' $config_file; then
+		[ -f $bkp_file ] && cp $bkp_file $config_file
+		chmod 777 $config_file
+	fi
+	
+	if [ "$bkp_file" -ot "$config_file" ] && ! $mk_cfg && grep -q '[a-z]' "$config_file" ; then
 		[ -d "$extsd/.fbind_bkp" ] || mkdir -m 777 $extsd/.fbind_bkp
-		cp $config_file $extsd/.fbind_bkp
-		chmod 777 $extsd/.fbind_bkp/config.txt
+		cp $config_file $bkp_file
+		chmod 777 $bkp_file
 	fi
 }
 

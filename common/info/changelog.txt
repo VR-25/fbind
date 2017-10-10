@@ -1,18 +1,12 @@
-# v2017.9.30 (20179300)
-* Fixed
--- App data move
--- Bind issues
-* Updated fbind terminal toolkit
--- Batch operations
---- fbind -ad --> add "app_data" lines to config.txt (interactive)
---- fbind -as --> ask for SOURCE dirs (intsd/SOURCE) & add corresponding "from_to" lines to config.txt (interactive)
---- fbind restore --> move select data back to original locations (interactive)
-
 # v2017.10.1 (201710100)
 * Bug fixes & optimizations
 
-# v2017.10.10 (201710100)
+# v2017.10.10-1 (201710101)
 - Enable extsd_path() alt_extsd flag when "$1" = "$intsd".
 - rm /data/_fbind on rollback.
 - Disabled post-fs-data.sh (platform.xml patching -- unsuccessful).
 - New versionCode format YYYYMMDD[0-9]
+
+# v2017.10.10-2 (201710102)
+- Auto-restore config backup if config file is empty.
+- Don't backup config if it's empty.

@@ -1,4 +1,8 @@
-# v2017.10.10 (201710100)
+# v2017.10.10-2 (201710102)
+- Auto-restore config backup if config file is empty.
+- Don't backup config if it's empty.
+
+# v2017.10.10-1 (201710101)
 - Enable extsd_path() alt_extsd flag when "$1" = "$intsd".
 - rm /data/_fbind on rollback.
 - Disabled post-fs-data.sh (platform.xml patching -- unsuccessful).
