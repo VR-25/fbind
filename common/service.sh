@@ -12,7 +12,7 @@ source /magisk/fbind/core.sh
 if grep -v '#' $config_file | grep -q 'cryptsetup=true'; then
 	log_start
 	echo "(i) cryptsetup Enabled"
-	echo "- Auto-bind aborted."
+	echo "- Auto-bind aborted"
 	log_end
 fi
 
@@ -21,7 +21,7 @@ log_start
 
 # Check/fix SD Card fs
 if grep -v '#' $config_file | grep -q fsck; then
-	echo "<Check/fix SD card fs>"
+	echo "<fsck>"
 	until [ -b "$(grep -v '#' $config_file | grep fsck | cut -d' ' -f3)" ]; do sleep 1; done &>/dev/null
 	$(grep -v '#' $config_file | grep fsck)
 	echo

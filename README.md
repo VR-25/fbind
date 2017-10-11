@@ -38,7 +38,7 @@
 - intsd_path [path] --> i.e., /storage/emulated/0/Android/obb (ignore for default -- /data/media/obb)
 - obb --> entire obb
 - obbf [app/game folder] --> individual obb
-- perms --> "pm grant" storage permissions to all apps (including future installations), use only if the default method (platform.xml patch) doesn't work for you
+- perms --> "pm grant" storage permissions to all apps (including future installations)
 - target [target folder] --> great for standard paths (i.e., Android/data, TWRP/BACKUPS)
 
 An additional argument (any string) to any of the binding functions above excludes additional Android folders from being deleted. For bind_mnt(), if the additional argument is `-mv`, then fbind -m will obey that line too -- which is otherwise ignored by default for safety concerns. For app_data, "-u" allows fbind -u to "see" the specified line (also otherwise ignored by default).
@@ -112,5 +112,5 @@ uninstall --> Unbind all & uninstall fbind
 
 ***
 **Online Support**
-- [XDA Thread](https://forum.xda-developers.com/apps/magisk/module-magic-folder-binder-t3621814/page2post72688621)
 - [GitHub Repo](https://github.com/Magisk-Modules-Repo/Magic-Folder-Binder)
+- [XDA Thread](https://forum.xda-developers.com/apps/magisk/module-magic-folder-binder-t3621814/page2post72688621)

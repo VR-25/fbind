@@ -185,7 +185,7 @@ cfg_bkp() {
 		chmod 777 $config_file
 	fi
 	
-	if [ "$bkp_file" -ot "$config_file" ] && ! $mk_cfg && grep -q '[a-z]' "$config_file" ; then
+	if [ "$bkp_file" -ot "$config_file" ] && ! $mk_cfg && grep -q '[a-z]' $config_file; then
 		[ -d "$extsd/.fbind_bkp" ] || mkdir -m 777 $extsd/.fbind_bkp
 		cp $config_file $bkp_file
 		chmod 777 $bkp_file
