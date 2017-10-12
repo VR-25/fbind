@@ -4,7 +4,7 @@
 
 ***
 **DESCRIPTION**
-- Forces Android to save select files/folders to the external_sd (or alternate partition) by default, & clean up the user's storage (select unwanted, stubborn files/folders) automatically.
+- Forces Android to save select files/folders to the external_sd (or to a partition) by default, & clean up the user's storage (select unwanted files/folders) automatically.
 
 
 ***
@@ -26,8 +26,8 @@
 **CONFIG SYNTAX
  
 **Function + Parameter(s)**
-- altpart [block device] [mount point] [filesystem] ["fsck OPTION(s)" (filesystem dependent, optional)] --> auto-mount alternate partition & use it as extsd
-- app_data [folder] --> data/data <--> extsd/.data (needs altpart or LinuxFS formated SD card), to use with intsd instead, include the config line "extsd_path $intsd"
+- part [block device] [mount point (any path except "/folder"] [file_system] ["fsck OPTION(s)" (filesystem specific, optional) --> auto-mount a partition & use it as extsd
+- app_data [folder] --> data/data <--> extsd/.data (needs part or LinuxFS formated SD card), to use with intsd instead, include the config line "extsd_path $intsd"
 - bind_mnt [TARGET mount_point] --> same as "mount -o bind [TARGET mount_point]"
 - cleanup [file/folder] --> auto-remove unwanted files/folders from intsd & extsd -- including by default, unwanted "Android" directories
 - cryptsetup=true --> disable Auto-bind service (necessary for opening a LUKS volume)

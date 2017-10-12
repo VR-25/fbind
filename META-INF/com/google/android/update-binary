@@ -139,8 +139,8 @@ CurVersionCode=0
 rm -rf $MODPATH 2>/dev/null
 mkdir -p $MODPATH
 
-# Update $fbind_dir/* (preserves config.txt)
-[ "$CurVersionCode" -lt '20179273' ] && source $config_updater
+# Update fbind_dir (preserves config)
+[ "$CurVersionCode" -lt '201710120' ] && . $config_updater
 
 # Copy files
 ui_print "- Copying files"

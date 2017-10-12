@@ -15,7 +15,7 @@ debug=$config_file
 logfile=$fbind_dir/debug.log
 cleanup_list=$config_file
 cleanup_config=$config_path/cleanup
-altpart=false
+part=false
 bind_only=false
 alt_extsd=false
 tk=false
@@ -80,34 +80,44 @@ log_end() {
 	chmod 777 $logfile
 	exit 0; }
 
-# Set Alternate Partition
+# Auto-mount a partition & use it as extsd
 # For safety reasons, the mount point can't be "/FOLDER"
-# $1=block_device, $2=mount_point $3=filesystem, $4="fsck OPTION(s)" (filesystem specific, optional)
-altpart() {
-	if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then echo "(!) altpart(): missing argument(s)!"; exit 2; fi
-	echo "<Partition Information>"
+# $1=block_device, $2=mount_point, $3=file_system, $4="fsck OPTION(s)" (filesystem specific, optional)
+part() {
+	if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+		echo "(!) part(): missing argument(s)"
+		exit 1
+	fi
+	
+	echo "<Partition Information>" 
 	PARTITION=$(echo $1 | sed 's/.*\///')
-	altpart=true
+	part=true
 	extsd=$2
 	extobb=$extsd/Android/obb
-	if mntpt $2; then echo "$PARTITION already mounted!"
-	else
-		[ -d $2 ] || mkdir -p -m 777 $extobb
-		until [ -b $1 ]; do sleep 1; done
-		
-		# cryptsetup (LUKS) support ( BinPath: module_path/system/xbin/cryptsetup)
+	
+	if mntpt $2; then
+		echo "(i) $PARTITION already mounted"
+	else until [ -b $1 ]; do sleep 1; done
+
+		# Open LUKS volume
 		if grep -v '#' $config_file | grep -q 'cryptsetup=true'; then
 			cryptsetup luksOpen $1 $PARTITION
 			[ $? ] && echo '***'
 			[ "$4" ] && $4 /dev/mapper/$PARTITION
 			mount -t $3 -o noatime,rw /dev/mapper/$PARTITION $2
-		else
-			[ "$4" ] && $4 $1
+		else [ "$4" ] && $4 $1
 			mount -t $3 -o noatime,rw $1 $2
 		fi
 		
-		if ! mntpt $2; then echo '***'; echo "(!) altpart(): $PARTITION mount failed!"; rmdir $extsd; exit 1; fi
-		[ $? ] && echo '***' && df -h $2 | sed "s/Filesystem/   Partition ($3)/"
+		if ! mntpt $2; then
+			echo '***'
+			echo "(!) part(): $PARTITION mount failed"
+			rmdir $extsd 2>/dev/null
+			exit 1
+		fi
+		
+		[ $? ] && echo '***' \
+			&& df -h $2 | sed "s/Filesystem/   Partition ($3)/"
 	fi
 	echo
 }
@@ -152,12 +162,12 @@ update_cfg() {
 		if $mk_cfg; then echo "- No updates found."
 		else
 			[ -d $config_path ] || mkdir $config_path
-			grep -v '#' $config_file | grep -E 'Permissive_SELinux|altpart |extsd_path |intsd_path |intobb_path ' > $debug_config
+			grep -v '#' $config_file | grep -E 'Permissive_SELinux|part |extsd_path |intsd_path |intobb_path ' > $debug_config
 			grep -vE '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' > $bind_list
 			grep -v '#' $config_file | grep 'cleanup' > $cleanup_config
 			
 			# Misc config lines
-			grep -Ev '#|altpart ' $config_file | grep -E 'u[0-9]{1}=|u[0-9]{2}=|perms|cryptsetup=|fsck' > $config_path/misc
+			grep -Ev '#|part ' $config_file | grep -E 'u[0-9]{1}=|u[0-9]{2}=|perms|cryptsetup=|fsck' > $config_path/misc
 			
 			# Enable additional intsd paths for multi-user support
 			grep '#' $config_file | grep -E 'u[0-9]{1}=|u[0-9]{2}=' > $config_path/uvars
@@ -173,7 +183,7 @@ update_cfg() {
 apply_cfg() {
 	source $config_path/uvars
 	source $debug_config
-	if ! $altpart && ! $alt_extsd; then default_extsd; fi
+	if ! $part && ! $alt_extsd; then default_extsd; fi
 }
 
 
@@ -212,8 +222,8 @@ bind_folders() {
 	
 	# data/data/app <--> extsd/.app_data/app
 	app_data() {
-		if ! $altpart && ! $LinuxFS; then ECHO
-			echo "(!) fbind: app_data() won't work without altpart() or extsd_path() (LinuxFS)!"
+		if ! $part && ! $LinuxFS; then ECHO
+			echo "(!) fbind: app_data() won't work without part() or extsd_path() (LinuxFS)!"
 			echo
 			exit 1
 		fi

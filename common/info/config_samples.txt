@@ -65,7 +65,7 @@ u# & u## are user variables -- these can be set to any value(s) you wish.
 
 ###Save /data/data/APP to intsd/.app_data or extsd/.app_data###
 
-# To intsd/.app_data/APP
+# To intsd/.app_data/APP (if your device hasn't or "doesn't support" SD card)
 extsd_path $intsd
 app_data APP
 
@@ -76,13 +76,13 @@ app_data APP
 
 ###ADVANCED SETUP###
 
-# Auto-mount an alternate partition & bind-mount it to $intsd/.extsd for easier access
-altpart /dev/block/mmcblk1 /data/.extsd f2fs
+# Auto-mount a partition & bind-mount it to $intsd/.extsd for easier access
+part /dev/block/mmcblk1 /data/.extsd f2fs
 bind_mnt /data/.extsd $intsd/.extsd X
 obb
 
-# Fully replace intsd with extsd
-altpart /dev/block/mmcblk1 $intsd f2fs
+# Fully replace intsd with extsd (similar to the one-line setup above, but more aggressive)
+part /dev/block/mmcblk1 $intsd f2fs
 obb
 
 # Bind-mount intsd to extsd/.fbind
@@ -93,17 +93,17 @@ obb
 
 ###MISC###
 
-# If you your SD card path is different from the standard /mnt/media_rw/*
+# If your SD card path is different from the standard /mnt/media_rw/* or you have more than a folder listed there, you need to specify it
 extsd_path /path/to/storage
 
 # Some users experiencing bind issues may need to to set these lines (especially true for some Samsung devices/ROMs)
 intsd_path /storage/emulated/0
 intobb_path /storage/emulated/obb
 
-# Open a LUKS volume (works in conjunction with "altpart" -- introduced in ADVANCED SETUP)
+# Open a LUKS volume (works in conjunction with "part" -- introduced in ADVANCED SETUP)
 cryptsetup=true
 
-# "pm grant" storage permissions to all apps (including future installations), use only if the default method (platform.xml patch) doesn't work for you
+# "pm grant" storage permissions to all apps (including future installations)
 perms
 
 # Check for/fix SD card errors before system has a chance to mount it
