@@ -80,8 +80,8 @@ $BOOTMODE && boot_actions || recovery_actions
 # Preparation
 ##########################################################################################
 
-ui_print "- Extracting module files" ###
-unzip -o "$ZIP" -d $INSTALLER 2>/dev/null
+#ui_print "- Extracting module files" ###
+unzip -oqq "$ZIP" -d $INSTALLER
 
 [ ! -f $INSTALLER/config.sh ] && abort "! Unable to extract zip file!"
 # Load configurations

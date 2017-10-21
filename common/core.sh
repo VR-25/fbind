@@ -38,7 +38,7 @@ toolkit() { tk=true; }
 
 ECHO() { $tk && echo; }
 
-mntpt() { mountpoint -q "$1"; } 2>/dev/null
+mntpt() { mountpoint -q "$1" 2>/dev/null; }
 
 wait_emulated() { until mntpt /storage/emulated; do sleep 1; done; }
 
@@ -275,8 +275,8 @@ cleanupf() {
 	
 	# Source optional cleanup script
 	if [ -f $fbind_dir/cleanup.sh ]; then
+		echo ". $fbind_dir/cleanup.sh"
 		source $fbind_dir/cleanup.sh
-		echo "Run optional cleanup.sh script"
 		ECHO
 	fi
 	

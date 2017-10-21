@@ -1,3 +1,7 @@
+# 2017.10.21 (201710210)
+- Fixed fbind chlog & ref options.
+- General optimizations
+
 # v2017.10.12 (201710120)
 - "altpart" function renamed to "part"
 - Updated reference

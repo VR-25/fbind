@@ -422,8 +422,8 @@ elif [ "$1" = "-x" ]; then
 	
 elif [ "$1" = "log" ]; then cat $logfile
 
-elif [ "$1" = "ref" ]; then cat /data/media/0/fbind/info/README.txt; echo; echo
-elif [ "$1" = "chlog" ]; then cat /data/media/0/fbind/info/changelog.txt; echo; echo
+elif [ "$1" = "ref" ]; then cat $fbind_dir/info/README.txt; echo
+elif [ "$1" = "chlog" ]; then cat $fbind_dir/info/changelog.txt; echo
 
 else usage
 fi
