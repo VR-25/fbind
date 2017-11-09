@@ -358,7 +358,7 @@ rollback() {
 		echo "<Rollback>"
 		echo
 		uninstall
-		rm -rf /data/_fbind
+		rm -rf /data/media/fbind
 		echo
 		echo "Data Restore"
 		source $bind_list
@@ -423,7 +423,7 @@ elif [ "$1" = "-x" ]; then
 elif [ "$1" = "log" ]; then cat $logfile
 
 elif [ "$1" = "ref" ]; then cat $fbind_dir/info/README.txt; echo
-elif [ "$1" = "chlog" ]; then cat $fbind_dir/info/changelog.txt; echo
+elif [ "$1" = "chlog" ]; then cat $fbind_dir/info/Changelog.md; echo
 
 else usage
 fi

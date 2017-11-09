@@ -16,8 +16,8 @@
 **QUICK SETUP**
 1. Install the module.
 2. Reboot.
-3. Read `Config Syntax` below &/or /data/_fbind/info/config_samples.txt.
-4. Setup /data/_fbind/config.txt.
+3. Read `Config Syntax` below &/or /data/media/fbind/info/config_samples.txt.
+4. Setup /data/media/fbind/config.txt.
 5. Run `fbind -mb` as root to move data & bind corresponding folders automatically.
 6. Forget.
 
@@ -89,7 +89,7 @@ uninstall --> Unbind all & uninstall fbind
 ***
 **DEBUGGING**
 
-* Logfile --> /data/_fbind/debug.log
+* Logfile --> /data/media/fbind/debug.log
 
 * Most likely, you don't need this
 - Permissive_SELinux -- sets SElinux mode to `permissive`.
@@ -105,12 +105,11 @@ uninstall --> Unbind all & uninstall fbind
 
 * Bind issues
 - Try the `alternate internal storage paths` above.
-- Change `Namespace Mode` in Magisk Manager settings.
 
 * If you suspect fbind causes a bootloop, try excluding `system/xbin` from installation, by running `touch /data/_x`.
 
 
 ***
 **Online Support**
-- [GitHub Repo](https://github.com/Magisk-Modules-Repo/Magic-Folder-Binder)
+- [Git Repo](https://github.com/Magisk-Modules-Repo/Magic-Folder-Binder)
 - [XDA Thread](https://forum.xda-developers.com/apps/magisk/module-magic-folder-binder-t3621814/page2post72688621)

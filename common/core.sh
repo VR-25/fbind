@@ -6,7 +6,7 @@
 intsd=/data/media/0
 intobb=/data/media/obb
 module_path=/magisk/fbind
-fbind_dir=/data/_fbind
+fbind_dir=/data/media/fbind
 config_file=$fbind_dir/config.txt
 config_path=$fbind_dir/.config
 bind_list=$config_path/bind

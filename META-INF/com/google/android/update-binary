@@ -128,7 +128,7 @@ is_mounted $MOUNTPATH || abort "! $IMG mount failed..."
 
 ##########################################################################################
 # Constants & Variables
-fbind_dir=/data/_fbind
+fbind_dir=/data/media/fbind
 info_dir=$fbind_dir/info
 config_file=$fbind_dir/config.txt
 config_updater=$INSTALLER/common/config_updater.sh
@@ -140,7 +140,7 @@ rm -rf $MODPATH 2>/dev/null
 mkdir -p $MODPATH
 
 # Update fbind_dir (preserves config)
-[ "$CurVersionCode" -lt '201710120' ] && . $config_updater
+[ "$CurVersionCode" -lt '201711090' ] && . $config_updater
 
 # Copy files
 ui_print "- Copying files"
