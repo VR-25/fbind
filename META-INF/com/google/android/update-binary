@@ -140,15 +140,16 @@ rm -rf $MODPATH 2>/dev/null
 mkdir -p $MODPATH
 
 # Update fbind_dir (preserves config)
-[ "$CurVersionCode" -lt '201711090' ] && . $config_updater
+[ "$CurVersionCode" -lt '201711230' ] && . $config_updater
 
 # Copy files
 ui_print "- Copying files"
 mkdir -p $info_dir 2>/dev/null
-mv $INSTALLER/common/info/* $info_dir # I know, I know. This avoids a mv bug -- can't replace folders.
+mv $INSTALLER/common/info/* $info_dir
 [ -f /data/_x ] && rm /data/_x || mv $INSTALLER/common/system $MODPATH
 if [ ! -f /data/_x ] && [ "$ARCH" = "arm" -o "$ARCH" = "arm64" ]; then
-	mv $INSTALLER/bin/cryptsetup_arm $MODPATH/system/xbin/cryptsetup
+	mv $INSTALLER/bin $MODPATH
+	mv $MODPATH/bin/cryptsetup_arm $MODPATH/bin/cryptsetup
 fi
 mv $INSTALLER/README.md $info_dir/README.txt
 [ -f $info_dir/License.txt ] || mv $INSTALLER/License.md $info_dir/License.txt

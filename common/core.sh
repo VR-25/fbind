@@ -100,7 +100,7 @@ part() {
 	else until [ -b $1 ]; do sleep 1; done
 
 		# Open LUKS volume
-		if grep -v '#' $config_file | grep -q 'cryptsetup=true'; then
+		if grep -v '#' $config_file | grep -q 'luks'; then
 			cryptsetup luksOpen $1 $PARTITION
 			[ $? ] && echo '***'
 			[ "$4" ] && $4 /dev/mapper/$PARTITION
@@ -128,7 +128,7 @@ default_extsd() {
 	until grep -q "/mnt/media_rw" /proc/mounts; do sleep 1; done
 	grep "$(ls /mnt/media_rw)" /proc/mounts
 	grep "$(ls /mnt/media_rw)" /proc/mounts | grep -Eq 'ext2|ext3|ext4|f2fs' && LinuxFS=true
-	extsd="/mnt/media_rw/$(ls /mnt/media_rw)"
+	extsd="/mnt/media_rw/$(ls -1d /mnt/media_rw/* | sed -n 1p)"
 	extobb=$extsd/Android/obb
 	echo
 }
@@ -167,7 +167,7 @@ update_cfg() {
 			grep -v '#' $config_file | grep 'cleanup' > $cleanup_config
 			
 			# Misc config lines
-			grep -Ev '#|part ' $config_file | grep -E 'u[0-9]{1}=|u[0-9]{2}=|perms|cryptsetup=|fsck' > $config_path/misc
+			grep -Ev '#|part ' $config_file | grep -E 'u[0-9]{1}=|u[0-9]{2}=|perms|luks|fsck|no_bkp|no_restore' > $config_path/misc
 			
 			# Enable additional intsd paths for multi-user support
 			grep '#' $config_file | grep -E 'u[0-9]{1}=|u[0-9]{2}=' > $config_path/uvars
@@ -190,12 +190,12 @@ apply_cfg() {
 ###BACKUP & RESTORE CONFIG###
 cfg_bkp() {
 	bkp_file=$extsd/.fbind_bkp/config.txt
-	if ! grep -q '[a-z]' $config_file; then
+	if ! grep -q '[a-z]' $config_file && ! grep -v '#' | grep -Eq 'no_bkp|no_restore' $config_file; then
 		[ -f $bkp_file ] && cp $bkp_file $config_file
 		chmod 777 $config_file
 	fi
 	
-	if [ "$bkp_file" -ot "$config_file" ] && ! $mk_cfg && grep -q '[a-z]' $config_file; then
+	if [ "$bkp_file" -ot "$config_file" ] && ! $mk_cfg && grep -q '[a-z]' $config_file && ! grep -v '#' | grep -q no_bkp $config_file; then
 		[ -d "$extsd/.fbind_bkp" ] || mkdir -m 777 $extsd/.fbind_bkp
 		cp $config_file $bkp_file
 		chmod 777 $bkp_file

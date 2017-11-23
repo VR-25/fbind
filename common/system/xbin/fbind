@@ -5,7 +5,7 @@
 
 
 # Prepare Environment
-export PATH=/dev/magisk/bin:$PATH
+export PATH=/dev/magisk/bin:/magisk/fbind/bin:$PATH
 source /magisk/fbind/core.sh
 tmp=/data/_tmp
 tmp2=/data/_tmp2
@@ -67,18 +67,18 @@ Usage: fbind OPTION(s) ARGUMENT(s)
 -a		Add line(s) to config.txt (interactive)
 -b		Bind all
 -c		Storage cleanup
--d		Disable autobind service
--e		Re-enable autobind service
+-d		Disable auto-bind service
+-e		Re-enable auto-bind service
 -f		Disable this toolkit
 -l		Show config.txt
--m		Move data to the sdcard
+-m		Move data to the SD card
 -r		Remove lines(s) from config.txt (interactive)
--u		Unbind all
+-u		Unmount all folders
 -x		Disable fbind
 -mb		Move data & bind corresponding folders
-ref		Show README
-log		Show debug.log
-chlog		Show changelog
+ref		Display README
+log		Display debug.log
+chlog		Display changelog
 
 -ad		Add "app_data" line(s) to config.txt (interactive)
 
@@ -103,13 +103,13 @@ END
 enable_service() {
 	mv -f $service_disabled $service_enabled
 	chmod 777 $service_enabled
-	echo "(i) Auto-bind Enabled"
+	echo "(i) Auto-bind enabled."
 	echo
 }
 
 disable_service() {
 	mv -f $service_enabled $service_disabled
-	echo "(i) Auto-bind Disabled"
+	echo "(i) Auto-bind disabled."
 	echo
 }
 
@@ -126,7 +126,7 @@ add_line() {
 
 		cat $tmp
 		echo
-		echo 'Input a matching WORD at once. Press RETURN twice when done.'
+		echo 'Input a matching word/string at once. hit ENTER twice when done.'
 		until [ -z "$INPUT" ]; do
 			read INPUT
 			[ "$INPUT" ] && grep "$INPUT" $tmp | sed 's/^/app_data /' >> $tmp2
@@ -138,7 +138,7 @@ add_line() {
 		rm -f $tmp $tmp2
 	
 	elif [ "$1" = '-as' ]; then
-		echo "Available intsd Folders -- Incl. Subfolders"
+		echo "Available intsd folders -- incl. subfolders:"
 		echo
 		for d in $(ls -a $intsd); do
 			if ! grep -v '#' $config_file | grep -qw "$d" \
@@ -147,7 +147,7 @@ add_line() {
 			fi
 		done
 		echo
-		echo 'Input 1 source folder at once. Press RETURN twice when done.'
+		echo 'Input 1 source folder at once. hit ENTER twice when done.'
 		until [ -z "$INPUT" ]; do
 			read INPUT
 			[ "$INPUT" ] && echo "from_to \"$INPUT\" \".fbind/$INPUT\"" >> $tmp
@@ -160,7 +160,7 @@ add_line() {
 		rm -f $tmp
 	
 	else
-		echo 'Input 1 line at once. Press RETURN twice when done.'
+		echo 'Input 1 line at once. hit ENTER twice when done.'
 		until [ -z "$INPUT" ]; do
 			read INPUT
 			[ "$INPUT" ] && echo "$INPUT" >> $tmp
@@ -177,7 +177,7 @@ add_line() {
 
 
 list_cfg() {
-	echo "Your fbind Config"
+	echo "Your fbind config:"
 	echo
 	cat $config_file
 	echo
@@ -229,7 +229,7 @@ rm_line() {
 	echo
 	cat $config_file
 	echo
-	echo 'Input a matching WORD at once. Press RETURN twice when done.'
+	echo 'Input a matching word/string at once. hit ENTER twice when done.'
 	until [ -z "$INPUT" ]; do
 		read INPUT
 		[ "$INPUT" ] && grep -v "$INPUT" $config_file >> $tmp && grep "$INPUT" $config_file >> $tmp2
@@ -336,7 +336,7 @@ rollback() {
 		INPUT=0
 		cat $config_file
 		echo
-		echo "Input a matching WORD at once. Press RETURN twice when done."
+		echo "Input a matching word/string at once. hit ENTER twice when done."
 		until [ -z "$INPUT" ]; do
 			read INPUT
 			[ "$INPUT" ] && grep -v "$INPUT" $config_file >> $tmp && grep "$INPUT" $config_file >> $tmp2

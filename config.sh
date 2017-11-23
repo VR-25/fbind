@@ -91,6 +91,6 @@ set_permissions() {
   set_perm_recursive  $MODPATH  0  0  0755  0644
   
   ###
-  set_perm $MODPATH/system/xbin/fbind  0  0  0775
-  set_perm $MODPATH/system/xbin/cryptsetup  0  0  0775
+  [ -f $MODPATH/system/xbin/fbind ] && set_perm $MODPATH/system/xbin/fbind  0  0  0775
+  [ -f $MODPATH/bin/cryptsetup ] && set_perm $MODPATH/bin/cryptsetup  0  0  0775
 }

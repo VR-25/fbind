@@ -24,7 +24,7 @@ from_to Music .fbind/Music
 
 # When the paths are the same (i.e., intsd/folder & extsd/folder) & target directories contain no media files
 target data # Like "from_to data data", but why bother writing "data" twice? -- again, this is for non-media folders only!
-target TWRP/BACKUPS # This is similar to "from_to TWRP/BACKUPS TWRP/BACKUPS" (see the repetition? Exactly -- Same path!)
+target TWRP/BACKUPS # This is similar to "from_to TWRP/BACKUPS TWRP/BACKUPS" (see the repetition? Exactly -- same path!)
 
 # Auto-remove unwanted/stubborn files/folders from intsd & extsd (no need to specify the storage itself, just the folder/file path/name inside it)
 cleanup Podcasts
@@ -69,7 +69,7 @@ u# & u## are user variables -- these can be set to any value(s) you wish.
 extsd_path $intsd
 app_data APP
 
-# To extsd/.app_data/APP###
+# To extsd/.app_data/APP
 app_data APP
 
 
@@ -81,7 +81,7 @@ part /dev/block/mmcblk1 /data/.extsd f2fs
 bind_mnt /data/.extsd $intsd/.extsd X
 obb
 
-# Fully replace intsd with extsd (similar to the one-line setup above, but more aggressive)
+# Fully replace intsd with extsd (similar to the one-line setup above, but more advanced)
 part /dev/block/mmcblk1 $intsd f2fs
 obb
 
@@ -100,11 +100,17 @@ extsd_path /path/to/storage
 intsd_path /storage/emulated/0
 intobb_path /storage/emulated/obb
 
-# Open a LUKS volume (works in conjunction with "part" -- introduced in ADVANCED SETUP)
-cryptsetup=true
+# Disable auto-bind service to open a LUKS volume -- handled by part() 
+luks
 
 # "pm grant" storage permissions to all apps (including future installations)
 perms
 
 # Check for/fix SD card errors before system has a chance to mount it
 fsck -OPTION(s) /path/to/partition (i.e., fsck.f2fs -f /dev/block/mmcblk1)
+
+# Disable config backup auto-restore
+no_restore
+
+# Disable config backup AND backup auto-restore
+no_bkp
