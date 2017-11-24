@@ -84,13 +84,13 @@ chlog		Display changelog
 
 -as		Ask for SOURCE dirs (intsd/SOURCE) & add corresponding "from_to" lines to config.txt (interactive)
 
--umb		(!) Unbind all, move data & rebind
+-umb		(!) Unmount all folders, move data & rebind
 
 restore		Move select data back to original locations (interactive)
 
-rollback	Unbind all, uninstall fbind & restore files
+rollback	Unmount all folders, uninstall fbind & restore files
 
-uninstall	Unbind all & uninstall fbind
+uninstall	Unmount all folders & uninstall fbind
 
 (i) The "-m" option affects unmounted folders only. Caution: it replaces destination data!
 

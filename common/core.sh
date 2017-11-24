@@ -128,7 +128,7 @@ default_extsd() {
 	until grep -q "/mnt/media_rw" /proc/mounts; do sleep 1; done
 	grep "$(ls /mnt/media_rw)" /proc/mounts
 	grep "$(ls /mnt/media_rw)" /proc/mounts | grep -Eq 'ext2|ext3|ext4|f2fs' && LinuxFS=true
-	extsd="/mnt/media_rw/$(ls -1d /mnt/media_rw/* | sed -n 1p)"
+	extsd="$(ls -1d /mnt/media_rw/* | sed -n 1p)"
 	extobb=$extsd/Android/obb
 	echo
 }
