@@ -33,7 +33,7 @@ mkdir -p $INSTALLER
 ##########################################################################################
 
 OUTFD=$2
-ZIP=$3
+ZIP="$3"
 
 ui_print() {
   if $BOOTMODE; then
@@ -128,14 +128,17 @@ is_mounted $MOUNTPATH || abort "! $IMG mount failed..."
 
 ##########################################################################################
 # Constants & Variables
-fbind_dir=/data/media/fbind
+fbind_dir=/data/media/$MODID
 info_dir=$fbind_dir/info
 config_file=$fbind_dir/config.txt
 config_updater=$INSTALLER/common/config_updater.sh
 CurVersionCode=0
 
+$BOOTMODE && ModPath=$(grep loop /proc/mounts | cut -d' ' -f2 | grep -Ev 'system|dev')/$MODID \
+	|| ModPath=/magisk/$MODID
+
 # Create mod paths
-[ -f /magisk/fbind/module.prop ] && CurVersionCode=$(grep 'versionCode' /magisk/fbind/module.prop | cut -d= -f2)
+[ -f $ModPath/module.prop ] && CurVersionCode=$(grep 'versionCode' $ModPath/module.prop | cut -d= -f2)
 rm -rf $MODPATH 2>/dev/null
 mkdir -p $MODPATH
 
@@ -173,8 +176,8 @@ $PROPFILE && cp -af $INSTALLER/common/system.prop $MODPATH/system.prop
 cp -af $INSTALLER/module.prop $MODPATH/module.prop
 if $BOOTMODE; then
   # Update info for Magisk Manager
-  mktouch /magisk/$MODID/update
-  cp -af $INSTALLER/module.prop /magisk/$MODID/module.prop
+  mktouch $ModPath/update
+  cp -af $INSTALLER/module.prop $ModPath/module.prop
 fi
 
 # post-fs-data mode scripts

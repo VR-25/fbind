@@ -5,16 +5,16 @@
 
 
 # Prepare Environment
-export PATH=/dev/magisk/bin:/magisk/fbind/bin:$PATH
-source /magisk/fbind/core.sh
+PATH=$PATH:/sbin/.core/busybox:/dev/magisk/bin
+ModPath=$(grep loop /proc/mounts | cut -d' ' -f2 | grep -Ev 'system|dev')/fbind
+source $ModPath/core.sh
+export PATH=$PATH:$ModPath/bin
 tmp=/data/_tmp
 tmp2=/data/_tmp2
-service_enabled=$module_path/service.sh
-service_disabled=$module_path/service.disabled
+service_enabled=$ModPath/service.sh
+service_disabled=$ModPath/service.disabled
 toolkit
 echo
-
-
 
 
 ###TOOLBOX###
@@ -55,7 +55,6 @@ umnt() {
 		umount "$1"
 	fi
 }
-
 
 
 usage() {
@@ -289,7 +288,7 @@ unmount_folders() {
 
 uninstall() {
 	echo "<fbind Uninstall>"
-	touch $module_path/remove
+	touch $ModPath/remove
 	echo "- Done."
 	echo "(i) Reboot to apply change."
 }
@@ -413,12 +412,12 @@ elif [ "$1" = "restore" ]; then
 elif [ "$1" = '-f' ]; then
 	rm -f magisk/fbind/auto_mount
 	echo "fbind toolkit disabled. Reboot to apply change."
-	echo "- Re-enable by running \"touch $module_path/auto_mount\"."
+	echo "- Re-enable by running \"touch $ModPath/auto_mount\"."
 	
 elif [ "$1" = "-x" ]; then
 	touch magisk/fbind/disable
 	echo "(i) Module disabled. Reboot to apply change."
-	echo "- Re-enable from Magisk Manager or run \"rm -f $module_path/disable\"."
+	echo "- Re-enable from Magisk Manager or run \"rm -f $ModPath/disable\"."
 	
 elif [ "$1" = "log" ]; then cat $logfile
 

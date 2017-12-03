@@ -1,17 +1,18 @@
 #!/system/bin/sh
-
 # fbind Boot Service (Auto-bind)
 # VR25 @ XDA Developers
 
-# Prepare Environment
-export PATH=/dev/magisk/bin:$PATH
-source /magisk/fbind/core.sh
+
+# Environment
+ModPath=${0%/*}
+export PATH=$PATH:/sbin/.core/busybox:/dev/magisk/bin
+. $ModPath/core.sh
 
 
 # Abort auto-bind to open LUKS volume
-if grep -v '#' $config_file | grep -q 'cryptsetup=true'; then
+if grep -v '#' $config_file | grep -q luks; then
 	log_start
-	echo "(i) cryptsetup Enabled"
+	echo "(i) LUKS in Use"
 	echo "- Auto-bind aborted"
 	log_end
 fi
@@ -20,10 +21,10 @@ fi
 log_start
 
 # Check/fix SD Card fs
-if grep -v '#' $config_file | grep -q fsck; then
+if grep -Ev 'part|#' $config_file | grep -q fsck; then
 	echo "<fsck>"
-	until [ -b "$(grep -v '#' $config_file | grep fsck | cut -d' ' -f3)" ]; do sleep 1; done &>/dev/null
-	$(grep -v '#' $config_file | grep fsck)
+	until [ -b "$(grep -Ev 'part|#' $config_file | grep fsck | cut -d' ' -f3)" ]; do sleep 1; done &>/dev/null
+	$(grep -Ev 'part|#' $config_file | grep fsck)
 	echo
 fi
 

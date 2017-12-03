@@ -5,7 +5,6 @@
 ###CONSTANTS & VARIABLES###
 intsd=/data/media/0
 intobb=/data/media/obb
-module_path=/magisk/fbind
 fbind_dir=/data/media/fbind
 config_file=$fbind_dir/config.txt
 config_path=$fbind_dir/.config
@@ -129,7 +128,7 @@ default_extsd() {
 	grep "$(ls /mnt/media_rw)" /proc/mounts
 	grep "$(ls /mnt/media_rw)" /proc/mounts | grep -Eq 'ext2|ext3|ext4|f2fs' && LinuxFS=true
 	extsd="$(ls -1d /mnt/media_rw/* | sed -n 1p)"
-	extobb=$extsd/Android/obb
+	extobb="$extsd/Android/obb"
 	echo
 }
 
