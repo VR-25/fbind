@@ -1,3 +1,7 @@
+# 2017.12.4 (201712040)
+- [xbin/fbind] rename "cryptsetup=true" to "luks"
+- [xbin/fbind] rename "magisk/fbind" leftovers to "$ModPath"
+
 # 2017.12.3 (201712030)
 - Better & wider compatibility -- from Magisk 12 all the way to 14.5, possibly previous and future versions too
 - Fixed wrong "luks" config switch

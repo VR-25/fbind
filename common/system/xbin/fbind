@@ -368,7 +368,7 @@ rollback() {
 
 
 
-if grep -v '#' $config_file | grep -q 'cryptsetup=true'; then
+if grep -v '#' $config_file | grep -q luks; then
 	update_cfg
 	apply_cfg
 else
@@ -410,12 +410,12 @@ elif [ "$1" = "restore" ]; then
 	 rollback "$1"
 	
 elif [ "$1" = '-f' ]; then
-	rm -f magisk/fbind/auto_mount
-	echo "fbind toolkit disabled. Reboot to apply change."
+	rm -f $ModPath/auto_mount
+	echo "(i) fbind toolkit disabled. Reboot to apply change."
 	echo "- Re-enable by running \"touch $ModPath/auto_mount\"."
 	
 elif [ "$1" = "-x" ]; then
-	touch magisk/fbind/disable
+	touch $ModPath/disable
 	echo "(i) Module disabled. Reboot to apply change."
 	echo "- Re-enable from Magisk Manager or run \"rm -f $ModPath/disable\"."
 	
