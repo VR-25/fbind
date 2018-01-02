@@ -1,0 +1,114 @@
+GENERIC SETUP
+
+Source (intsd) --> Destination (extsd)
+"fbind" is optional while the dot (.) preceding it is recommend -- prevents media duplication.
+	from_to Download .fbind/Download
+	from_to MagiskManager .fbind/MagiskManager
+	from_to OGMods .fbind/OGMods
+	from_to TitaniumBackup .fbind/TitaniumBackup
+	from_to WhatsApp .fbind/WhatsApp
+	from_to Hyperionics .fbind/Hyperionics
+	from_to DraStic .fbind/DraStic
+	from_to Pictures .fbind/Pictures
+	from_to DCIM .fbind/DCIM
+	from_to Android/data/com.xda.labs .fbind/XDALabsFiles
+	from_to MEGA .fbind/MEGA
+	from_to docs .fbind/docs
+	from_to projects .fbind/projects
+	from_to SHAREit .fbind/SHAREit
+	from_to FastHub .fbind/FastHub
+	from_to ADM .fbind/ADM
+	from_to Dukto .fbind/Dukto
+	from_to Music .fbind/Music
+
+When source and destination paths end in the same folder name (i.e., intsd/folder & extsd/folder) & destination contains no media files:
+	target data --> like "from_to data data", but -- why bother writing "data" twice? -- again, this is for non-media folders only.
+	target TWRP/BACKUPS --> this is similar to "from_to TWRP/BACKUPS TWRP/BACKUPS" Notice the unnecessary repetition.
+
+Auto-remove unwanted/stubborn files/folders from intsd & extsd -- no need to specify the storage itself, just the target file/folder:
+	cleanup Podcasts
+	cleanup Alarms
+	cleanup com.cmcm.whatscalllite
+	cleanup Documents
+	cleanup Notifications
+	cleanup Ringtones
+	cleanup Keku
+	cleanup .mobvista700
+	cleanup Android/obj
+	cleanup Android/SLOWDNS_TEMP_DIR
+	cleanup Android/TROID_TEMP_DIR
+	cleanup Android/.playstor.srf
+	cleanup Android/data/.um
+
+Bind mount the entire /data/media/obb folder to extsd/Android/obb
+	obb
+
+
+
+ONE LINE SETUP
+
+Bind-mount the entire intsd to extsd/.fbind (includes obb)
+	int_extf
+
+
+
+MULTI-USER SETUP
+
+	u11=/data/media/11  --> specifies intsd_path for user 11.
+	bind_mnt $extsd/FOLDER $u11/FOLDER
+
+	u13=/data/media/13  --> specifies intsd_path for user 13.
+	bind_mnt $extsd/FOLDER $u13/FOLDER
+
+	u# & u## are user variables and can be set to any value(s) you wish.
+
+
+
+
+APP DATA TO SDCARD
+
+To intsd/.app_data/APP (when your device hasn't or "doesn't support" SD card)
+	extsd_path $intsd
+	app_data APP
+
+To extsd/.app_data/APP
+	app_data APP
+
+
+
+ADVANCED SETUP
+
+Auto-mount a partition (fbind uses it as extsd)
+	part /dev/block/mmcblk1 /data/.extsd f2fs --> part [/path/to/partition] [/mount/point] [file system]
+
+Fully replace intsd with extsd (similar to the "one line" setup above, but more advanced)
+	part /dev/block/mmcblk1 $intsd f2fs
+	obb
+
+ Bind-mount intsd to extsd/.fbind --> same as above, but less aggressive
+	bind_mnt $extsd/.fbind $intsd -mv
+	obb
+
+
+
+
+MISC
+
+If you have more than a folder listed in /mnt/media_rw -- or your SD card path is different from the standard /mnt/media_rw/*, you must specify it.
+	extsd_path /path/to/extsd
+
+Some users experiencing bind issues may need to to set these lines (especially true for Samsung devices/ROMs).
+	intsd_path /storage/emulated/0
+	intobb_path /storage/emulated/obb
+
+Disable auto-bind service to open a LUKS volume -- handled by part().
+	luks
+
+Grant storage permissions to all apps (including future installations).
+	perms
+
+Check for and/or fix SD card file system errors before system gets a chance to mount the target partition.
+	fsck.f2fs -f /dev/block/mmcblk1 --> fsck -OPTION(s) /path/to/partition
+
+ Disable config auto backup
+	no_bkp

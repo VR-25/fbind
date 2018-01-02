@@ -1,4 +1,4 @@
-#!/sbin/sh
+#!/sbin/sh -x
 ##########################################################################################
 #
 # Magisk Module Template Install Script
@@ -7,19 +7,13 @@
 ##########################################################################################
 
 # Detect whether in boot mode
-ps | grep zygote | grep -v grep >/dev/null && BOOTMODE=true || BOOTMODE=false
+pgrep zygote | grep -v grep >/dev/null && BOOTMODE=true || BOOTMODE=false ###
 $BOOTMODE || ps -A 2>/dev/null | grep zygote | grep -v grep >/dev/null && BOOTMODE=true
 
-# This path should work in any cases
 TMPDIR=/dev/tmp
-MOUNTPATH=/magisk
-IMG=/data/magisk.img
-if $BOOTMODE; then
-  MOUNTPATH=/dev/magisk_merge
-  IMG=/data/magisk_merge.img
-fi
 INSTALLER=$TMPDIR/install
-MAGISKBIN=/data/magisk
+MAGISKBIN=/data/adb/magisk
+[ -d $MAGISKBIN ] || MAGISKBIN=/data/magisk ###
 
 # Default permissions
 umask 022
@@ -28,44 +22,53 @@ umask 022
 rm -rf $TMPDIR 2>/dev/null
 mkdir -p $INSTALLER
 
+# echo before loading util_functions
+ui_print() { echo "$1"; }
+
+require_new_magisk() {
+  ui_print "***********************"
+  ui_print "! Magisk is not instaled" ###
+  ui_print "***********************"
+  exit 1
+}
+
 ##########################################################################################
 # Environment
 ##########################################################################################
 
 OUTFD=$2
-ZIP="$3"
+ZIP="$3" ###
 
-ui_print() {
-  if $BOOTMODE; then
-    echo "$1"
-  else
-    echo -n -e "ui_print $1\n" >> /proc/self/fd/$OUTFD
-    echo -n -e "ui_print\n" >> /proc/self/fd/$OUTFD
-  fi
-}
-
-require_new_magisk() {
-  ui_print "***********************************"
-  ui_print "! $MAGISKBIN isn't setup properly!"
-  ui_print "! Please install Magisk v14.0+!"
-  ui_print "***********************************"
-  exit 1
-}
-
-ui_print "- Mounting /system, /vendor, /data, /cache"
-mount -o ro /system 2>/dev/null
-mount -o ro /vendor 2>/dev/null
 mount /data 2>/dev/null
-mount /cache 2>/dev/null
 
 # Utility functions must exist
 [ -f $MAGISKBIN/util_functions.sh ] || require_new_magisk
 # Load utility fuctions
 . $MAGISKBIN/util_functions.sh
+
+# We can't alter magisk image live, use alternative image if required ###
+if $BOOTMODE; then
+  if [ "$MAGISKBIN" != "/data/magisk" ]; then
+    IMG=/data/adb/magisk_merge.img
+  else
+    IMG=/data/magisk_merge.img
+  fi
+else
+  if [ "$MAGISKBIN" != "/data/magisk" ]; then
+    IMG=/data/adb/magisk.img
+  else
+    IMG=/data/magisk.img
+  fi
+fi
+
+# Always mount under tmp
+MOUNTPATH=$TMPDIR/magisk_img
+
+# Preperation for flashable zips
 get_outfd
 
-$BOOTMODE && ! is_mounted /magisk && abort "! Magisk is not activated!"
-[ ! -f /system/build.prop ] && abort "! /system could not be mounted!"
+# Mount partitions
+mount_partitions
 
 # Detect version and architecture
 api_level_arch_detect
@@ -73,23 +76,23 @@ api_level_arch_detect
 # You can get the Android API version from $API, the CPU architecture from $ARCH
 # Useful if you are creating Android version / platform dependent mods
 
-# We need busybox/binaries to be setup
+# Setup busybox and binaries
 $BOOTMODE && boot_actions || recovery_actions
 
 ##########################################################################################
 # Preparation
 ##########################################################################################
 
-#ui_print "- Extracting module files" ###
-unzip -oqq "$ZIP" -d $INSTALLER
+# Extract common files
+unzip -o "$ZIP" module.prop config.sh 'common/*' -d $INSTALLER >&2
 
 [ ! -f $INSTALLER/config.sh ] && abort "! Unable to extract zip file!"
 # Load configurations
 . $INSTALLER/config.sh
 
-# Check the min magisk version
-MIN_VER=`grep_prop template $INSTALLER/module.prop`
-[ ! -z $MAGISK_VER_CODE -a $MAGISK_VER_CODE -ge $MIN_VER ] || require_new_magisk
+# Check the installed magisk version ###
+#MIN_VER=`grep_prop minMagisk $INSTALLER/module.prop`
+#[ ! -z $MAGISK_VER_CODE -a $MAGISK_VER_CODE -ge $MIN_VER ] || require_new_magisk
 MODID=`grep_prop id $INSTALLER/module.prop`
 MODPATH=$MOUNTPATH/$MODID
 
@@ -105,61 +108,111 @@ ui_print "******************************"
 # Install
 ##########################################################################################
 
-request_size_check $INSTALLER ###
+# Get the variable reqSizeM. Use your own method to determine reqSizeM if needed
+request_zip_size_check "$ZIP"
 
-if [ -f "$IMG" ]; then
-  ui_print "- Found $IMG"
-  image_size_check $IMG
-  if [ "$reqSizeM" -gt "$curFreeM" ]; then
-    newSizeM=$(((reqSizeM + curUsedM) / 32 * 32 + 64))
-    ui_print "- Resizing $IMG to ${newSizeM}M"
-    $MAGISKBIN/magisk --resizeimg $IMG $newSizeM
-  fi
-else
-  newSizeM=$((reqSizeM / 32 * 32 + 64));
-  ui_print "- Creating $IMG with size ${newSizeM}M"
-  $MAGISKBIN/magisk --createimg $IMG $newSizeM
-fi
-
-ui_print "- Mounting $IMG to $MOUNTPATH"
-MAGISKLOOP=`$MAGISKBIN/magisk --mountimg $IMG $MOUNTPATH`
-is_mounted $MOUNTPATH || abort "! $IMG mount failed..."
-
+# This function will mount $IMG to $MOUNTPATH, and resize the image based on $reqSizeM
+mount_magisk_img
 
 ##########################################################################################
-# Constants & Variables
+
+# Environment
 fbind_dir=/data/media/$MODID
 info_dir=$fbind_dir/info
 config_file=$fbind_dir/config.txt
-config_updater=$INSTALLER/common/config_updater.sh
-CurVersionCode=0
-
-$BOOTMODE && ModPath=$(grep loop /proc/mounts | cut -d' ' -f2 | grep -Ev 'system|dev')/$MODID \
-	|| ModPath=/magisk/$MODID
+if [ "$MAGISKBIN" != "/data/magisk" ]; then
+  ModPath=/sbin/.core/img/$MODID
+else
+  ModPath=/magisk/$MODID
+fi
 
 # Create mod paths
-[ -f $ModPath/module.prop ] && CurVersionCode=$(grep 'versionCode' $ModPath/module.prop | cut -d= -f2)
+if [ -f $ModPath/module.prop ]; then
+  CurVersionCode="`grep_prop 'versionCode' $ModPath/module.prop`"
+else
+  CurVersionCode=0
+fi
 rm -rf $MODPATH 2>/dev/null
 mkdir -p $MODPATH
+mkdir -p $info_dir 2>/dev/null
 
 # Update fbind_dir (preserves config)
-[ "$CurVersionCode" -lt '201711230' ] && . $config_updater
-
-# Copy files
-ui_print "- Copying files"
-mkdir -p $info_dir 2>/dev/null
-mv $INSTALLER/common/info/* $info_dir
-[ -f /data/_x ] && rm /data/_x || mv $INSTALLER/common/system $MODPATH
-if [ ! -f /data/_x ] && [ "$ARCH" = "arm" -o "$ARCH" = "arm64" ]; then
-	mv $INSTALLER/bin $MODPATH
-	mv $MODPATH/bin/cryptsetup_arm $MODPATH/bin/cryptsetup
+if [ "$CurVersionCode" -lt '201801020' ]; then
+  unzip -o "$ZIP" config_updater.sh -d $INSTALLER >&2
+  . $INSTALLER/config_updater.sh
 fi
-mv $INSTALLER/README.md $info_dir/README.txt
-[ -f $info_dir/License.txt ] || mv $INSTALLER/License.md $info_dir/License.txt
-mv $INSTALLER/common/core.sh $MODPATH
-chmod -R 777 $fbind_dir
+
+# Extract files
+ui_print "- Extracting module files"
+if echo "$ARCH" | grep -q arm; then
+  unzip -o "$ZIP" 'bin/*' -d $MODPATH >&2
+  mv $MODPATH/bin/cryptsetup_arm $MODPATH/bin/cryptsetup
+fi
+unzip -o "$ZIP" core.sh 'system/*' -d $MODPATH >&2
+[ -f /data/.xfbind ] && mv $MODPATH/system/bin $MODPATH/system/xbin
+unzip -o "$ZIP" Changelog.md config_samples.txt README.md -d $info_dir >&2
+[ -f $info_dir/License.txt ] || unzip -o "$ZIP" 'License.md' -d $info_dir >&2
+chown -R media_rw:media_rw $fbind_dir
+
 ##########################################################################################
 
+# Patch platform.xml -- storage permissions
+ui_print "- Patching /system/etc/permissions/platform.xml"
+XML_mod_dir=$MODPATH/system/etc/permissions
+
+XML_list="/sbin/.core/mirror/system/etc/permissions/platform.xml
+/dev/magisk/mirror/system/etc/permissions/platform.xml
+/system/etc/permissions/platform.xml"
+
+for f in $XML_list; do
+  if [ -f "$f" ]; then
+    cp "$f" $INSTALLER
+    # Export /system size for platform.xml automatic re-patching across ROM updates
+    du -s "$(echo "$f" | sed 's/\/etc.*//')" | cut -f1 >$MODPATH/.SystemSizeK
+    break
+  fi
+done
+
+PERMS="READ_EXTERNAL_STORAGE
+WRITE_EXTERNAL_STORAGE"
+
+sed -i '/<\/permissions>/d; /READ_EXTERNAL_STORAGE/d; /WRITE_EXTERNAL_STORAGE/d' $INSTALLER/platform.xml
+echo >>$INSTALLER/platform.xml
+
+for PERM in $PERMS; do
+  cat <<BLOCK
+  <permission name="android.permission.$PERM" >
+    <group gid="media_rw" />
+    <group gid="sdcard_rw" />
+  </permission>"
+
+BLOCK
+done >>$INSTALLER/platform.xml
+
+echo "</permissions>" >>$INSTALLER/platform.xml
+
+mkdir -p $XML_mod_dir
+mv $INSTALLER/platform.xml $XML_mod_dir
+
+##########################################################################################
+
+# Restore config backup
+if $BOOTMODE; then
+  BkpSearchPath=/mnt/media_rw
+else
+  BkpSearchPath=/external_sd
+fi
+
+BkpDir="$(find "$BkpSearchPath" -type d -name ".fbind_bkp" 2>/dev/null)"
+
+if [ -f "$BkpDir/config.txt" ] && [ ! -f "$config_file" ]; then
+  cp -a "$BkpDir/config.txt" "$config_file" 2>/dev/null
+fi
+
+##########################################################################################
+
+# Remove placeholder
+rm -f $MODPATH/system/placeholder 2>/dev/null
 
 # Handle replace folders
 for TARGET in $REPLACE; do
@@ -175,7 +228,7 @@ $PROPFILE && cp -af $INSTALLER/common/system.prop $MODPATH/system.prop
 # Module info
 cp -af $INSTALLER/module.prop $MODPATH/module.prop
 if $BOOTMODE; then
-  # Update info for Magisk Manager
+  # Update info for Magisk Manager ###
   mktouch $ModPath/update
   cp -af $INSTALLER/module.prop $ModPath/module.prop
 fi
@@ -193,16 +246,8 @@ set_permissions
 # Finalizing
 ##########################################################################################
 
-$MAGISKBIN/magisk --umountimg $MOUNTPATH $MAGISKLOOP
-rmdir $MOUNTPATH
-
-# Shrink the image if possible
-image_size_check $IMG
-newSizeM=$((curUsedM / 32 * 32 + 64))
-if [ $curSizeM -gt $newSizeM ]; then
-  ui_print "- Shrinking $IMG to ${newSizeM}M"
-  $MAGISKBIN/magisk --resizeimg $IMG $newSizeM
-fi
+# Unmount magisk image and shrink if possible
+unmount_magisk_img
 
 $BOOTMODE || recovery_cleanup
 rm -rf $TMPDIR

@@ -1,19 +1,55 @@
 #!/system/bin/sh
-
-# fbind Toolkit
+# fbind
 # VR25 @ XDA Developers
 
 
-# Prepare Environment
-PATH=$PATH:/sbin/.core/busybox:/dev/magisk/bin
-ModPath=$(grep loop /proc/mounts | cut -d' ' -f2 | grep -Ev 'system|dev')/fbind
-source $ModPath/core.sh
-export PATH=$PATH:$ModPath/bin
+# Environment
+PATH="/sbin/.core/busybox:/dev/magisk/bin:$PATH"
+ModID=fbind
+
+# Root check
+if [ "$(id -un)" != "root" ]; then
+	echo -e "\n(!) $ModID must run as root.\n"
+	exit 1
+else
+	echo
+fi
+
+# Intelligently toggle SELinux mode
+if sestatus | grep -q enforcing; then
+	was_enforcing=true
+	setenforce 0
+else
+	was_enforcing=false
+fi
+
+umask 022
+
+# Find ModPath
+for loop_device in /dev/block/loop*; do
+	if losetup $loop_device 2>/dev/null | grep -q '\(/data/.*magisk.img\)'; then
+		while read MountPoint; do
+			if [ -f "$MountPoint/$ModID/module.prop" ]; then
+				ModPath=$MountPoint/$ModID
+				break 2
+			fi
+		done <<< "$(grep $loop_device /proc/mounts | awk '{print $2}' | grep -v '/system')"
+	fi
+done
+
+if [ ! -f "$ModPath/module.prop" ]; then
+  echo -e "(!) $ModID path not found"
+  echo -e "- Unsupported Magisk version\n"
+  exit 1
+fi
+
+. $ModPath/core.sh
+export PATH="$PATH:$ModPath/bin"
 tmp=/data/_tmp
 tmp2=/data/_tmp2
 service_enabled=$ModPath/service.sh
 service_disabled=$ModPath/service.disabled
-toolkit
+export tk=true
 echo
 
 
@@ -30,7 +66,7 @@ yn() {
 
 # Move data
 mvdt() {
-	if ! mntpt "$1" && [ "$(ls "$1")" ]; then
+	if ! is_mnt "$1" && [ "$(ls "$1")" ]; then
 		echo "[$3]"
 		[ -d "$2" ] || mkdir -p -m 777 "$2"
 		cp -a "$1"/* "$2" 2>/dev/null
@@ -40,7 +76,7 @@ mvdt() {
 
 # Move data (rollback)
 mvdtR() {
-	if mntpt "$2" && [ "$(ls "$1")" ]; then
+	if is_mnt "$2" && [ "$(ls "$1")" ]; then
 		umount "$2"
 		echo "[$3]"
 		cp -a "$1"/* "$2" 2>/dev/null
@@ -50,7 +86,7 @@ mvdtR() {
 
 # Unmount
 umnt() {
-	if mntpt "$1"; then
+	if is_mnt "$1"; then
 		echo "[$2]"
 		umount "$1"
 	fi
@@ -101,75 +137,96 @@ END
 
 enable_service() {
 	mv -f $service_disabled $service_enabled
-	chmod 777 $service_enabled
-	echo "(i) Auto-bind enabled."
-	echo
+	chmod 755 $service_enabled
+	echo -e "(i) Auto-bind enabled.\n"
 }
 
 disable_service() {
 	mv -f $service_enabled $service_disabled
-	echo "(i) Auto-bind disabled."
-	echo
+	echo "(i) Auto-bind disabled.\n"
 }
 
 
 # Add line(s) to fbind config
 add_line() {
+	echo -e "<Add config line>\n"
 	: > $tmp
 	INPUT=0
-	[ `tail -c 1 $config_file` ] && printf "\n" >> $config_file
+	[ "$(tail -c 1 $config_file)" ] && printf "\n" >> $config_file
 	
 	if [ "$1" = '-ad' ]; then
 		: > $tmp2
 		echo "$(ls -1 /data/data)" >> $tmp
 
-		cat $tmp
-		echo
-		echo 'Input a matching word/string at once. hit ENTER twice when done.'
-		until [ -z "$INPUT" ]; do
-			read INPUT
-			[ "$INPUT" ] && grep "$INPUT" $tmp | sed 's/^/app_data /' >> $tmp2
-		done
+		if [ -z "$2" ]; then
+			cat $tmp
+			echo -e "\n(i) Input a matching word/string at a time."
+			echo "- Hit ENTER twice when done or press CTRL (Vol. Down) + C to abort."
+			until [ -z "$INPUT" ]; do
+				read INPUT
+				[ -n "$INPUT" ] && grep "$INPUT" $tmp | sed 's/^/app_data /' >> $tmp2
+			done
+		else
+			grep "$2" $tmp | sed 's/^/app_data /' >> $tmp2
+		fi
 		
 		cat $tmp2 >> $config_file
-		echo "Added line(s):"
-		cat $tmp2
-		rm -f $tmp $tmp2
+		if grep -Eq '[0-9]{1}|[a-z]{1}|[A-Z]{1}' $tmp2; then
+			if [ -z "$2" ]; then echo "Added line(s):"; else echo "Added line:"; fi
+			cat $tmp2
+		else
+			echo "(i) No line(s) added."
+		fi
+		rm $tmp $tmp2
 	
 	elif [ "$1" = '-as' ]; then
-		echo "Available intsd folders -- incl. subfolders:"
-		echo
-		for d in $(ls -a $intsd); do
-			if ! grep -v '#' $config_file | grep -qw "$d" \
-				&& [ -d "$intsd/$d" ]; then
-				echo "$d"
-			fi
-		done
-		echo
-		echo 'Input 1 source folder at once. hit ENTER twice when done.'
-		until [ -z "$INPUT" ]; do
-			read INPUT
-			[ "$INPUT" ] && echo "from_to \"$INPUT\" \".fbind/$INPUT\"" >> $tmp
-		done
+		if [ -z "$2" ]; then
+			while read d; do
+				grep -q "$d" $config_file || echo "$d"
+			done <<< "$(ls -1ad $intsd/* | sed 's/.*0\///')"
+			echo -e "\n(i) Input a matching folder or path at a time. Wildcards are supported."
+			echo "- Hit ENTER twice when done or press CTRL (Vol. Down) + C to abort."
+			until [ -z "$INPUT" ]; do
+				read INPUT
+				if [ -n "$INPUT" ]; then
+					DirPath="$(find "$intsd" -type d -name "$INPUT" 2>/dev/null | sed "s:$intsd/::")"
+					echo "from_to \"$DirPath\" \".fbind/$DirPath\"" >> $tmp
+				fi
+			done
+		else
+			DirPath="$(find "$intsd" -type d -name "*$2*" 2>/dev/null | sed "s:$intsd/::")"
+			echo "from_to \"$DirPath\" \".fbind/$DirPath\"" >> $tmp
+		fi
 		
-		echo "Added line(s):"
-		cat $tmp
 		cat $tmp >> $config_file
-		chmod 777 $config_file
-		rm -f $tmp
+		if grep -Eq '[0-9]{1}|[a-z]{1}|[A-Z]{1}' $tmp; then
+			if [ -z "$2" ]; then echo "Added line(s):"; else echo "Added line:"; fi
+			cat $tmp
+		else
+			echo "(i) No line(s) added."
+		fi
+		rm $tmp
 	
-	else
-		echo 'Input 1 line at once. hit ENTER twice when done.'
-		until [ -z "$INPUT" ]; do
-			read INPUT
-			[ "$INPUT" ] && echo "$INPUT" >> $tmp
-		done
+	elif [ "$1" = '-a' ]; then
+		if [ -z "$2" ]; then
+			echo -e "\n(i) Input one line at a time."
+			echo "- Hit ENTER twice when done or press CTRL (Vol. Down) + C to abort."
+			until [ -z "$INPUT" ]; do
+				read INPUT
+				[ -n "$INPUT" ] && echo "$INPUT" >> $tmp
+			done
+		else
+			echo "$2" >> $tmp
+		fi
 		
-		echo "Added line(s):"
-		cat $tmp
 		cat $tmp >> $config_file
-		chmod 777 $config_file
-		rm -f $tmp
+		if grep -Eq '[0-9]{1}|[a-z]{1}|[A-Z]{1}' $tmp; then
+			if [ -z "$2" ]; then echo "Added line(s):"; else echo "Added line:"; fi
+			cat $tmp
+		else
+			echo "(i) No line(s) added."
+		fi
+		rm $tmp
 	fi
 	echo
 }
@@ -206,7 +263,7 @@ move_data() {
 	
 	# Other
 	bind_mnt() {
-		if ! mntpt "$2" && [ "$(ls "$2")" ] && [ "$3" = "-mv" ]; then
+		if ! is_mnt "$2" && [ "$(ls "$2")" ] && [ "$3" = "-mv" ]; then
 			echo "[$2]"
 			[ -d "$1" ] || mkdir -p -m 777 "$1"
 			cp -a "$2"/* "$1" 2>/dev/null
@@ -224,20 +281,23 @@ rm_line() {
 	: > $tmp
 	: > $tmp2
 	INPUT=0
-	echo "<Remove Config Lines>"
-	echo
+	echo -e "<Remove Config Lines>\n"
 	cat $config_file
 	echo
-	echo 'Input a matching word/string at once. hit ENTER twice when done.'
+	echo "Input a matching word/string at once."
+	echo "- Hit ENTER twice when done or press CTRL (Vol. Down) + C to abort."
 	until [ -z "$INPUT" ]; do
 		read INPUT
-		[ "$INPUT" ] && grep -v "$INPUT" $config_file >> $tmp && grep "$INPUT" $config_file >> $tmp2
+		if [ -n "$INPUT" ]; then
+			grep -v "$INPUT" $config_file >> $tmp
+			grep "$INPUT" $config_file >> $tmp2
+		fi
 	done
 
 	if grep -Eq '[0-9]{1}|[a-z]{1}|[A-Z]{1}' $tmp; then
-		cat $tmp > $config_file
-		chmod 777 $config_file
-		echo "Removed line(s):"
+		cat $tmp >$config_file
+		chown media_rw:media_rw $config_file
+		echo -e "Removed line(s)\n:"
 		cat $tmp2
 		rm -f $tmp $tmp2
 	else
@@ -264,7 +324,7 @@ unmount_folders() {
 	
 	# data/data/app <--> $extsd/.app_data/app
 	app_data() {
-		if mntpt /data/data/$1 && [ "$2" = "-u" ]; then
+		if is_mnt /data/data/$1 && [ "$2" = "-u" ]; then
 			echo "[/data/data/$1]"
 			umount /data/data/$1
 		fi
@@ -320,7 +380,7 @@ rollback() {
 	
 	# Other
 	bind_mnt() {
-		if mntpt "$2" && [ "$(ls "$1")" ] && [ "$3" = "-mv" ]; then
+		if is_mnt "$2" && [ "$(ls "$1")" ] && [ "$3" = "-mv" ]; then
 			echo "[$2]"
 			umount "$2"
 			cp -a "$1"/* "$2" 2>/dev/null
@@ -343,7 +403,7 @@ rollback() {
 		
 		if grep -Eq '[0-9]{1}|[a-z]{1}|[A-Z]{1}' $tmp; then
 			cat $tmp > $config_file
-			chmod 777 $config_file
+			chown media_rw:media_rw $config_file
 			echo "Restoring data..."
 			source $tmp2
 			rm -f $tmp $tmp2
@@ -377,53 +437,56 @@ else
 fi
 cfg_bkp
 
-if [ "$1" = "-a" ]; then add_line
-elif [ "$1" = "-ad" ]; then add_line '-ad'
-elif [ "$1" = "-as" ]; then add_line '-as'
-elif [ "$1" = "-b" ]; then bind_folders
-elif [ "$1" = "-c" ]; then cleanupf
-elif [ "$1" = "-l" ]; then list_cfg
-elif [ "$1" = "-m" ]; then move_data
-elif [ "$1" = "-r" ]; then rm_line
-elif [ "$1" = "-u" ]; then unmount_folders
 
-elif [ "$1" = "-umb" ]; then
-	echo "Are you sure you know exactly what you're doing? (y/n)"
-	read ans
-	yn $ans "unmount_folders; move_data; fbind -b"
-	
-elif [ "$1" = "-mb" ]; then move_data; fbind -b
-elif [ "$1" = "-d" ]; then disable_service
-elif [ "$1" = "-e" ]; then enable_service
+case $1 in
+	-a) add_line "-a" "$2";;
+	-ad) add_line "-ad" "$2";;
+	-as) add_line "-as" "$2";;
+	-b) bind_folders;;
+	-c) cleanupf;;
+	-l) list_cfg;;
+	-m) move_data;;
+	-r) rm_line;;
+	-u) unmount_folders;;
+	-mb) move_data; fbind -b;;
+	-d) disable_service;;
+	-e) enable_service;;
+	-restore) rollback "$1";;
+	-log) cat $logfile;;
+	-ref) cat $fbind_dir/info/README.txt;;
 
-elif [ "$1" = "uninstall" ]; then
-	echo "Are you sure you want to uninstall fbind? (y/n)"
-	read ans
-	yn $ans uninstall
-	
-elif [ "$1" = "rollback" ]; then
-	echo 'Are you sure you want to uninstall fbind & move data back to $intsd? (y/n)'
-	read ans
-	yn $ans rollback
-	
-elif [ "$1" = "restore" ]; then
-	 rollback "$1"
-	
-elif [ "$1" = '-f' ]; then
-	rm -f $ModPath/auto_mount
-	echo "(i) fbind toolkit disabled. Reboot to apply change."
-	echo "- Re-enable by running \"touch $ModPath/auto_mount\"."
-	
-elif [ "$1" = "-x" ]; then
-	touch $ModPath/disable
-	echo "(i) Module disabled. Reboot to apply change."
-	echo "- Re-enable from Magisk Manager or run \"rm -f $ModPath/disable\"."
-	
-elif [ "$1" = "log" ]; then cat $logfile
+	-umb)
+		echo "Are you sure you know exactly what you're doing? (y/n)"
+		read ans
+		yn $ans "unmount_folders; move_data; fbind -b"
+		;;
 
-elif [ "$1" = "ref" ]; then cat $fbind_dir/info/README.txt; echo
-elif [ "$1" = "chlog" ]; then cat $fbind_dir/info/Changelog.md; echo
+	-uninstall)
+		echo "Are you sure you want to uninstall fbind? (y/n)"
+		read ans
+		yn $ans uninstall
+		;;
 
-else usage
-fi
+	-rollback)
+		echo 'Are you sure you want to uninstall fbind & move data back to $intsd? (y/n)'
+		read ans
+		yn $ans rollback
+		;;
+
+	-f)
+		rm -f $ModPath/auto_mount
+		echo "(i) fbind toolkit disabled. Reboot to apply change."
+		echo "- Re-enable by running \"touch $ModPath/auto_mount\"."
+		;;
+
+	-x)
+		touch $ModPath/disable
+		echo "(i) Module disabled. Reboot to apply change."
+		echo "- Re-enable from Magisk Manager or run \"rm -f $ModPath/disable\"."
+		;;
+	
+	*) usage;;
+
+esac
+$was_enforcing && setenforce 1
 exit 0

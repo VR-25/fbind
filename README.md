@@ -1,29 +1,25 @@
 # Magic Folder Binder (fbind)     
-# VR25 @ XDA Developers
+## VR25 @ XDA Developers
 
 
-***
-**DESCRIPTION**
+### DESCRIPTION
 - Forces Android to save select files/folders to the external_sd (or to a partition) by default, & clean up the user's storage (select unwanted files/folders) automatically.
 
 
-***
-**DISCLAIMER**
+### DISCLAIMER
 - ALWAYS read the reference prior to installing/updating fbind. While no cats have been harmed in any way, shape or form, I assume no responsibility under anything that might go wrong due to the use/misuse of this module. 
 
 
-***
-**QUICK SETUP**
+### QUICK SETUP
 1. Install the module.
 2. Reboot.
-3. Read `Config Syntax` below &/or /data/media/fbind/info/config_samples.txt.
-4. Setup /data/media/fbind/config.txt.
-5. Run `fbind -mb` as root to move data & bind corresponding folders automatically.
+3. Read `Config Syntax` below &/or `/data/media/fbind/info/config_samples.txt.`
+4. Add lines to /data/media/fbind/config.txt with `fbind -a`, `fbind -ad` and/or `fbind -as`.
+5. Run `fbind -mb` as root to move data & bind corresponding folders all at once.
 6. Forget.
 
 
-***
-**CONFIG SYNTAX**
+### CONFIG SYNTAX
 
 - part [block device] [mount point (any path except "/folder"] [file_system] ["fsck OPTION(s)" (filesystem specific, optional) --> auto-mount a partition & use it as extsd
 - app_data [folder] --> data/data <--> extsd/.data (needs part or LinuxFS formated SD card), to use with intsd instead, include the config line "extsd_path $intsd"
@@ -31,26 +27,24 @@
 - cleanup [file/folder] --> auto-remove unwanted files/folders from intsd & extsd -- including by default, unwanted "Android" directories
 - luks --> disable auto-bind service to open a LUKS volume -- handled by part() 
 - extsd_path [/path/to/alternate/storage]) --> ignore for default -- /mnt/media_rw/*, include the line `extsd_path $intsd` in your config file if your device hasn't or doesn't support SD card
-- from_to [intsd folder] [extsd folder] --> great for media folders & extra organization
+- from_to [intsd folder] [extsd folder] --> great for media folders & better organization
 - intobb_path [path] --> i.e., /storage/emulated/0 (ignore for default -- /data/media/0)
-- intsd_f --> intsd to extsd/.fbind (includes obb)
+- int_extf --> bind-mount the entire intsd to extsd/.fbind (includes obb)
 - intsd_path [path] --> i.e., /storage/emulated/0/Android/obb (ignore for default -- /data/media/obb)
-- obb --> entire obb
+- obb --> bind-mount the entire /data/media/obb folder to extsd/Android/obb
 - obbf [app/game folder] --> individual obb
 - perms --> "pm grant" storage permissions to all apps (including future installations)
 - target [target folder] --> great for standard paths (i.e., Android/data, TWRP/BACKUPS)
-- no_restore --> don't auto-restore config backup
-- no_bkp --> don't backup config & don't auto-restore
+- no_bkp --> don't backup config
 
-An additional argument (any string) to any of the binding functions above excludes additional Android folders from being deleted. For bind_mnt(), if the additional argument is `-mv`, then fbind -m will obey that line too -- which is otherwise ignored by default for safety concerns. For app_data, "-u" allows fbind -u to "see" the specified line (also otherwise ignored by default).
+An additional argument (any string) to any of the binding functions above excludes additional "Android" folders from being deleted. For bind_mnt(), if the additional argument is `-mv`, then fbind -m affects that line too -- which is otherwise ignored by default for safety concerns. For app_data, "-u" allows fbind -u to "see" the specified line (also otherwise ignored by default).
 
 You can add user variables to the config file. These must be in the format `u# or u##` -- i.e., u9=/data/media/9, u11=YouGetThePoint.
 
-You can add `fsck -OPTION(s) /path/to/partition` (i.e., `fsck.f2fs -f /dev/block/mmcblk1`). This will check for/fix SD card errors before system gets a chance to mount it.
+`fsck -OPTION(s) /path/to/partition` (i.e., `fsck.f2fs -f /dev/block/mmcblk1`) -- this will check for and/or fix SD card file system errors before system gets a chance to mount the target partition.
 
 
-***
-**fbind Terminal Toolkit**
+### TERMINAL
 
 Usage: fbind OPTION(s) ARGUMENT(s)
 
@@ -87,14 +81,9 @@ uninstall	Unmount all folders & uninstall fbind
 (!) Warning: only use "fbind -umb" if you know exactly what you're doing! That option is only intended for first time use -- i.e., in case you forgot to move data after installing the module for the very first time and rebooted. Since "-m" only moves unmounted folders data, the "-u" option makes it work. Again, once everything is unmounted, "-m" will then replace destination data. "fbind -mb" is the safer alternative, since it only moves new data. Let's say you just added a few lines to your config.txt file and the corresponding folders are not bound & data was not moved yet -- that is when you use this.
 
 
-***
-**DEBUGGING**
+### DEBUGGING
 
 * Logfile --> /data/media/fbind/debug.log
-
-* Most likely, you don't need this
-- Permissive_SELinux -- sets SElinux mode to `permissive`.
-- Permissive_SELinux -bind_only -- sets SELinux mode to `permissive` before binding folders and back to `enforcing` afterwards.
 
 * Default internal storage paths (auto-configured)
 - intsd_path /data/media/0
@@ -107,10 +96,33 @@ uninstall	Unmount all folders & uninstall fbind
 * Bind issues
 - Try the `alternate internal storage paths` above.
 
-* If you suspect fbind causes a bootloop, try excluding `system/xbin` from installation, by running `touch /data/_x`.
+* If `/system/bin/fbind` causes a bootloop, move it to `system/xbin` by running `touch /data/.xfbind` prior to installing. The setting is persistent across updates.
 
 
-***
-**Online Support**
+### ONLINE SUPPORT
 - [Git Repository](https://github.com/Magisk-Modules-Repo/Magic-Folder-Binder)
 - [XDA Thread](https://forum.xda-developers.com/apps/magisk/module-magic-folder-binder-t3621814/page2post72688621)
+
+
+### CHANGELOG
+
+**2018.1.2 (201801020)**
+- Added wildcards support to `fbind -as`
+- Automatically restore config backup upon installation if current config is missing or empty
+- Automatically set/reset `Mount Namespace Mode` to Global
+- Backwards compatible with Magisk versions older than 15, suporting template v4+
+- Fixed a critical bug that caused absurd delays in the folder binding process
+- Major optimizations
+- Major reference updates, especially config_samples.txt -- definitely worth checking that out
+- Smart SELinux mode handling -- "if enforcing; then set to permissive; do fbind stuff; set back to enforcing; fi" ;)
+- [TEST] New storage permissions workaround
+
+**2017.12.4 (201712040)**
+- [xbin/fbind] rename "cryptsetup=true" --> "luks"
+- [xbin/fbind] rename "magisk/fbind" leftovers to "$ModPath"
+
+**2017.12.3 (201712030)**
+- Better & wider compatibility -- from Magisk 12 all the way to 14.5, possibly previous and future versions too
+- Fixed wrong "luks" config switch
+- Improved "hot fsck" switch mechanism
+- General optimizations

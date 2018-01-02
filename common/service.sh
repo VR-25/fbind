@@ -1,11 +1,22 @@
 #!/system/bin/sh
-# fbind Boot Service (Auto-bind)
+# fbind Boot Service (auto-bind)
 # VR25 @ XDA Developers
 
 
 # Environment
 ModPath=${0%/*}
-export PATH=$PATH:/sbin/.core/busybox:/dev/magisk/bin
+export PATH="/sbin/.core/busybox:/dev/magisk/bin:$PATH"
+
+# Intelligently toggle SELinux mode
+if sestatus | grep -q enforcing; then
+	was_enforcing=true
+	setenforce 0
+else
+	was_enforcing=false
+fi
+
+
+umask 022
 . $ModPath/core.sh
 
 
@@ -20,13 +31,15 @@ fi
 
 log_start
 
-# Check/fix SD Card fs
-if grep -Ev 'part|#' $config_file | grep -q fsck; then
-	echo "<fsck>"
-	until [ -b "$(grep -Ev 'part|#' $config_file | grep fsck | cut -d' ' -f3)" ]; do sleep 1; done &>/dev/null
+
+# Check/fix SD Card FS
+if grep -Ev 'part|#' $config_file | grep -iq fsck; then
+	echo "<FSCK>"
+	until [ -b "$(grep -Ev 'part|#' $config_file | grep -i fsck | awk '{print $3}')" ]; do sleep 1; done
 	$(grep -Ev 'part|#' $config_file | grep fsck)
 	echo
 fi
+
 
 update_cfg
 apply_cfg
@@ -42,29 +55,30 @@ if grep -v "#" $config_file | grep -qw perms; then
 	STORAGE_PERMISSIONS="WRITE_MEDIA_STORAGE WRITE_EXTERNAL_STORAGE"
 
 	grantPerms() {
-	  for perm in $2; do
-		pm grant "$1" android.permission."$perm" 2>/dev/null
-  	done
+		for perm in $2; do
+			pm grant "$1" android.permission."$perm" 2>/dev/null
+		done
 	}
 
-	[ -f $config_path/storage_perms ] || touch $config_path/storage_perms
+	touch $config_path/storage_perms
 	echo "<Grant Storage Perms>"
 	
 	# Grant perms & take notes
-	for pkg in $(cat /data/system/packages.list | cut -d' ' -f1); do
+	while read pkg; do
 		if ! grep -q "$pkg" $config_path/storage_perms; then
 			grantPerms "$pkg" "$STORAGE_PERMISSIONS"
 			echo "$pkg" >> $config_path/storage_perms
 			echo "- $pkg"
 		fi
-	done
+	done <<< "$(cat /data/system/packages.list | cut -d' ' -f1)"
 	echo Done.
 	
 	# Remove absent system & user APKs from list
-	for pkg in $(cat $config_path/storage_perms); do
-		grep -q "$pkg" /data/system/packages.list && echo "$pkg" >> $config_path/storage_perms_tmp
-	done
-	mv -f $config_path/storage_perms_tmp $config_path/storage_perms
+	while read pkg; do
+		grep -q "$pkg" /data/system/packages.list && echo "$pkg" >> $config_path/storage_perms_
+	done <<< "$(cat $config_path/storage_perms)"
+	mv -f $config_path/storage_perms_ $config_path/storage_perms
 	
 fi
+
 log_end
