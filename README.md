@@ -21,11 +21,15 @@
 
 ### CONFIG SYNTAX
 
-- part [block device] [mount point (any path except "/folder"] [file_system] ["fsck OPTION(s)" (filesystem specific, optional) --> auto-mount a partition & use it as extsd
+- part [block device] [mount_point (any path except "/folder")] [file_system] ["fsck OPTION(s)" (filesystem specific, optional) --> auto-mount a partition -- to use as extsd, add the line extsd_path [mount_point]
+- part [block device] [mount_point--M (any path except "/folder")] [file_system] ["fsck OPTION(s)" (filesystem specific, optional) --> auto-mount multiple partitions -- notice mount_point has a `--M` flag -- add extsd_path [mount_point] to use the target partition as extsd
+- part [block device] [mount_point--L (any path except "/folder")] [file_system] ["fsck OPTION(s)" (filesystem specific, optional) --> open a LUKS volume -- disables auto-bind service -- fbind must be ran manually after boot to handle the process -- notice mount_point has a `--L` flag
+- part [block device] [mount_point--ML (any path except "/folder")] [file_system] ["fsck OPTION(s)" (filesystem specific, optional) --> open multiple LUKS volumes -- notice mount_point has a `--ML` flag -- fbind must be ran manually after boot to handle the process
+- LOOP [/path/to/.img/file] [mount_point] ["e2fsck -OPTION(s)" (optional)] --> mount a loopback device -- set it as extsd with "extsd_path [mount_point]"
+
 - app_data [folder] --> data/data <--> extsd/.data (needs part or LinuxFS formated SD card), to use with intsd instead, include the config line "extsd_path $intsd"
 - bind_mnt [TARGET mount_point] --> same as "mount -o bind [TARGET mount_point]"
 - cleanup [file/folder] --> auto-remove unwanted files/folders from intsd & extsd -- including by default, unwanted "Android" directories
-- luks --> disable auto-bind service to open a LUKS volume -- handled by part() 
 - extsd_path [/path/to/alternate/storage]) --> ignore for default -- /mnt/media_rw/*, include the line `extsd_path $intsd` in your config file if your device hasn't or doesn't support SD card
 - from_to [intsd folder] [extsd folder] --> great for media folders & better organization
 - intobb_path [path] --> i.e., /storage/emulated/0 (ignore for default -- /data/media/0)
@@ -62,11 +66,10 @@ Usage: fbind OPTION(s) ARGUMENT(s)
 -mb		Move data & bind corresponding folders
 ref		Display README
 log		Display debug.log
-chlog		Display changelog
 
 -ad		Add "app_data" line(s) to config.txt (interactive)
 
--as		Ask for SOURCE dirs (intsd/SOURCE) & add corresponding "from_to" lines to config.txt (interactive)
+-as		Ask for SOURCE dir (intsd/SOURCE) & add corresponding "from_to" lines to config.txt (interactive)
 
 -umb		(!) Unmount all folders, move data & rebind
 
@@ -90,8 +93,8 @@ uninstall	Unmount all folders & uninstall fbind
 - intobb_path /data/media/obb
 
 * Alternate internal storage paths
-- intsd_path /storage/emulated/0
-- intobb_path /storage/emulated/obb
+- intsd_path /storage/emulated/obb
+- intobb_path /storage/emulated/0
 
 * Bind issues
 - Try the `alternate internal storage paths` above.
@@ -105,6 +108,14 @@ uninstall	Unmount all folders & uninstall fbind
 
 
 ### CHANGELOG
+
+**2018.1.7 (201801070)**
+- Enhanced platform.xml patching engine & "perms" feature
+- [EXPERIMENTAL] Ability to mount multiple partitions, loop devices (.img files) & open multiple LUKS volumes
+- Fixed extsd_path() "slee" typo, "sestatus not found" & other issues
+- Improved compatibility with older Magisk versions (entirely new installer)
+- Major optimizations
+- Updated documentation (pro tips included)
 
 **2018.1.2 (201801020)**
 - Added wildcards support to `fbind -as`
@@ -120,9 +131,3 @@ uninstall	Unmount all folders & uninstall fbind
 **2017.12.4 (201712040)**
 - [xbin/fbind] rename "cryptsetup=true" --> "luks"
 - [xbin/fbind] rename "magisk/fbind" leftovers to "$ModPath"
-
-**2017.12.3 (201712030)**
-- Better & wider compatibility -- from Magisk 12 all the way to 14.5, possibly previous and future versions too
-- Fixed wrong "luks" config switch
-- Improved "hot fsck" switch mechanism
-- General optimizations

@@ -1,4 +1,12 @@
-**2018.1.2 (201801020)
+**2018.1.7 (201801070)**
+- Enhanced platform.xml patching engine & "perms" feature
+- [EXPERIMENTAL] Ability to mount multiple partitions, loop devices (.img files) & open multiple LUKS volumes
+- Fixed extsd_path() "slee" typo, "sestatus not found" & other issues
+- Improved compatibility with older Magisk versions (entirely new installer)
+- Major optimizations
+- Updated documentation (pro tips included)
+
+**2018.1.2 (201801020)**
 - Added wildcards support to `fbind -as`
 - Automatically restore config backup upon installation if current config is missing or empty
 - Automatically set/reset `Mount Namespace Mode` to Global

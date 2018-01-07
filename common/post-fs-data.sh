@@ -7,11 +7,15 @@ ModPath=${0%/*}
 export PATH="/sbin/.core/busybox:/dev/magisk/bin:$PATH"
 
 # Intelligently toggle SELinux mode
-if sestatus | grep -q enforcing; then
-	was_enforcing=true
-	setenforce 0
-else
-	was_enforcing=false
+SEck="$(ls -1 $(echo "$PATH" | sed 's/:/ /g') | grep -E 'sestatus|getenforce' | head -n1)"
+
+if [ -n "$SEck" ]; then
+	if $SEck | grep -iq enforcing; then
+		was_enforcing=true
+		setenforce 0
+	else
+		was_enforcing=false
+	fi
 fi
 
 
@@ -55,20 +59,23 @@ if [ "$(cat $ModPath/.SystemSizeK)" -ne "$(du -s "$Mirror" | cut -f1)" ]; then
 	[ -d $XML_mod_dir ] || mkdir -p -m 755 $XML_mod_dir
 	cp $XML_orig $XML_mod
 
-	PERMS="READ_MEDIA_STORAGE
-	READ_EXTERNAL_STORAGE
-	WRITE_MEDIA_STORAGE
-	WRITE_EXTERNAL_STORAGE"
+	PERMS="WRITE_EXTERNAL_STORAGE"
 
-	sed -i '/<\/permissions>/d; /READ_EXTERNAL_STORAGE/d; /WRITE_EXTERNAL_STORAGE/d' $XML_mod
+	sed -i '/<\/permissions>/d; /WRITE_EXTERNAL_STORAGE/d' $XML_mod
 	echo >>$XML_mod
 
+	sed '/<group gid="media_.*" \/>/d; /<group gid="sdcard_.*" \/>/d' $XML_mod
+
+	sed '/WRITE_MEDIA_STORAGE/a\
+        <group gid="media_rw" />\
+        <group gid="sdcard_rw" />' $XML_mod
+	    
 	for PERM in $PERMS; do
 	  cat <<BLOCK
-	<permission name="android.permission.$PERM" >
-		<group gid="media_rw" />
-		<group gid="sdcard_rw" />
-	</permission>"
+    <permission name="android.permission.$PERM" >
+        <group gid="media_rw" />
+        <group gid="sdcard_rw" />
+    </permission>"
 
 BLOCK
 	done >>$XML_mod
@@ -85,5 +92,8 @@ fi
 
 
 
-$was_enforcing && setenforce 1
+if [ -n "$SEck" ]; then
+	$was_enforcing && setenforce 1
+fi
+	
 exit 0

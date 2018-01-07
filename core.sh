@@ -14,8 +14,6 @@ debug=$config_file
 logfile=$fbind_dir/debug.log
 cleanup_list=$config_file
 cleanup_config=$config_path/cleanup
-part=false
-bind_only=false
 alt_extsd=false
 tk=false
 LinuxFS=false
@@ -46,11 +44,13 @@ get_prop() {
 set_prop() { sed -i "s|^$1=.*|$1=$2|g" "$config"; }
 
 
-sown() {
+set_perms() {
 	if is f "$1"; then
 		chown media_rw:media_rw "$1"
+		chmod 777 "$1"
 	elif is d "$1"; then
 		chown -R media_rw:media_rw "$1"
+		chmod -R 777 "$1"
 	fi
 }
 
@@ -59,9 +59,9 @@ sown() {
 # Generate config file from current settings
 if [ ! -f "$config_file" ]; then
 	mk_cfg=true
-	mkdir -p $fbind_dir 2>/dev/null && sown $fbind_dir
+	mkdir -p $fbind_dir 2>/dev/null && set_perms $fbind_dir
 	if [ "$(ls "$fbind_dir")" ]; then
-		cat $config_path/* >$config_file && sown $config_file
+		cat $config_path/* >$config_file && set_perms $config_file
 	else
 		echo -e "(!) No settings found\n"
 		exit 1
@@ -101,13 +101,15 @@ log_start() {
 }
 
 log_end() {
-	sown $logfile
-	$was_enforcing && setenforce 1
+	set_perms $logfile
+	if [ -n "$SEck" ]; then
+		$was_enforcing && setenforce 1
+	fi
 	exit 0
 }
 
 
-# Auto-mount a partition & use it as extsd
+# Mount partition
 # For safety reasons, the mount point can't be "/FOLDER"
 # $1=block_device, $2=mount_point, $3=file_system, $4="fsck OPTION(s)" (filesystem specific, optional)
 part() {
@@ -118,14 +120,12 @@ part() {
 	
 	echo "<Partition Information>" 
 	PARTITION=$(echo $1 | sed 's/.*\///')
-	part=true
-	extsd="$2"
-	extobb="$extsd/Android/obb"
+	MountPoint="$(sed 's/\-\-ML//; s/\-\-M//' <<< "$2")"
 	
-	if is_mnt "$2"; then
+	if is_mnt "$MountPoint"; then
 		echo "(i) $PARTITION already mounted"
 	else
-		is d "$2" || mkdir -p -m 777 "$2"
+		is d "$MountPoint" || mkdir -p -m 777 "$MountPoint"
 		until [ -b "$1" ]; do sleep 1; done
 		
 		# Open LUKS volume
@@ -133,20 +133,20 @@ part() {
 			cryptsetup luksOpen $1 $PARTITION
 			[ "$?" ] && echo '***'
 			[ -n "$4" ] && $4 /dev/mapper/$PARTITION
-			mount -t $3 -o noatime,rw /dev/mapper/$PARTITION "$2"
+			mount -t $3 -o noatime,rw /dev/mapper/$PARTITION "$MountPoint"
 		else [ -n "$4" ] && $4 $1
-			mount -t $3 -o noatime,rw $1 "$2"
+			mount -t $3 -o noatime,rw $1 "$MountPoint"
 		fi
 		
-		if ! is_mnt "$2"; then
+		if ! is_mnt "$MountPoint"; then
 			echo '***'
 			echo "(!) $PARTITION mount failed"
-			rmdir "$2" 2>/dev/null
+			rmdir "$MountPoint" 2>/dev/null
 			exit 1
 		fi
 		
 		[ "$?" ] && echo '***' \
-			&& df -h "$2" | sed "s/Filesystem/   Partition ($3)/"
+			&& df -h "$MountPoint" | sed "s/Filesystem/   Partition ($3)/"
 	fi
 	echo
 }
@@ -168,12 +168,12 @@ extsd_path() {
 	if [ "$1" = "$intsd" ]; then
 		LinuxFS=true
 		alt_extsd=true
-		extsd="$1"
+		extsd="$intsd"
 		extobb="$intobb"
 	else
 		echo "<SD Card Information>"
 
-		until grep -q "$1" /proc/mounts; do slee 1; done
+		until grep -q "$1" /proc/mounts; do sleep 1; done
 
 		grep "$1" /proc/mounts | grep -Eq 'ext2|ext3|ext4|f2fs' && LinuxFS=true
 		alt_extsd=true
@@ -183,38 +183,33 @@ extsd_path() {
 	fi
 }
 
+# Mount loop device
+# For safety reasons, the mount point can't be "/FOLDER"
+# $1=/path/to/.img_file, $2=mount_point, $3="e2fsck -OPTION(s)" (optional)
+LOOP() {
+	IMG="$1"
+	MountPoint="$2"
+	#PATH="$PATH:$(dirname "$(find /data/magisk /data/adb -type f -name magisk 2>/dev/null)")"
 
+	# Mount IMG
+	echo "$IMG $MountPoint" | grep -Eq "$extsd|$intsd" && wait_emulated
+	n "$3" && $3 "$1"
+	is d "$MountPoint" || mkdir -p -m 777 "$MountPoint"
+	mount "$IMG" "$MountPoint"
+	#LOOP="$(magisk --mountimg "$IMG" "$MountPoint")"
+	#echo "$LOOP" >$fbind_dir/.loop
 
-update_cfg() {
-	echo "<Config Update>"
-	if [ "$config_file" -ot "$config_path" ]; then
-		echo "- No updates found."
-	else
-		if $mk_cfg; then
-			echo "- No updates found."
-		else
-			mkdir $config_path 2>/dev/null
-			grep -v '#' $config_file | grep -E 'Permissive_SELinux|part |extsd_path |intsd_path |intobb_path ' >$debug_config
-			grep -vE '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' >$bind_list
-			grep -v '#' $config_file | grep 'cleanup' > $cleanup_config
-			
-			# Misc config lines
-			grep -Ev '#|part ' $config_file | grep -E 'u[0-9]{1}=|u[0-9]{2}=|perms|luks|fsck|no_bkp' >$config_path/misc
-			
-			# Enable additional intsd paths for multi-user support
-			grep '#' $config_file | grep -E 'u[0-9]{1}=|u[0-9]{2}=' >$config_path/uvars
-		
-			sown $config_path
-			echo "- Done."
-		fi
-	fi
-	echo
+	# Unmount IMG
+	# magisk --umountimg "$MountPoint" "$LOOP"
+	# rmdir "$MountPoint"
 }
 
+
 apply_cfg() {
-	. $config_path/uvars
-	. $debug_config
-	if ! $part && ! $alt_extsd; then default_extsd; fi
+	while read line; do
+		$line
+	done <<< "$(grep -v '#' $config_file | grep -E 'part |LOOP |extsd_path |intsd_path |intobb_path ')"
+	$alt_extsd || default_extsd
 }
 
 
@@ -261,8 +256,9 @@ bind_folders() {
 		target data
 		obb; } &>/dev/null
 	}
-
-	. $bind_list
+	while read line; do
+		$line
+	done <<< "$(grep -Ev '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ')"
 	ECHO
 	echo "- Done."
 	echo
@@ -277,7 +273,9 @@ cleanupf() {
 		if [ -f "$intsd/$1" ] || [ -d "$intsd/$1" ]; then rm -rf "$intsd/$1"; fi
 		if [ -f "$extsd/$1" ] || [ -d "$extsd/$1" ]; then rm -rf "$extsd/$1"; fi
 	}
-	. $cleanup_config
+	while read line; do
+		$line
+	done <<< "$(grep -v '#' $config_file | grep 'cleanup ')"
 	
 	# Unwanted "Android" directories
 	
@@ -293,11 +291,13 @@ cleanupf() {
 			
 	app_data() { if is_mnt /data/data/$1 && [ -z "$2" ]; then rm -rf $extsd/.app_data/$1/Android; fi; }
 
-	. $bind_list
+	while read line; do
+		$line
+	done <<< "$(grep -Ev '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ')"
 	
-	# . optional cleanup script
+	# Source optional cleanup script
 	if [ -f $fbind_dir/cleanup.sh ]; then
-		echo ". $fbind_dir/cleanup.sh"
+		echo "$fbind_dir/cleanup.sh"
 		. $fbind_dir/cleanup.sh
 		ECHO
 	fi

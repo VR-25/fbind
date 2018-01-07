@@ -8,7 +8,7 @@ PATH="/sbin/.core/busybox:/dev/magisk/bin:$PATH"
 ModID=fbind
 
 # Root check
-if [ "$(id -un)" != "root" ]; then
+if [ "$(whoami)" != "root" ]; then
 	echo -e "\n(!) $ModID must run as root.\n"
 	exit 1
 else
@@ -16,13 +16,16 @@ else
 fi
 
 # Intelligently toggle SELinux mode
-if sestatus | grep -q enforcing; then
-	was_enforcing=true
-	setenforce 0
-else
-	was_enforcing=false
-fi
+SEck="$(ls -1 $(echo "$PATH" | sed 's/:/ /g') | grep -E 'sestatus|getenforce' | head -n1)"
 
+if [ -n "$SEck" ]; then
+	if $SEck | grep -iq enforcing; then
+		was_enforcing=true
+		setenforce 0
+	else
+		was_enforcing=false
+	fi
+fi
 umask 022
 
 # Find ModPath
@@ -50,7 +53,6 @@ tmp2=/data/_tmp2
 service_enabled=$ModPath/service.sh
 service_disabled=$ModPath/service.disabled
 export tk=true
-echo
 
 
 ###TOOLBOX###
@@ -113,11 +115,10 @@ Usage: fbind OPTION(s) ARGUMENT(s)
 -mb		Move data & bind corresponding folders
 ref		Display README
 log		Display debug.log
-chlog		Display changelog
 
 -ad		Add "app_data" line(s) to config.txt (interactive)
 
--as		Ask for SOURCE dirs (intsd/SOURCE) & add corresponding "from_to" lines to config.txt (interactive)
+-as		Ask for SOURCE dir (intsd/SOURCE) & add corresponding "from_to" lines to config.txt (interactive)
 
 -umb		(!) Unmount all folders, move data & rebind
 
@@ -184,17 +185,17 @@ add_line() {
 			while read d; do
 				grep -q "$d" $config_file || echo "$d"
 			done <<< "$(ls -1ad $intsd/* | sed 's/.*0\///')"
-			echo -e "\n(i) Input a matching folder or path at a time. Wildcards are supported."
+			echo -e "\n(i) Input a matching folder name at a time. Wildcards are supported."
 			echo "- Hit ENTER twice when done or press CTRL (Vol. Down) + C to abort."
 			until [ -z "$INPUT" ]; do
 				read INPUT
 				if [ -n "$INPUT" ]; then
-					DirPath="$(find "$intsd" -type d -name "$INPUT" 2>/dev/null | sed "s:$intsd/::")"
+					DirPath="$(find "$intsd" -type d -name "$INPUT" 2>/dev/null | sed "s/$intsd\///; s/ /\\ /")"
 					echo "from_to \"$DirPath\" \".fbind/$DirPath\"" >> $tmp
 				fi
 			done
 		else
-			DirPath="$(find "$intsd" -type d -name "*$2*" 2>/dev/null | sed "s:$intsd/::")"
+			DirPath="$(find "$intsd" -type d -name "$2" 2>/dev/null | sed "s/$intsd\///")"
 			echo "from_to \"$DirPath\" \".fbind/$DirPath\"" >> $tmp
 		fi
 		
@@ -213,7 +214,7 @@ add_line() {
 			echo "- Hit ENTER twice when done or press CTRL (Vol. Down) + C to abort."
 			until [ -z "$INPUT" ]; do
 				read INPUT
-				[ -n "$INPUT" ] && echo "$INPUT" >> $tmp
+				[ -n "$INPUT" ] && echo "$INPUT" | grep -E 'from_to |target ' | awk '{print $2, $3}' | sed 's/ /\\ /g' >> $tmp
 			done
 		else
 			echo "$2" >> $tmp
@@ -228,13 +229,13 @@ add_line() {
 		fi
 		rm $tmp
 	fi
+	set_perms $config_file
 	echo
 }
 
 
 list_cfg() {
-	echo "Your fbind config:"
-	echo
+	echo -e "Your fbind config:\n"
 	cat $config_file
 	echo
 }
@@ -271,7 +272,10 @@ move_data() {
 		fi
 	}
 
-	source $bind_list
+	while read line; do
+		$line
+	done <<< "$(grep -Ev '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ')"
+
 	echo "- Done."
 	echo
 }
@@ -281,23 +285,30 @@ rm_line() {
 	: > $tmp
 	: > $tmp2
 	INPUT=0
-	echo -e "<Remove Config Lines>\n"
-	cat $config_file
-	echo
-	echo "Input a matching word/string at once."
-	echo "- Hit ENTER twice when done or press CTRL (Vol. Down) + C to abort."
-	until [ -z "$INPUT" ]; do
-		read INPUT
-		if [ -n "$INPUT" ]; then
-			grep -v "$INPUT" $config_file >> $tmp
-			grep "$INPUT" $config_file >> $tmp2
+	if [ -z "$2" ]; then
+		echo -e "<Remove Config Lines>\n"
+		cat $config_file
+		echo
+		echo "Input a matching word/string at once."
+		echo "- Hit ENTER twice when done or press CTRL (Vol. Down) + C to abort."
+		until [ -z "$INPUT" ]; do
+			read INPUT
+			if [ -n "$INPUT" ]; then
+				grep -v "$INPUT" $config_file >> $tmp
+				grep "$INPUT" $config_file >> $tmp2
+			fi
+		done
+	else
+		if [ -n "$2" ]; then
+			grep -v "$2" $config_file >> $tmp
+			grep "$2" $config_file >> $tmp2
 		fi
-	done
+	fi
 
 	if grep -Eq '[0-9]{1}|[a-z]{1}|[A-Z]{1}' $tmp; then
-		cat $tmp >$config_file
-		chown media_rw:media_rw $config_file
-		echo -e "Removed line(s)\n:"
+		mv $tmp $config_file
+		set_perms $config_file
+		if [ -z "$2" ]; then echo "Removed line(s):"; else echo "Removed line:"; fi
 		cat $tmp2
 		rm -f $tmp $tmp2
 	else
@@ -340,7 +351,10 @@ unmount_folders() {
 	
 	bind_mnt() { umnt "$2" "$2"; }
 	
-	source $bind_list
+	while read line; do
+		$line
+	done <<< "$(grep -Ev '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ')"
+
 	echo "- Done."
 	echo
 }
@@ -402,10 +416,10 @@ rollback() {
 		done
 		
 		if grep -Eq '[0-9]{1}|[a-z]{1}|[A-Z]{1}' $tmp; then
-			cat $tmp > $config_file
-			chown media_rw:media_rw $config_file
+			cat $tmp >$config_file
+			set_perms $config_file
 			echo "Restoring data..."
-			source $tmp2
+			. $tmp2
 			rm -f $tmp $tmp2
 			echo "- Done."
 		else
@@ -420,7 +434,11 @@ rollback() {
 		rm -rf /data/media/fbind
 		echo
 		echo "Data Restore"
-		source $bind_list
+
+		while read line; do
+			$line
+		done <<< "$(grep -Ev '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ')"
+
 		echo "- Done."
 		echo
 	fi
@@ -428,11 +446,9 @@ rollback() {
 
 
 
-if grep -v '#' $config_file | grep -q luks; then
-	update_cfg
+if grep -v '#' $config_file | grep -q '\-\-L'; then
 	apply_cfg
 else
-	update_cfg &> /dev/null
 	apply_cfg &> /dev/null
 fi
 cfg_bkp
@@ -453,7 +469,7 @@ case $1 in
 	-e) enable_service;;
 	-restore) rollback "$1";;
 	-log) cat $logfile;;
-	-ref) cat $fbind_dir/info/README.txt;;
+	-ref) cat $fbind_dir/info/README.md;;
 
 	-umb)
 		echo "Are you sure you know exactly what you're doing? (y/n)"
@@ -488,5 +504,9 @@ case $1 in
 	*) usage;;
 
 esac
-$was_enforcing && setenforce 1
+
+
+if [ -n "$SEck" ]; then
+	$was_enforcing && setenforce 1
+fi
 exit 0

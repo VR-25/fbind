@@ -65,7 +65,7 @@ MULTI-USER SETUP
 
 
 
-APP DATA TO SDCARD
+APP DATA TO SDCARD (a Linux file system (i.e, EXT2,3,4, F2FS) is required for this)
 
 To intsd/.app_data/APP (when your device hasn't or "doesn't support" SD card)
 	extsd_path $intsd
@@ -78,17 +78,18 @@ To extsd/.app_data/APP
 
 ADVANCED SETUP
 
-Auto-mount a partition (fbind uses it as extsd)
+Auto-mount a partition & use it as extsd
 	part /dev/block/mmcblk1 /data/.extsd f2fs --> part [/path/to/partition] [/mount/point] [file system]
+	extsd_path [mount_point]
 
-Fully replace intsd with extsd (similar to the "one line" setup above, but more advanced)
+Fully replace intsd with PARTITION (similar to the "one line" setup above, but more advanced)
 	part /dev/block/mmcblk1 $intsd f2fs
+	extsd_path $intsd
 	obb
 
  Bind-mount intsd to extsd/.fbind --> same as above, but less aggressive
 	bind_mnt $extsd/.fbind $intsd -mv
 	obb
-
 
 
 
@@ -101,10 +102,15 @@ Some users experiencing bind issues may need to to set these lines (especially t
 	intsd_path /storage/emulated/0
 	intobb_path /storage/emulated/obb
 
-Disable auto-bind service to open a LUKS volume -- handled by part().
-	luks
+Open a LUKS volume and use it as extsd -- disables auto-bind service -- fbind must be ran manually after boot to handle the process
+	part [block_device] [mount_point--L] [file_system] ["fsck OPTION(s)" (filesystem specific, optional)]` -- notice mount_point has a `--L` flag
+	Set it as extsd with "extsd_path [mount_point]"
 
-Grant storage permissions to all apps (including future installations).
+Mount a loopback device
+	LOOP [/path/to/.img/file] [mount_point] ["e2fsck -OPTION(s)" (optional)]
+	Set it as extsd with "extsd_path [mount_point]"
+
+Grant storage permissions to all apps (including future installations) -- use this only if the default method (platform.xml patching) doens't make a difference.
 	perms
 
 Check for and/or fix SD card file system errors before system gets a chance to mount the target partition.
@@ -112,3 +118,29 @@ Check for and/or fix SD card file system errors before system gets a chance to m
 
  Disable config auto backup
 	no_bkp
+
+Mount multiple partitions
+	part [block_device] [mount_point--M] [file_system] ["fsck OPTION(s)" (filesystem specific, optional)]` -- notice mount_point has a `--M` flag
+
+Open multiple LUKS volumes
+	part [block_device] [mount_point--ML] [file_system] ["fsck OPTION(s)" (filesystem specific, optional)]` -- notice mount_point has a `--ML` flag
+
+
+
+PRO TIPS
+
+	"fbind -a LINE" -- add a single line to your config
+		Example: fbind -a from_to Download .fbind/Download (no need to quote anything)
+	"fbind -a" -- add multiple lines (interactive mode)
+
+	"fbind -as SOURCE/PATTERN" -- add a single "from_to SOURCE .fbind/SOURCE" line
+		Example: fbind -as "*tsApp Video" (you only specify the actual folder, not its full path; yes, wildcards are supported)
+	"fbind -as" -- asks for SOURCES and adds multiple corresponding "from_to SOURCE .fbind/SOURCE" lines (interactive mode)
+
+	"fbind -ad PKG_NAME" -- add a single "app_data PKG_NAME" line
+		Example: fbind -ad com.spotify.music
+	"fbind -ad" -- add multiple "app_data PKG_NAME" lines (interactive mode)
+
+	"fbind -r LINE/PATTERN" -- remove a line or lines matching PATTERN
+		Example: fbind -r "WhatsApp.*"
+	"fbind -r" -- remove multiple lines (interactive mode)

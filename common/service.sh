@@ -8,11 +8,15 @@ ModPath=${0%/*}
 export PATH="/sbin/.core/busybox:/dev/magisk/bin:$PATH"
 
 # Intelligently toggle SELinux mode
-if sestatus | grep -q enforcing; then
-	was_enforcing=true
-	setenforce 0
-else
-	was_enforcing=false
+SEck="$(ls -1 $(echo "$PATH" | sed 's/:/ /g') | grep -E 'sestatus|getenforce' | head -n1)"
+
+if [ -n "$SEck" ]; then
+	if $SEck | grep -iq enforcing; then
+		was_enforcing=true
+		setenforce 0
+	else
+		was_enforcing=false
+	fi
 fi
 
 
@@ -21,7 +25,7 @@ umask 022
 
 
 # Abort auto-bind to open LUKS volume
-if grep -v '#' $config_file | grep -q luks; then
+if grep -v '#' $config_file | grep -q '\-\-L'; then
 	log_start
 	echo "(i) LUKS in Use"
 	echo "- Auto-bind aborted"
@@ -41,7 +45,6 @@ if grep -Ev 'part|#' $config_file | grep -iq fsck; then
 fi
 
 
-update_cfg
 apply_cfg
 cfg_bkp
 bind_folders
@@ -52,7 +55,7 @@ echo
 # Grant storage permissions to all APKs
 if grep -v "#" $config_file | grep -qw perms; then
 
-	STORAGE_PERMISSIONS="WRITE_MEDIA_STORAGE WRITE_EXTERNAL_STORAGE"
+	STORAGE_PERMISSIONS="READ_MEDIA_STORAGE READ_EXTERNAL_STORAGE WRITE_MEDIA_STORAGE WRITE_EXTERNAL_STORAGE"
 
 	grantPerms() {
 		for perm in $2; do
