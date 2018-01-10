@@ -116,7 +116,7 @@ Grant storage permissions to all apps (including future installations) -- use th
 Check for and/or fix SD card file system errors before system gets a chance to mount the target partition.
 	fsck.f2fs -f /dev/block/mmcblk1 --> fsck -OPTION(s) /path/to/partition
 
- Disable config auto backup
+ Disable config auto backup (useful if you have a multi user setup)
 	no_bkp
 
 Mount multiple partitions
@@ -129,18 +129,18 @@ Open multiple LUKS volumes
 
 PRO TIPS
 
-	"fbind -a LINE" -- add a single line to your config
-		Example: fbind -a from_to Download .fbind/Download (no need to quote anything)
+	"fbind -a "LINE"" -- add a single line to your config
+		Example: fbind -a "from_to \"WhatsaApp/Media/WhatsApp Video\" \".fbind/WhatsaApp/Media/WhatsApp Video\" (notice the quotes and backslashes)
 	"fbind -a" -- add multiple lines (interactive mode)
 
-	"fbind -as SOURCE/PATTERN" -- add a single "from_to SOURCE .fbind/SOURCE" line
-		Example: fbind -as "*tsApp Video" (you only specify the actual folder, not its full path; yes, wildcards are supported)
+	"fbind -as "SOURCE_PATH"" -- add a single "from_to SOURCE .fbind/SOURCE" line
+		Example: fbind -as "WhatsaApp/Media/WhatsApp Video" (notice the quotes)
 	"fbind -as" -- asks for SOURCES and adds multiple corresponding "from_to SOURCE .fbind/SOURCE" lines (interactive mode)
 
-	"fbind -ad PKG_NAME" -- add a single "app_data PKG_NAME" line
+	"fbind -ad "PKG_NAME"" -- add a single "app_data PKG_NAME" line
 		Example: fbind -ad com.spotify.music
 	"fbind -ad" -- add multiple "app_data PKG_NAME" lines (interactive mode)
 
-	"fbind -r LINE/PATTERN" -- remove a line or lines matching PATTERN
+	"fbind -r ""LINE/PATTERN"" -- remove a line or lines matching PATTERN
 		Example: fbind -r "WhatsApp.*"
 	"fbind -r" -- remove multiple lines (interactive mode)

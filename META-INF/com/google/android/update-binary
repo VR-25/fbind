@@ -205,7 +205,6 @@ set_permissions() {
 
   # The following is default permissions, DO NOT remove
   set_perm_recursive  $TMP_MODPATH  0  0  0755  0755
-  set_perm $TMP_MODPATH/system/etc/permissions/platform.xml 0 0 0644
 }
 
 ##########################################################################################
@@ -317,52 +316,6 @@ unzip -o "$ZIP" core.sh 'system/*' -d $TMP_MODPATH >&2
 unzip -o "$ZIP" Changelog.md config_samples.txt README.md -d $info_dir >&2
 [ -f $info_dir/License.txt ] || unzip -o "$ZIP" 'License.md' -d $info_dir >&2
 
-##########################################################################################
-
-# Patch platform.xml -- storage permissions
-ui_print "- Patching /system/etc/permissions/platform.xml"
-XML_mod_dir=$TMP_MODPATH/system/etc/permissions
-
-XML_list="/sbin/.core/mirror/system/etc/permissions/platform.xml
-/dev/magisk/mirror/system/etc/permissions/platform.xml
-/system/etc/permissions/platform.xml"
-
-for f in $XML_list; do
-  if [ -f "$f" ]; then
-    cp "$f" $INSTALLER
-    # Export /system size for platform.xml automatic re-patching across ROM updates
-    du -s "$(echo "$f" | sed 's/\/etc.*//')" | cut -f1 >$TMP_MODPATH/.SystemSizeK
-    break
-  fi
-done
-
-PERMS="WRITE_EXTERNAL_STORAGE"
-
-sed -i '/<\/permissions>/d; /WRITE_EXTERNAL_STORAGE/d' $INSTALLER/platform.xml
-echo >>$INSTALLER/platform.xml
-
-sed -i '/<group gid="media_.*" \/>/d; /<group gid="sdcard_.*" \/>/d' $INSTALLER/platform.xml
-
-sed -i '/WRITE_MEDIA_STORAGE/a\
-        <group gid="media_rw" />\
-        <group gid="sdcard_rw" />' $INSTALLER/platform.xml
-
-for PERM in $PERMS; do
-  cat <<BLOCK
-    <permission name="android.permission.$PERM" >
-        <group gid="media_rw" />
-        <group gid="sdcard_rw" />
-    </permission>"
-
-BLOCK
-done >>$INSTALLER/platform.xml
-
-echo "</permissions>" >>$INSTALLER/platform.xml
-
-mkdir -p $XML_mod_dir
-mv $INSTALLER/platform.xml $XML_mod_dir
-
-##########################################################################################
 
 # Restore config backup
 if $BOOTMODE; then
@@ -378,6 +331,7 @@ if [ -f "$BkpDir/config.txt" ]; then
     cp -a "$BkpDir/config.txt" "$config_file" 2>/dev/null
   fi
 fi
+
 
 # Misc tasks
 chown -R media_rw:media_rw $fbind_dir

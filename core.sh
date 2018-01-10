@@ -17,19 +17,16 @@ cleanup_config=$config_path/cleanup
 alt_extsd=false
 tk=false
 LinuxFS=false
-mk_cfg=false
-
 
 
 is() { [ -$1 "$2" ]; }
-
 n() { [ -n "$1" ]; }
-
 z() { [ -z "$1" ]; }
 
 
 # Debugging switches (shell strict mode)
 #IFS=$'\n\t'
+#set -euo pipefail
 #set -exuo pipefail
 #set -eo pipefail
 
@@ -55,21 +52,6 @@ set_perms() {
 }
 
 
-
-# Generate config file from current settings
-if [ ! -f "$config_file" ]; then
-	mk_cfg=true
-	mkdir -p $fbind_dir 2>/dev/null && set_perms $fbind_dir
-	if [ "$(ls "$fbind_dir")" ]; then
-		cat $config_path/* >$config_file && set_perms $config_file
-	else
-		echo -e "(!) No settings found\n"
-		exit 1
-	fi
-fi
-
-
-
 ECHO() { $tk && echo; }
 
 is_mnt() { mountpoint -q "$1" 2>/dev/null; }
@@ -89,22 +71,22 @@ bind_mnt() {
 }
 
 
-
 # Set Alternate intsd & intobb Paths
 intsd_path() { intsd="$1"; }
 intobb_path() { intobb="$1"; }
+
 
 # Log Engine
 log_start() {
 	exec &> $logfile
 	echo -e "$(date)\n"
 }
-
 log_end() {
 	set_perms $logfile
 	if [ -n "$SEck" ]; then
 		$was_enforcing && setenforce 1
 	fi
+	rm $fbind_dir/.tmp 2>/dev/null
 	exit 0
 }
 
@@ -151,6 +133,7 @@ part() {
 	echo
 }
 
+
 default_extsd() {
 	echo "<SD Card Information>"
 	
@@ -162,6 +145,7 @@ default_extsd() {
 	extobb="$extsd/Android/obb"
 	echo
 }
+
 
 # Set Alternate extsd Path
 extsd_path() {
@@ -182,6 +166,7 @@ extsd_path() {
 		echo
 	fi
 }
+
 
 # Mount loop device
 # For safety reasons, the mount point can't be "/FOLDER"
@@ -206,23 +191,20 @@ LOOP() {
 
 
 apply_cfg() {
-	while read line; do
-		$line
-	done <<< "$(grep -v '#' $config_file | grep -E 'part |LOOP |extsd_path |intsd_path |intobb_path ')"
+	: >$fbind_dir/.tmp
+	grep -v '#' $config_file | grep -E 'part |LOOP |extsd_path |intsd_path |intobb_path ' >$fbind_dir/.tmp
+	. $fbind_dir/.tmp
 	$alt_extsd || default_extsd
-}
-
-
-cfg_bkp() {
+	
 	ConfigBkp=$extsd/.fbind_bkp/config.txt
 	if [ "$ConfigBkp" -ot "$config_file" ] \
-	&& ! $mk_cfg && grep -q '[a-z]' $config_file \
+	&& grep -q '[a-z]' $config_file \
 	&& ! grep -v '#' $config_file | grep -q no_bkp; then
-		mkdir $extsd/.fbind_bkp 2>/dev/null
+		mkdir -p $extsd/.fbind_bkp 2>/dev/null
+		mv $ConfigBkp $extsd/.fbind_bkp/last_config.txt
 		cp -a $config_file $ConfigBkp 2>/dev/null
 	fi
 }
-
 
 
 bind_folders() {
@@ -256,9 +238,9 @@ bind_folders() {
 		target data
 		obb; } &>/dev/null
 	}
-	while read line; do
-		$line
-	done <<< "$(grep -Ev '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ')"
+	: >$fbind_dir/.tmp
+	grep -Ev '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' >$fbind_dir/.tmp
+	. $fbind_dir/.tmp
 	ECHO
 	echo "- Done."
 	echo
@@ -273,9 +255,8 @@ cleanupf() {
 		if [ -f "$intsd/$1" ] || [ -d "$intsd/$1" ]; then rm -rf "$intsd/$1"; fi
 		if [ -f "$extsd/$1" ] || [ -d "$extsd/$1" ]; then rm -rf "$extsd/$1"; fi
 	}
-	while read line; do
-		$line
-	done <<< "$(grep -v '#' $config_file | grep 'cleanup ')"
+	grep -v '#' $config_file | grep 'cleanup ' >$fbind_dir/.tmp
+	. $fbind_dir/.tmp
 	
 	# Unwanted "Android" directories
 	
@@ -290,10 +271,10 @@ cleanupf() {
 	bind_mnt() { if is_mnt "$2" && [ -z "$3" ]; then rm -rf "$1/Android"; fi; }
 			
 	app_data() { if is_mnt /data/data/$1 && [ -z "$2" ]; then rm -rf $extsd/.app_data/$1/Android; fi; }
-
-	while read line; do
-		$line
-	done <<< "$(grep -Ev '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ')"
+	
+	: >$fbind_dir/.tmp
+	grep -Ev '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' >$fbind_dir/.tmp
+	. $fbind_dir/.tmp
 	
 	# Source optional cleanup script
 	if [ -f $fbind_dir/cleanup.sh ]; then
@@ -305,3 +286,15 @@ cleanupf() {
 	echo "- Done."
 	ECHO
 } 2>/dev/null
+
+
+# Restore config backup
+if [ ! -f "$config_file" ] || ! grep -qs '[a-z]' "$config_file"; then
+	BkpDir="$(find /mnt/media_rw -type d -name ".fbind_bkp" 2>/dev/null | head -n1)"
+	if [ -f "$BkpDir/config.txt" ]; then
+		cp -a "$BkpDir/config.txt" "$config_file" 2>/dev/null
+	else
+		echo -e "(!) No settings found\n"
+		exit 1
+	fi
+fi

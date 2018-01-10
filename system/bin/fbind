@@ -7,16 +7,19 @@
 PATH="/sbin/.core/busybox:/dev/magisk/bin:$PATH"
 ModID=fbind
 
+
 # Root check
 if [ "$(whoami)" != "root" ]; then
 	echo -e "\n(!) $ModID must run as root.\n"
 	exit 1
 else
 	echo
+	umask 022
 fi
 
+
 # Intelligently toggle SELinux mode
-SEck="$(ls -1 $(echo "$PATH" | sed 's/:/ /g') | grep -E 'sestatus|getenforce' | head -n1)"
+SEck="$(ls -1 $(echo "$PATH" | sed 's/:/ /g') 2>/dev/null | grep -E 'sestatus|getenforce' | head -n1)"
 
 if [ -n "$SEck" ]; then
 	if $SEck | grep -iq enforcing; then
@@ -26,7 +29,7 @@ if [ -n "$SEck" ]; then
 		was_enforcing=false
 	fi
 fi
-umask 022
+
 
 # Find ModPath
 for loop_device in /dev/block/loop*; do
@@ -48,14 +51,13 @@ fi
 
 . $ModPath/core.sh
 export PATH="$PATH:$ModPath/bin"
-tmp=/data/_tmp
-tmp2=/data/_tmp2
+tmp=$fbind_dir/.term_tmp
+tmp2=$fbind_dir/.term_tmp2
 service_enabled=$ModPath/service.sh
 service_disabled=$ModPath/service.disabled
 export tk=true
 
 
-###TOOLBOX###
 
 # Yes/No prompt
 yn() {
@@ -118,7 +120,7 @@ log		Display debug.log
 
 -ad		Add "app_data" line(s) to config.txt (interactive)
 
--as		Ask for SOURCE dir (intsd/SOURCE) & add corresponding "from_to" lines to config.txt (interactive)
+-as		Ask for SOURCE dirs (intsd/SOURCE) & add corresponding "from_to" lines to config.txt (interactive)
 
 -umb		(!) Unmount all folders, move data & rebind
 
@@ -150,7 +152,7 @@ disable_service() {
 
 # Add line(s) to fbind config
 add_line() {
-	echo -e "<Add config line>\n"
+	echo -e "<Add config line(s)>\n"
 	: > $tmp
 	INPUT=0
 	[ "$(tail -c 1 $config_file)" ] && printf "\n" >> $config_file
@@ -162,19 +164,18 @@ add_line() {
 		if [ -z "$2" ]; then
 			cat $tmp
 			echo -e "\n(i) Input a matching word/string at a time."
-			echo "- Hit ENTER twice when done or press CTRL (Vol. Down) + C to abort."
+			echo "- Hit ENTER when done or press CTRL (Vol. Down) + C to abort."
 			until [ -z "$INPUT" ]; do
-				read INPUT
+				read -r INPUT
 				[ -n "$INPUT" ] && grep "$INPUT" $tmp | sed 's/^/app_data /' >> $tmp2
 			done
 		else
 			grep "$2" $tmp | sed 's/^/app_data /' >> $tmp2
 		fi
 		
-		cat $tmp2 >> $config_file
-		if grep -Eq '[0-9]{1}|[a-z]{1}|[A-Z]{1}' $tmp2; then
+		if grep -q '[a-z]' $tmp2; then
 			if [ -z "$2" ]; then echo "Added line(s):"; else echo "Added line:"; fi
-			cat $tmp2
+			cat $tmp2 | tee -a $config_file
 		else
 			echo "(i) No line(s) added."
 		fi
@@ -182,27 +183,21 @@ add_line() {
 	
 	elif [ "$1" = '-as' ]; then
 		if [ -z "$2" ]; then
-			while read d; do
-				grep -q "$d" $config_file || echo "$d"
-			done <<< "$(ls -1ad $intsd/* | sed 's/.*0\///')"
-			echo -e "\n(i) Input a matching folder name at a time. Wildcards are supported."
-			echo "- Hit ENTER twice when done or press CTRL (Vol. Down) + C to abort."
+			echo "(i) Input a source path at a time (i.e., Download or \"WhatsApp/Media/WhatsApp Video\")."
+			echo "- Hit ENTER when done or press CTRL (Vol. Down) + C to abort."
 			until [ -z "$INPUT" ]; do
-				read INPUT
+				read -r INPUT
 				if [ -n "$INPUT" ]; then
-					DirPath="$(find "$intsd" -type d -name "$INPUT" 2>/dev/null | sed "s/$intsd\///; s/ /\\ /")"
-					echo "from_to \"$DirPath\" \".fbind/$DirPath\"" >> $tmp
+					echo "from_to \"$INPUT\" \".fbind/$INPUT\"" >> $tmp
 				fi
 			done
 		else
-			DirPath="$(find "$intsd" -type d -name "$2" 2>/dev/null | sed "s/$intsd\///")"
-			echo "from_to \"$DirPath\" \".fbind/$DirPath\"" >> $tmp
+			echo "from_to \"$2\" \".fbind/$2\"" >> $tmp
 		fi
 		
-		cat $tmp >> $config_file
-		if grep -Eq '[0-9]{1}|[a-z]{1}|[A-Z]{1}' $tmp; then
+		if grep -q '[a-z]' $tmp; then
 			if [ -z "$2" ]; then echo "Added line(s):"; else echo "Added line:"; fi
-			cat $tmp
+			cat $tmp | tee -a $config_file
 		else
 			echo "(i) No line(s) added."
 		fi
@@ -210,20 +205,19 @@ add_line() {
 	
 	elif [ "$1" = '-a' ]; then
 		if [ -z "$2" ]; then
-			echo -e "\n(i) Input one line at a time."
-			echo "- Hit ENTER twice when done or press CTRL (Vol. Down) + C to abort."
+			echo -e "(i) Input one line at a time."
+			echo "- Hit ENTER when done or press CTRL (Vol. Down) + C to abort."
 			until [ -z "$INPUT" ]; do
-				read INPUT
-				[ -n "$INPUT" ] && echo "$INPUT" | grep -E 'from_to |target ' | awk '{print $2, $3}' | sed 's/ /\\ /g' >> $tmp
+				read -r INPUT
+				[ -n "$INPUT" ] && echo "$INPUT" >> $tmp
 			done
 		else
 			echo "$2" >> $tmp
 		fi
 		
-		cat $tmp >> $config_file
-		if grep -Eq '[0-9]{1}|[a-z]{1}|[A-Z]{1}' $tmp; then
+		if grep -q '[a-z]' $tmp; then
 			if [ -z "$2" ]; then echo "Added line(s):"; else echo "Added line:"; fi
-			cat $tmp
+			cat $tmp | tee -a $config_file
 		else
 			echo "(i) No line(s) added."
 		fi
@@ -271,10 +265,10 @@ move_data() {
 			rm -rf "$2"/*
 		fi
 	}
-
-	while read line; do
-		$line
-	done <<< "$(grep -Ev '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ')"
+	
+	: >$fbind_dir/.tmp
+	grep -Ev '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' >$fbind_dir/.tmp
+	. $fbind_dir/.tmp
 
 	echo "- Done."
 	echo
@@ -288,11 +282,10 @@ rm_line() {
 	if [ -z "$2" ]; then
 		echo -e "<Remove Config Lines>\n"
 		cat $config_file
-		echo
 		echo "Input a matching word/string at once."
-		echo "- Hit ENTER twice when done or press CTRL (Vol. Down) + C to abort."
+		echo "- Hit ENTER when done or press CTRL (Vol. Down) + C to abort."
 		until [ -z "$INPUT" ]; do
-			read INPUT
+			read -r INPUT
 			if [ -n "$INPUT" ]; then
 				grep -v "$INPUT" $config_file >> $tmp
 				grep "$INPUT" $config_file >> $tmp2
@@ -305,7 +298,7 @@ rm_line() {
 		fi
 	fi
 
-	if grep -Eq '[0-9]{1}|[a-z]{1}|[A-Z]{1}' $tmp; then
+	if grep -q '[a-z]' $tmp; then
 		mv $tmp $config_file
 		set_perms $config_file
 		if [ -z "$2" ]; then echo "Removed line(s):"; else echo "Removed line:"; fi
@@ -351,10 +344,10 @@ unmount_folders() {
 	
 	bind_mnt() { umnt "$2" "$2"; }
 	
-	while read line; do
-		$line
-	done <<< "$(grep -Ev '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ')"
-
+	: >$fbind_dir/.tmp
+	grep -Ev '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' >$fbind_dir/.tmp
+	. $fbind_dir/.tmp
+	
 	echo "- Done."
 	echo
 }
@@ -409,10 +402,13 @@ rollback() {
 		INPUT=0
 		cat $config_file
 		echo
-		echo "Input a matching word/string at once. hit ENTER twice when done."
+		echo "Input a matching word/string at once. Hit ENTER when done."
 		until [ -z "$INPUT" ]; do
-			read INPUT
-			[ "$INPUT" ] && grep -v "$INPUT" $config_file >> $tmp && grep "$INPUT" $config_file >> $tmp2
+			read -r INPUT
+			if [ -n "$INPUT" ]; then
+				grep -v "$INPUT" $config_file >> $tmp
+				grep "$INPUT" $config_file >> $tmp2
+			fi
 		done
 		
 		if grep -Eq '[0-9]{1}|[a-z]{1}|[A-Z]{1}' $tmp; then
@@ -435,10 +431,10 @@ rollback() {
 		echo
 		echo "Data Restore"
 
-		while read line; do
-			$line
-		done <<< "$(grep -Ev '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ')"
-
+		: >$fbind_dir/.tmp
+		grep -Ev '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' >$fbind_dir/.tmp
+		. $fbind_dir/.tmp
+		
 		echo "- Done."
 		echo
 	fi
@@ -451,7 +447,6 @@ if grep -v '#' $config_file | grep -q '\-\-L'; then
 else
 	apply_cfg &> /dev/null
 fi
-cfg_bkp
 
 
 case $1 in
@@ -509,4 +504,6 @@ esac
 if [ -n "$SEck" ]; then
 	$was_enforcing && setenforce 1
 fi
+
+rm $fbind_dir/.tmp 2>/dev/null
 exit 0

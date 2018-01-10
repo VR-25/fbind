@@ -8,7 +8,7 @@ ModPath=${0%/*}
 export PATH="/sbin/.core/busybox:/dev/magisk/bin:$PATH"
 
 # Intelligently toggle SELinux mode
-SEck="$(ls -1 $(echo "$PATH" | sed 's/:/ /g') | grep -E 'sestatus|getenforce' | head -n1)"
+SEck="$(ls -1 $(echo "$PATH" | sed 's/:/ /g') 2>/dev/null | grep -E 'sestatus|getenforce' | head -n1)"
 
 if [ -n "$SEck" ]; then
 	if $SEck | grep -iq enforcing; then
@@ -42,46 +42,11 @@ if grep -Ev 'part|#' $config_file | grep -iq fsck; then
 	until [ -b "$(grep -Ev 'part|#' $config_file | grep -i fsck | awk '{print $3}')" ]; do sleep 1; done
 	$(grep -Ev 'part|#' $config_file | grep fsck)
 	echo
+	echo
 fi
 
 
 apply_cfg
-cfg_bkp
 bind_folders
 cleanupf
-echo
-
-
-# Grant storage permissions to all APKs
-if grep -v "#" $config_file | grep -qw perms; then
-
-	STORAGE_PERMISSIONS="READ_MEDIA_STORAGE READ_EXTERNAL_STORAGE WRITE_MEDIA_STORAGE WRITE_EXTERNAL_STORAGE"
-
-	grantPerms() {
-		for perm in $2; do
-			pm grant "$1" android.permission."$perm" 2>/dev/null
-		done
-	}
-
-	touch $config_path/storage_perms
-	echo "<Grant Storage Perms>"
-	
-	# Grant perms & take notes
-	while read pkg; do
-		if ! grep -q "$pkg" $config_path/storage_perms; then
-			grantPerms "$pkg" "$STORAGE_PERMISSIONS"
-			echo "$pkg" >> $config_path/storage_perms
-			echo "- $pkg"
-		fi
-	done <<< "$(cat /data/system/packages.list | cut -d' ' -f1)"
-	echo Done.
-	
-	# Remove absent system & user APKs from list
-	while read pkg; do
-		grep -q "$pkg" /data/system/packages.list && echo "$pkg" >> $config_path/storage_perms_
-	done <<< "$(cat $config_path/storage_perms)"
-	mv -f $config_path/storage_perms_ $config_path/storage_perms
-	
-fi
-
 log_end

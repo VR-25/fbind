@@ -1,3 +1,9 @@
+**2018.1.10 (201801100)
+- General bug fixes & optimizations
+- Quoted paths containing spaces are now handled as expected
+- Removed storage permissions fixes -- will come back only if a new implementation (WIP) ends up being fully functional and universal
+- Redesigned `-as` command line option
+
 **2018.1.7 (201801070)**
 - Enhanced platform.xml patching engine & "perms" feature
 - [EXPERIMENTAL] Ability to mount multiple partitions, loop devices (.img files) & open multiple LUKS volumes

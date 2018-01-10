@@ -37,13 +37,10 @@
 - intsd_path [path] --> i.e., /storage/emulated/0/Android/obb (ignore for default -- /data/media/obb)
 - obb --> bind-mount the entire /data/media/obb folder to extsd/Android/obb
 - obbf [app/game folder] --> individual obb
-- perms --> "pm grant" storage permissions to all apps (including future installations)
 - target [target folder] --> great for standard paths (i.e., Android/data, TWRP/BACKUPS)
-- no_bkp --> don't backup config
+- no_bkp --> disable config auto-backup (useful if you have a multi user setup)
 
 An additional argument (any string) to any of the binding functions above excludes additional "Android" folders from being deleted. For bind_mnt(), if the additional argument is `-mv`, then fbind -m affects that line too -- which is otherwise ignored by default for safety concerns. For app_data, "-u" allows fbind -u to "see" the specified line (also otherwise ignored by default).
-
-You can add user variables to the config file. These must be in the format `u# or u##` -- i.e., u9=/data/media/9, u11=YouGetThePoint.
 
 `fsck -OPTION(s) /path/to/partition` (i.e., `fsck.f2fs -f /dev/block/mmcblk1`) -- this will check for and/or fix SD card file system errors before system gets a chance to mount the target partition.
 
@@ -69,7 +66,7 @@ log		Display debug.log
 
 -ad		Add "app_data" line(s) to config.txt (interactive)
 
--as		Ask for SOURCE dir (intsd/SOURCE) & add corresponding "from_to" lines to config.txt (interactive)
+-as		Ask for SOURCE dirs (intsd/SOURCE) & add corresponding "from_to" lines to config.txt (interactive)
 
 -umb		(!) Unmount all folders, move data & rebind
 
@@ -109,6 +106,12 @@ uninstall	Unmount all folders & uninstall fbind
 
 ### CHANGELOG
 
+**2018.1.10 (201801100)
+- General bug fixes & optimizations
+- Quoted paths containing spaces are now handled as expected
+- Removed storage permissions fixes -- will come back only if a new implementation (WIP) ends up being fully functional and universal
+- Redesigned `-as` command line option
+
 **2018.1.7 (201801070)**
 - Enhanced platform.xml patching engine & "perms" feature
 - [EXPERIMENTAL] Ability to mount multiple partitions, loop devices (.img files) & open multiple LUKS volumes
@@ -127,7 +130,3 @@ uninstall	Unmount all folders & uninstall fbind
 - Major reference updates, especially config_samples.txt -- definitely worth checking that out
 - Smart SELinux mode handling -- "if enforcing; then set to permissive; do fbind stuff; set back to enforcing; fi" ;)
 - [TEST] New storage permissions workaround
-
-**2017.12.4 (201712040)**
-- [xbin/fbind] rename "cryptsetup=true" --> "luks"
-- [xbin/fbind] rename "magisk/fbind" leftovers to "$ModPath"
