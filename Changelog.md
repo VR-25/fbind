@@ -1,3 +1,6 @@
+**2018.1.13-1 (201801131)**
+- Fixed `-m` not creating source/destinations paths & `-mb` not binding folders
+
 **2018.1.13 (201801130)**
 - General optimizations
 - Updated reference

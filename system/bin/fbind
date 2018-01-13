@@ -70,8 +70,9 @@ yn() {
 
 # Move data
 mvdt() {
-	if ! is_mnt "$1" && [ "$(ls "$1")" ]; then
+	if ! is_mnt "$1" && [ "$(ls "$1" 2>/dev/null)" ]; then
 		echo "[$3]"
+		[ -d "$1" ] || mkdir -p -m 777 "$1"
 		[ -d "$2" ] || mkdir -p -m 777 "$2"
 		cp -a "$1"/* "$2" 2>/dev/null
 		rm -rf "$1"/*
@@ -80,7 +81,7 @@ mvdt() {
 
 # Move data (rollback)
 mvdtR() {
-	if is_mnt "$2" && [ "$(ls "$1")" ]; then
+	if is_mnt "$2" && [ "$(ls "$1" 2>/dev/null)" ]; then
 		umount "$2"
 		echo "[$3]"
 		cp -a "$1"/* "$2" 2>/dev/null
@@ -251,7 +252,7 @@ move_data() {
 	
 	# Other
 	bind_mnt() {
-		if ! is_mnt "$2" && [ "$(ls "$2")" ] && [ "$3" = "-mv" ]; then
+		if ! is_mnt "$2" && [ "$(ls "$2" 2>/dev/null)" ] && [ "$3" = "-mv" ]; then
 			echo "[$2]"
 			[ -d "$1" ] || mkdir -p -m 777 "$1"
 			cp -a "$2"/* "$1" 2>/dev/null
@@ -377,7 +378,7 @@ rollback() {
 
 	# Other
 	bind_mnt() {
-		if is_mnt "$2" && [ "$(ls "$1")" ] && [ "$3" = "-mv" ]; then
+		if is_mnt "$2" && [ "$(ls "$1" 2>/dev/null)" ] && [ "$3" = "-mv" ]; then
 			echo "[$2]"
 			umount "$2"
 			cp -a "$1"/* "$2" 2>/dev/null
@@ -448,7 +449,7 @@ case $1 in
 	-m) move_data;;
 	-r) rm_line;;
 	-u) unmount_folders;;
-	-mb) move_data; bind_folders;;
+	-mb) move_data; fbind -b;;
 	-d) disable_service;;
 	-e) enable_service;;
 	--restore) restore;;
@@ -476,13 +477,13 @@ case $1 in
 	-f)
 		rm -f $ModPath/auto_mount
 		echo "(i) fbind toolkit disabled. Reboot to apply change."
-		echo "- Re-enable by running \"touch $ModPath/auto_mount\"."
+		echo "- Re-enable with \"touch $ModPath/auto_mount\"."
 		;;
 
 	-x)
 		touch $ModPath/disable
 		echo "(i) Module disabled. Reboot to apply change."
-		echo "- Re-enable from Magisk Manager or run \"rm -f $ModPath/disable\"."
+		echo "- Re-enable from Magisk Manager or run \"rm $ModPath/disable\"."
 		;;
 	
 	*) usage;;

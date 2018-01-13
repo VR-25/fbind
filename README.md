@@ -112,6 +112,9 @@ log --> Display debug.log
 
 ### CHANGELOG
 
+**2018.1.13-1 (201801131)**
+- Fixed `-m` not creating source/destinations paths & `-mb` not binding folders
+
 **2018.1.13 (201801130)**
 - General optimizations
 - Updated reference
@@ -121,11 +124,3 @@ log --> Display debug.log
 - Quoted paths containing spaces are now handled as expected
 - Removed storage permissions fixes -- will come back only if a new implementation (WIP) ends up being fully functional and universal
 - Redesigned `-as` command line option
-
-**2018.1.7 (201801070)**
-- Enhanced platform.xml patching engine & "perms" feature
-- [EXPERIMENTAL] Ability to mount multiple partitions, loop devices (.img files) & open multiple LUKS volumes
-- Fixed extsd_path() "slee" typo, "sestatus not found" & other issues
-- Improved compatibility with older Magisk versions (entirely new installer)
-- Major optimizations
-- Updated documentation (pro tips included)
