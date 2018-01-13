@@ -1,4 +1,8 @@
-**2018.1.10 (201801100)
+**2018.1.13 (201801130)**
+- General optimizations
+- Updated reference
+
+**2018.1.10 (201801100)**
 - General bug fixes & optimizations
 - Quoted paths containing spaces are now handled as expected
 - Removed storage permissions fixes -- will come back only if a new implementation (WIP) ends up being fully functional and universal

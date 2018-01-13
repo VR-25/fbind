@@ -144,3 +144,7 @@ PRO TIPS
 	"fbind -r ""LINE/PATTERN"" -- remove a line or lines matching PATTERN
 		Example: fbind -r "WhatsApp.*"
 	"fbind -r" -- remove multiple lines (interactive mode)
+
+	"fbind --restore ""LINE"" -- move LINE associated data back to original locations (interactive)
+		Example: fbind -a "from_to \"WhatsaApp/Media/WhatsApp Video\" \".fbind/WhatsaApp/Media/WhatsApp Video\" (notice the quotes and backslashes)
+	"fbind --restore" -- batch move select data back to original locations (interactive)

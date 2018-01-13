@@ -2,12 +2,15 @@
 ## VR25 @ XDA Developers
 
 
+
 ### DESCRIPTION
 - Forces Android to save select files/folders to the external_sd (or to a partition) by default, & clean up the user's storage (select unwanted files/folders) automatically.
 
 
+
 ### DISCLAIMER
 - ALWAYS read the reference prior to installing/updating fbind. While no cats have been harmed in any way, shape or form, I assume no responsibility under anything that might go wrong due to the use/misuse of this module. 
+
 
 
 ### QUICK SETUP
@@ -17,6 +20,7 @@
 4. Add lines to /data/media/fbind/config.txt with `fbind -a`, `fbind -ad` and/or `fbind -as`.
 5. Run `fbind -mb` as root to move data & bind corresponding folders all at once.
 6. Forget.
+
 
 
 ### CONFIG SYNTAX
@@ -45,40 +49,40 @@ An additional argument (any string) to any of the binding functions above exclud
 `fsck -OPTION(s) /path/to/partition` (i.e., `fsck.f2fs -f /dev/block/mmcblk1`) -- this will check for and/or fix SD card file system errors before system gets a chance to mount the target partition.
 
 
+
 ### TERMINAL
+
+Magic Folder Binder
 
 Usage: fbind OPTION(s) ARGUMENT(s)
 
--a		Add line(s) to config.txt (interactive)
--b		Bind all
--c		Storage cleanup
--d		Disable auto-bind service
--e		Re-enable auto-bind service
--f		Disable this toolkit
--l		Show config.txt
--m		Move data to the SD card
--r		Remove lines(s) from config.txt (interactive)
--u		Unmount all folders
--x		Disable fbind
--mb		Move data & bind corresponding folders
-ref		Display README
-log		Display debug.log
+-a --> Add line(s) to config.txt (interactive)
+-b --> Bind all
+-c --> Storage cleanup
+-d --> Disable auto-bind service
+-e --> Re-enable auto-bind service
+-f --> Disable this toolkit
+-l --> Show config.txt
+-m --> Move data to the SD card (unmounted folders only)
+-r --> Remove lines(s) from config.txt (interactive)
+-u --> Unmount all folders
+-x --> Disable fbind
+-mb --> Move data & bind corresponding folders
+ref --> Display README
+log --> Display debug.log
 
--ad		Add "app_data" line(s) to config.txt (interactive)
+-ad --> Add "app_data" line(s) to config.txt (interactive)
 
--as		Ask for SOURCE dirs (intsd/SOURCE) & add corresponding "from_to" lines to config.txt (interactive)
+-as --> Asks for SOURCE dirs (intsd/SOURCE) & adds corresponding "from_to" lines to config.txt (interactive)
 
--umb		(!) Unmount all folders, move data & rebind
+-umb --> (!) Unmount all folders, move data & rebind
 
-restore		Move select data back to original locations (interactive)
+--restore --> Move select data back to original locations (interactive)
 
-rollback	Unmount all folders, uninstall fbind & restore files
+--rollback --> Unmount all folders, uninstall fbind & restore data
 
-uninstall	Unmount all folders & uninstall fbind
+--uninstall --> Unmount all folders & uninstall fbind
 
-(i) The "-m" option affects unmounted folders only. Caution: it replaces destination data!
-
-(!) Warning: only use "fbind -umb" if you know exactly what you're doing! That option is only intended for first time use -- i.e., in case you forgot to move data after installing the module for the very first time and rebooted. Since "-m" only moves unmounted folders data, the "-u" option makes it work. Again, once everything is unmounted, "-m" will then replace destination data. "fbind -mb" is the safer alternative, since it only moves new data. Let's say you just added a few lines to your config.txt file and the corresponding folders are not bound & data was not moved yet -- that is when you use this.
 
 
 ### DEBUGGING
@@ -99,14 +103,20 @@ uninstall	Unmount all folders & uninstall fbind
 * If `/system/bin/fbind` causes a bootloop, move it to `system/xbin` by running `touch /data/.xfbind` prior to installing. The setting is persistent across updates.
 
 
+
 ### ONLINE SUPPORT
 - [Git Repository](https://github.com/Magisk-Modules-Repo/Magic-Folder-Binder)
 - [XDA Thread](https://forum.xda-developers.com/apps/magisk/module-magic-folder-binder-t3621814/page2post72688621)
 
 
+
 ### CHANGELOG
 
-**2018.1.10 (201801100)
+**2018.1.13 (201801130)**
+- General optimizations
+- Updated reference
+
+**2018.1.10 (201801100)**
 - General bug fixes & optimizations
 - Quoted paths containing spaces are now handled as expected
 - Removed storage permissions fixes -- will come back only if a new implementation (WIP) ends up being fully functional and universal
@@ -119,14 +129,3 @@ uninstall	Unmount all folders & uninstall fbind
 - Improved compatibility with older Magisk versions (entirely new installer)
 - Major optimizations
 - Updated documentation (pro tips included)
-
-**2018.1.2 (201801020)**
-- Added wildcards support to `fbind -as`
-- Automatically restore config backup upon installation if current config is missing or empty
-- Automatically set/reset `Mount Namespace Mode` to Global
-- Backwards compatible with Magisk versions older than 15, suporting template v4+
-- Fixed a critical bug that caused absurd delays in the folder binding process
-- Major optimizations
-- Major reference updates, especially config_samples.txt -- definitely worth checking that out
-- Smart SELinux mode handling -- "if enforcing; then set to permissive; do fbind stuff; set back to enforcing; fi" ;)
-- [TEST] New storage permissions workaround

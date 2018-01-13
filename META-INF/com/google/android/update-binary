@@ -1,5 +1,5 @@
 #!/sbin/sh -x
-# fbind installer
+# Magic Folder Binder (fbind) Installer
 # VR25 @ XDA Developers
 
 # Detect whether in boot mode
@@ -337,7 +337,6 @@ fi
 chown -R media_rw:media_rw $fbind_dir
 chmod -R 777 $fbind_dir
 
-##########################################################################################
 ##########################################################################################
 
 # Remove placeholder

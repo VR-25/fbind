@@ -99,40 +99,36 @@ umnt() {
 
 usage() {
 	cat <<END
-Magic Folder Binder Toolkit
+Magic Folder Binder
 
 Usage: fbind OPTION(s) ARGUMENT(s)
 
--a		Add line(s) to config.txt (interactive)
--b		Bind all
--c		Storage cleanup
--d		Disable auto-bind service
--e		Re-enable auto-bind service
--f		Disable this toolkit
--l		Show config.txt
--m		Move data to the SD card
--r		Remove lines(s) from config.txt (interactive)
--u		Unmount all folders
--x		Disable fbind
--mb		Move data & bind corresponding folders
-ref		Display README
-log		Display debug.log
+-a --> Add line(s) to config.txt (interactive)
+-b --> Bind all
+-c --> Storage cleanup
+-d --> Disable auto-bind service
+-e --> Re-enable auto-bind service
+-f --> Disable this toolkit
+-l --> Show config.txt
+-m --> Move data to the SD card (unmounted folders only)
+-r --> Remove lines(s) from config.txt (interactive)
+-u --> Unmount all folders
+-x --> Disable fbind
+-mb --> Move data & bind corresponding folders
+ref --> Display README
+log --> Display debug.log
 
--ad		Add "app_data" line(s) to config.txt (interactive)
+-ad --> Add "app_data" line(s) to config.txt (interactive)
 
--as		Ask for SOURCE dirs (intsd/SOURCE) & add corresponding "from_to" lines to config.txt (interactive)
+-as --> Asks for SOURCE dirs (intsd/SOURCE) & adds corresponding "from_to" lines to config.txt (interactive)
 
--umb		(!) Unmount all folders, move data & rebind
+-umb --> (!) Unmount all folders, move data & rebind
 
-restore		Move select data back to original locations (interactive)
+--restore --> Move select data back to original locations (interactive)
 
-rollback	Unmount all folders, uninstall fbind & restore files
+--rollback --> Unmount all folders, uninstall fbind & restore data
 
-uninstall	Unmount all folders & uninstall fbind
-
-(i) The "-m" option affects unmounted folders only. Caution: it replaces destination data!
-
-(!) Warning: only use "fbind -umb" if you know exactly what you're doing! That option is only intended for first time use -- i.e., in case you forgot to move data after installing the module for the very first time and rebooted. Since "-m" only moves unmounted folders data, the "-u" option makes it work. Again, once everything is unmounted, "-m" will then replace destination data. "fbind -mb" is the safer alternative, since it only moves new data. Let's say you just added a few lines to your config.txt file and the corresponding folders are not bound & data was not moved yet -- that's when you use this.
+--uninstall --> Unmount all folders & uninstall fbind
 END
 	echo
 }
@@ -179,7 +175,6 @@ add_line() {
 		else
 			echo "(i) No line(s) added."
 		fi
-		rm $tmp $tmp2
 	
 	elif [ "$1" = '-as' ]; then
 		if [ -z "$2" ]; then
@@ -201,7 +196,6 @@ add_line() {
 		else
 			echo "(i) No line(s) added."
 		fi
-		rm $tmp
 	
 	elif [ "$1" = '-a' ]; then
 		if [ -z "$2" ]; then
@@ -221,7 +215,6 @@ add_line() {
 		else
 			echo "(i) No line(s) added."
 		fi
-		rm $tmp
 	fi
 	set_perms $config_file
 	echo
@@ -270,19 +263,18 @@ move_data() {
 	grep -Ev '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' >$fbind_dir/.tmp
 	. $fbind_dir/.tmp
 
-	echo "- Done."
-	echo
+	echo -e "- Done.\n"
 }
 
 
 rm_line() {
-	: > $tmp
-	: > $tmp2
+	: >$tmp
+	: >$tmp2
 	INPUT=0
 	if [ -z "$2" ]; then
-		echo -e "<Remove Config Lines>\n"
-		cat $config_file
-		echo "Input a matching word/string at once."
+		echo -e "<Remove Config Line(s)>\n"
+		grep -v '^$' $config_file
+		echo -e "\nInput a matching pattern at once."
 		echo "- Hit ENTER when done or press CTRL (Vol. Down) + C to abort."
 		until [ -z "$INPUT" ]; do
 			read -r INPUT
@@ -348,16 +340,14 @@ unmount_folders() {
 	grep -Ev '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' >$fbind_dir/.tmp
 	. $fbind_dir/.tmp
 	
-	echo "- Done."
-	echo
+	echo -e "- Done.\n"
 }
 
 
 uninstall() {
-	echo "<fbind Uninstall>"
+	echo -e "<fbind Uninstall>\n"
 	touch $ModPath/remove
-	echo "- Done."
-	echo "(i) Reboot to apply change."
+	echo -e "(i) Reboot to apply change.\n"
 }
 
 
@@ -384,7 +374,7 @@ rollback() {
 		umount $intsd/data
 		mvdtR $extsd/.fbind $intsd "intsd"
 	}
-	
+
 	# Other
 	bind_mnt() {
 		if is_mnt "$2" && [ "$(ls "$1")" ] && [ "$3" = "-mv" ]; then
@@ -394,15 +384,26 @@ rollback() {
 			rm -rf "$1"/*
 		fi
 	}
-	
-	if [ "$1" ]; then echo "<Data Restore>"
-		echo
-		: > $tmp
-		: > $tmp2
-		INPUT=0
-		cat $config_file
-		echo
-		echo "Input a matching word/string at once. Hit ENTER when done."
+
+	echo -e "<Rollback>\n"
+	: >$fbind_dir/.tmp
+	grep -Ev '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' >$fbind_dir/.tmp
+	. $fbind_dir/.tmp
+
+	uninstall
+	rm -rf $fbind_dir
+}
+
+
+restore() {
+	: >$tmp
+	: >$tmp2
+	INPUT=0
+	if [ -z "$2" ]; then
+		echo -e "<Data Restore>\n"
+		grep -Ev '#|^$' $config_file | grep -E 'bind_mnt |from_to |target |obb.*'
+		echo -e "\nInput a matching pattern at once."
+		echo "- Hit ENTER when done or press CTRL (Vol. Down) + C to abort."
 		until [ -z "$INPUT" ]; do
 			read -r INPUT
 			if [ -n "$INPUT" ]; then
@@ -410,36 +411,24 @@ rollback() {
 				grep "$INPUT" $config_file >> $tmp2
 			fi
 		done
-		
-		if grep -Eq '[0-9]{1}|[a-z]{1}|[A-Z]{1}' $tmp; then
-			cat $tmp >$config_file
-			set_perms $config_file
-			echo "Restoring data..."
-			. $tmp2
-			rm -f $tmp $tmp2
-			echo "- Done."
-		else
-			echo "Nothing restored."
-		fi
-		echo
-		
 	else
-		echo "<Rollback>"
-		echo
-		uninstall
-		rm -rf /data/media/fbind
-		echo
-		echo "Data Restore"
-
-		: >$fbind_dir/.tmp
-		grep -Ev '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' >$fbind_dir/.tmp
-		. $fbind_dir/.tmp
-		
-		echo "- Done."
-		echo
+		if [ -n "$2" ]; then
+			grep -v "$2" $config_file >> $tmp
+			grep "$2" $config_file >> $tmp2
+		fi
 	fi
-}
 
+	if grep -q '[a-z]' $tmp; then
+		mv $tmp $config_file
+		set_perms $config_file
+		echo "Restoring..."
+		. $tmp2
+		rm -f $tmp $tmp2
+	else
+		echo "(i) Nothing restored."
+	fi
+	echo
+}
 
 
 if grep -v '#' $config_file | grep -q '\-\-L'; then
@@ -450,36 +439,36 @@ fi
 
 
 case $1 in
-	-a) add_line "-a" "$2";;
-	-ad) add_line "-ad" "$2";;
-	-as) add_line "-as" "$2";;
+	-a) add_line "-a";;
+	-ad) add_line "-ad";;
+	-as) add_line "-as";;
 	-b) bind_folders;;
 	-c) cleanupf;;
 	-l) list_cfg;;
 	-m) move_data;;
 	-r) rm_line;;
 	-u) unmount_folders;;
-	-mb) move_data; fbind -b;;
+	-mb) move_data; bind_folders;;
 	-d) disable_service;;
 	-e) enable_service;;
-	-restore) rollback "$1";;
+	--restore) restore;;
 	-log) cat $logfile;;
 	-ref) cat $fbind_dir/info/README.md;;
 
 	-umb)
 		echo "Are you sure you know exactly what you're doing? (y/n)"
 		read ans
-		yn $ans "unmount_folders; move_data; fbind -b"
+		yn $ans "unmount_folders; move_data; bind_folders"
 		;;
 
-	-uninstall)
+	--uninstall)
 		echo "Are you sure you want to uninstall fbind? (y/n)"
 		read ans
 		yn $ans uninstall
 		;;
 
-	-rollback)
-		echo 'Are you sure you want to uninstall fbind & move data back to $intsd? (y/n)'
+	--rollback)
+		echo 'Are you sure you want to uninstall fbind & move data back to intsd? (y/n)'
 		read ans
 		yn $ans rollback
 		;;
@@ -505,5 +494,5 @@ if [ -n "$SEck" ]; then
 	$was_enforcing && setenforce 1
 fi
 
-rm $fbind_dir/.tmp 2>/dev/null
+rm $fbind_dir/.tmp $tmp $tmp2 2>/dev/null
 exit 0

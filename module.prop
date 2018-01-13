@@ -1,7 +1,7 @@
 id=fbind
 name=Magic Folder Binder (fbind)
-version=2018.1.10
-versionCode=201801100
+version=2018.1.13
+versionCode=201801130
 author=VR25 @ XDA Developers
 description=Forces Android to save select files/folders to the external_sd (or to a partition) by default, & clean up the user's storage (select unwanted files/folders) automatically.
 minMagisk=1500
