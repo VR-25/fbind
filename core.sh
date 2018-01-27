@@ -15,20 +15,13 @@ logfile=$fbind_dir/debug.log
 cleanup_list=$config_file
 cleanup_config=$config_path/cleanup
 alt_extsd=false
-tk=false
+[ -z "$tk" ] && tk=false
 LinuxFS=false
 
 
 is() { [ -$1 "$2" ]; }
 n() { [ -n "$1" ]; }
 z() { [ -z "$1" ]; }
-
-
-# Debugging switches (shell strict mode)
-#IFS=$'\n\t'
-#set -euo pipefail
-#set -exuo pipefail
-#set -eo pipefail
 
 
 get_prop() {
@@ -54,26 +47,38 @@ set_perms() {
 
 ECHO() { $tk && echo; }
 
-is_mnt() { mountpoint -q "$1" 2>/dev/null; }
+is_mounted() { mountpoint -q "$1" 2>/dev/null; }
 
-wait_emulated() { until is_mnt /storage/emulated; do sleep 1; done; }
+wait_until_true() {
+	Count=0
+	until [ "$Count" -ge "120" ]; do
+		Count=$(($Count+1))
+		if n "$1"; then
+			$($@) && break || sleep 1
+		else
+			is_mounted /storage/emulated && break || sleep 1
+		fi
+	done
+}
 
 # A "better" mount -o bind
 bind_mnt() {
-	if ! is_mnt "$2"; then
+	if ! is_mounted "$2"; then
 		ECHO
 		[ -d "$1" ] || mkdir -p -m 777 "$1"
 		[ -d "$2" ] || mkdir -p -m 777 "$2"
-		echo "$1 $2" | grep -Eq "$extsd|$intsd" && wait_emulated
+		echo "$1 $2" | grep -Eq "$extsd|$intsd" && wait_until_true
 		[ "$3" ] && echo "$3" || echo "bind_mount [$1] [$2]"
 		mount -o bind "$1" "$2"
 	fi
 }
 
 
-# Set Alternate intsd & intobb Paths
-intsd_path() { intsd="$1"; }
-intobb_path() { intobb="$1"; }
+# Set Alternate intsd Path
+intsd_path() {
+	intsd="$1"
+	intobb="$(echo $intsd | sed "s/$(basename $intsd)/obb/")"
+}
 
 
 # Log Engine
@@ -100,35 +105,38 @@ part() {
 		exit 1
 	fi
 	
-	echo "<Partition Information>" 
-	PARTITION=$(echo $1 | sed 's/.*\///')
-	MountPoint="$(sed 's/\-\-ML//; s/\-\-M//' <<< "$2")"
+	echo "<Partition Information>"
+	PARTITION="$(echo $1 | sed 's/.*\///; s/--.*//')"
+	PPath="$(echo $1 | sed 's/--.*//')"
+	MountPoint="$2"
 	
-	if is_mnt "$MountPoint"; then
+	if is_mounted "$MountPoint"; then
 		echo "(i) $PARTITION already mounted"
 	else
 		is d "$MountPoint" || mkdir -p -m 777 "$MountPoint"
-		until [ -b "$1" ]; do sleep 1; done
+		wait_until_true [ -b "$PPath" ]
 		
 		# Open LUKS volume
-		if grep -v '#' $config_file | grep -q 'luks'; then
-			cryptsetup luksOpen $1 $PARTITION
+		if grep -v '#' $config_file | grep -q '\-\-L'; then
+			cryptsetup luksOpen $PPath $PARTITION
 			[ "$?" ] && echo '***'
-			[ -n "$4" ] && $4 /dev/mapper/$PARTITION
+			[ -n "$4" ] && $($4 /dev/mapper/$PARTITION)
 			mount -t $3 -o noatime,rw /dev/mapper/$PARTITION "$MountPoint"
-		else [ -n "$4" ] && $4 $1
-			mount -t $3 -o noatime,rw $1 "$MountPoint"
+		else [ -n "$4" ] && $($4 $PPath)
+			mount -t $3 -o noatime,rw $PPath "$MountPoint"
 		fi
 		
-		if ! is_mnt "$MountPoint"; then
+		if ! is_mounted "$MountPoint"; then
 			echo '***'
 			echo "(!) $PARTITION mount failed"
 			rmdir "$MountPoint" 2>/dev/null
 			exit 1
 		fi
 		
-		[ "$?" ] && echo '***' \
-			&& df -h "$MountPoint" | sed "s/Filesystem/   Partition ($3)/"
+		if [ "$?" ]; then
+			echo "***"
+			df -h "$MountPoint" | sed "s/Filesystem/   Partition ($3)/"
+		fi
 	fi
 	echo
 }
@@ -136,9 +144,7 @@ part() {
 
 default_extsd() {
 	echo "<SD Card Information>"
-	
-	until grep -q "/mnt/media_rw" /proc/mounts; do sleep 1; done
-
+	wait_until_true grep -q "/mnt/media_rw" /proc/mounts
 	grep "$(ls /mnt/media_rw)" /proc/mounts
 	grep "$(ls /mnt/media_rw)" /proc/mounts | grep -Eq 'ext2|ext3|ext4|f2fs' && LinuxFS=true
 	extsd="$(ls -1d /mnt/media_rw/* | head -n1)"
@@ -156,9 +162,7 @@ extsd_path() {
 		extobb="$intobb"
 	else
 		echo "<SD Card Information>"
-
-		until grep -q "$1" /proc/mounts; do sleep 1; done
-
+		wait_until_true grep -q "$1" /proc/mounts
 		grep "$1" /proc/mounts | grep -Eq 'ext2|ext3|ext4|f2fs' && LinuxFS=true
 		alt_extsd=true
 		extsd="$1"
@@ -174,25 +178,16 @@ extsd_path() {
 LOOP() {
 	IMG="$1"
 	MountPoint="$2"
-	#PATH="$PATH:$(dirname "$(find /data/magisk /data/adb -type f -name magisk 2>/dev/null)")"
-
-	# Mount IMG
-	echo "$IMG $MountPoint" | grep -Eq "$extsd|$intsd" && wait_emulated
-	n "$3" && $3 "$1"
+	echo "$IMG $MountPoint" | grep -Eq "$extsd|$intsd" && wait_until_true
+	n "$3" && $($3 "$1")
 	is d "$MountPoint" || mkdir -p -m 777 "$MountPoint"
 	mount "$IMG" "$MountPoint"
-	#LOOP="$(magisk --mountimg "$IMG" "$MountPoint")"
-	#echo "$LOOP" >$fbind_dir/.loop
-
-	# Unmount IMG
-	# magisk --umountimg "$MountPoint" "$LOOP"
-	# rmdir "$MountPoint"
 }
 
 
 apply_cfg() {
 	: >$fbind_dir/.tmp
-	grep -v '#' $config_file | grep -E 'part |LOOP |extsd_path |intsd_path |intobb_path ' >$fbind_dir/.tmp
+	grep -v '#' $config_file | grep -E 'part |LOOP |extsd_path |intsd_path ' >$fbind_dir/.tmp
 	. $fbind_dir/.tmp
 	$alt_extsd || default_extsd
 	
@@ -224,7 +219,8 @@ bind_folders() {
 	
 	# data/data/app <--> extsd/.app_data/app
 	app_data() {
-		if ! $part && ! $LinuxFS; then ECHO
+		if ! $LinuxFS; then
+			ECHO
 			echo -e "(!) app_data() won't work without a Linux FS.\n"
 			exit 1
 		fi
@@ -239,11 +235,10 @@ bind_folders() {
 		obb; } &>/dev/null
 	}
 	: >$fbind_dir/.tmp
-	grep -Ev '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' >$fbind_dir/.tmp
+	grep -v '#' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb.*|from_to |target ' >$fbind_dir/.tmp
 	. $fbind_dir/.tmp
 	ECHO
-	echo "- Done."
-	echo
+	echo -e "- Done.\n"
 }
 
 
@@ -260,20 +255,20 @@ cleanupf() {
 	
 	# Unwanted "Android" directories
 	
-	obb() { if is_mnt $intobb && [ -z "$1" ]; then rm -rf $extobb/Android; fi; }
+	obb() { if is_mounted $intobb && [ -z "$1" ]; then rm -rf $extobb/Android; fi; }
 	
-	obbf() { if is_mnt $intobb/$1 && [ -z "$2" ]; then rm -rf $extobb/$1/Android; fi; }
+	obbf() { if is_mounted $intobb/$1 && [ -z "$2" ]; then rm -rf $extobb/$1/Android; fi; }
 	
-	target() { if is_mnt "$intsd/$1" && [ -z "$2" ]; then rm -rf "$extsd/$1/Android"; fi; }
+	target() { if is_mounted "$intsd/$1" && [ -z "$2" ]; then rm -rf "$extsd/$1/Android"; fi; }
 	
-	from_to() { if is_mnt "$intsd/$1" && [ -z "$3" ]; then rm -rf "$extsd/$2/Android"; fi; }
+	from_to() { if is_mounted "$intsd/$1" && [ -z "$3" ]; then rm -rf "$extsd/$2/Android"; fi; }
 		
-	bind_mnt() { if is_mnt "$2" && [ -z "$3" ]; then rm -rf "$1/Android"; fi; }
+	bind_mnt() { if is_mounted "$2" && [ -z "$3" ]; then rm -rf "$1/Android"; fi; }
 			
-	app_data() { if is_mnt /data/data/$1 && [ -z "$2" ]; then rm -rf $extsd/.app_data/$1/Android; fi; }
+	app_data() { if is_mounted /data/data/$1 && [ -z "$2" ]; then rm -rf $extsd/.app_data/$1/Android; fi; }
 	
 	: >$fbind_dir/.tmp
-	grep -Ev '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' >$fbind_dir/.tmp
+	grep -v '#' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' >$fbind_dir/.tmp
 	. $fbind_dir/.tmp
 	
 	# Source optional cleanup script
@@ -289,12 +284,16 @@ cleanupf() {
 
 
 # Restore config backup
-if [ ! -f "$config_file" ] || ! grep -qs '[a-z]' "$config_file"; then
+if ! grep -qs '[a-z]' "$config_file"; then
+	echo "(i) Searching for config backup"
 	BkpDir="$(find /mnt/media_rw -type d -name ".fbind_bkp" 2>/dev/null | head -n1)"
 	if [ -f "$BkpDir/config.txt" ]; then
+		echo "- Restoring config.txt"
 		cp -a "$BkpDir/config.txt" "$config_file" 2>/dev/null
 	else
-		echo -e "(!) No settings found\n"
-		exit 1
+		echo "- Creating dummy config.txt"
+		touch "$config_file"
+		echo
+		$tk || exit 1
 	fi
 fi

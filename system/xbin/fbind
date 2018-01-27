@@ -6,16 +6,15 @@
 # Environment
 PATH="/sbin/.core/busybox:/dev/magisk/bin:$PATH"
 ModID=fbind
+umask 022
 
 
 # Root check
-if [ "$(whoami)" != "root" ]; then
-	echo -e "\n(!) $ModID must run as root.\n"
-	exit 1
-else
-	echo
-	umask 022
-fi
+# if ! id 2>/dev/null | grep -iq 'root'; then
+# 	echo -e "\n(!) $ModID must run as root.\n"
+# 	exit 1
+# fi
+echo
 
 
 # Intelligently toggle SELinux mode
@@ -45,17 +44,17 @@ done
 
 if [ ! -f "$ModPath/module.prop" ]; then
   echo -e "(!) $ModID path not found"
-  echo -e "- Unsupported Magisk version\n"
+  echo -e "- Unsupported Magisk version or not running as root (su)\n"
   exit 1
 fi
 
+export tk=true
 . $ModPath/core.sh
 export PATH="$PATH:$ModPath/bin"
 tmp=$fbind_dir/.term_tmp
 tmp2=$fbind_dir/.term_tmp2
 service_enabled=$ModPath/service.sh
 service_disabled=$ModPath/service.disabled
-export tk=true
 
 
 
@@ -70,7 +69,7 @@ yn() {
 
 # Move data
 mvdt() {
-	if ! is_mnt "$1" && [ "$(ls "$1" 2>/dev/null)" ]; then
+	if ! is_mounted "$1" && [ "$(ls "$1" 2>/dev/null)" ]; then
 		echo "[$3]"
 		[ -d "$1" ] || mkdir -p -m 777 "$1"
 		[ -d "$2" ] || mkdir -p -m 777 "$2"
@@ -81,7 +80,7 @@ mvdt() {
 
 # Move data (rollback)
 mvdtR() {
-	if is_mnt "$2" && [ "$(ls "$1" 2>/dev/null)" ]; then
+	if is_mounted "$2" && [ "$(ls "$1" 2>/dev/null)" ]; then
 		umount "$2"
 		echo "[$3]"
 		cp -a "$1"/* "$2" 2>/dev/null
@@ -91,7 +90,7 @@ mvdtR() {
 
 # Unmount
 umnt() {
-	if is_mnt "$1"; then
+	if is_mounted "$1"; then
 		echo "[$2]"
 		umount "$1"
 	fi
@@ -252,7 +251,7 @@ move_data() {
 	
 	# Other
 	bind_mnt() {
-		if ! is_mnt "$2" && [ "$(ls "$2" 2>/dev/null)" ] && [ "$3" = "-mv" ]; then
+		if ! is_mounted "$2" && [ "$(ls "$2" 2>/dev/null)" ] && [ "$3" = "-mv" ]; then
 			echo "[$2]"
 			[ -d "$1" ] || mkdir -p -m 777 "$1"
 			cp -a "$2"/* "$1" 2>/dev/null
@@ -261,7 +260,7 @@ move_data() {
 	}
 	
 	: >$fbind_dir/.tmp
-	grep -Ev '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' >$fbind_dir/.tmp
+	grep -v '#' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' >$fbind_dir/.tmp
 	. $fbind_dir/.tmp
 
 	echo -e "- Done.\n"
@@ -272,7 +271,7 @@ rm_line() {
 	: >$tmp
 	: >$tmp2
 	INPUT=0
-	if [ -z "$2" ]; then
+	if [ -z "$1" ]; then
 		echo -e "<Remove Config Line(s)>\n"
 		grep -v '^$' $config_file
 		echo -e "\nInput a matching pattern at once."
@@ -285,16 +284,14 @@ rm_line() {
 			fi
 		done
 	else
-		if [ -n "$2" ]; then
-			grep -v "$2" $config_file >> $tmp
-			grep "$2" $config_file >> $tmp2
-		fi
+		grep -v "$1" $config_file >> $tmp
+		grep "$1" $config_file >> $tmp2
 	fi
 
-	if grep -q '[a-z]' $tmp; then
+	if grep -q '[a-z]' $tmp2; then
 		mv $tmp $config_file
 		set_perms $config_file
-		if [ -z "$2" ]; then echo "Removed line(s):"; else echo "Removed line:"; fi
+		if [ -z "$1" ]; then echo "Removed line(s):"; else echo "Removed line:"; fi
 		cat $tmp2
 		rm -f $tmp $tmp2
 	else
@@ -321,7 +318,7 @@ unmount_folders() {
 	
 	# data/data/app <--> $extsd/.app_data/app
 	app_data() {
-		if is_mnt /data/data/$1 && [ "$2" = "-u" ]; then
+		if is_mounted /data/data/$1 && [ "$2" = "-u" ]; then
 			echo "[/data/data/$1]"
 			umount /data/data/$1
 		fi
@@ -338,7 +335,7 @@ unmount_folders() {
 	bind_mnt() { umnt "$2" "$2"; }
 	
 	: >$fbind_dir/.tmp
-	grep -Ev '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' >$fbind_dir/.tmp
+	grep -v '#' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' >$fbind_dir/.tmp
 	. $fbind_dir/.tmp
 	
 	echo -e "- Done.\n"
@@ -378,7 +375,7 @@ rollback() {
 
 	# Other
 	bind_mnt() {
-		if is_mnt "$2" && [ "$(ls "$1" 2>/dev/null)" ] && [ "$3" = "-mv" ]; then
+		if is_mounted "$2" && [ "$(ls "$1" 2>/dev/null)" ] && [ "$3" = "-mv" ]; then
 			echo "[$2]"
 			umount "$2"
 			cp -a "$1"/* "$2" 2>/dev/null
@@ -386,21 +383,24 @@ rollback() {
 		fi
 	}
 
-	echo -e "<Rollback>\n"
-	: >$fbind_dir/.tmp
-	grep -Ev '#|intobb_path ' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' >$fbind_dir/.tmp
-	. $fbind_dir/.tmp
+	if [ -z "$1" ]; then
+		echo -e "<Rollback>\n"
+		: >$fbind_dir/.tmp
+		grep -Ev '#' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' >$fbind_dir/.tmp
+		. $fbind_dir/.tmp
 
-	uninstall
-	rm -rf $fbind_dir
+		uninstall
+		rm -rf $fbind_dir
+	fi
 }
 
 
 restore() {
+	rollback --restore
 	: >$tmp
 	: >$tmp2
 	INPUT=0
-	if [ -z "$2" ]; then
+	if [ -z "$1" ]; then
 		echo -e "<Data Restore>\n"
 		grep -Ev '#|^$' $config_file | grep -E 'bind_mnt |from_to |target |obb.*'
 		echo -e "\nInput a matching pattern at once."
@@ -413,13 +413,11 @@ restore() {
 			fi
 		done
 	else
-		if [ -n "$2" ]; then
-			grep -v "$2" $config_file >> $tmp
-			grep "$2" $config_file >> $tmp2
-		fi
+		grep -v "$1" $config_file >> $tmp
+		grep "$1" $config_file >> $tmp2
 	fi
 
-	if grep -q '[a-z]' $tmp; then
+	if grep -q '[a-z]' $tmp2; then
 		mv $tmp $config_file
 		set_perms $config_file
 		echo "Restoring..."
@@ -440,19 +438,19 @@ fi
 
 
 case $1 in
-	-a) add_line "-a";;
-	-ad) add_line "-ad";;
-	-as) add_line "-as";;
+	-a) add_line "-a" "$2";;
+	-ad) add_line "-ad" "$2";;
+	-as) add_line "-as" "$2";;
 	-b) bind_folders;;
 	-c) cleanupf;;
 	-l) list_cfg;;
 	-m) move_data;;
-	-r) rm_line;;
+	-r) rm_line "$2";;
 	-u) unmount_folders;;
 	-mb) move_data; fbind -b;;
 	-d) disable_service;;
 	-e) enable_service;;
-	--restore) restore;;
+	--restore) restore "$2";;
 	-log) cat $logfile;;
 	-ref) cat $fbind_dir/info/README.md;;
 
@@ -477,17 +475,16 @@ case $1 in
 	-f)
 		rm -f $ModPath/auto_mount
 		echo "(i) fbind toolkit disabled. Reboot to apply change."
-		echo "- Re-enable with \"touch $ModPath/auto_mount\"."
+		echo -e "- Re-enable with \"touch $ModPath/auto_mount\".\n"
 		;;
 
 	-x)
 		touch $ModPath/disable
 		echo "(i) Module disabled. Reboot to apply change."
-		echo "- Re-enable from Magisk Manager or run \"rm $ModPath/disable\"."
+		echo -e "- Re-enable from Magisk Manager or run \"rm $ModPath/disable\".\n"
 		;;
 	
 	*) usage;;
-
 esac
 
 

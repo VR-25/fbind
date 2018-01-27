@@ -78,9 +78,9 @@ To extsd/.app_data/APP
 
 ADVANCED SETUP
 
-Auto-mount a partition & use it as extsd
+Auto-mount a partition
 	part /dev/block/mmcblk1 /data/.extsd f2fs --> part [/path/to/partition] [/mount/point] [file system]
-	extsd_path [mount_point]
+	Set it as extsd with "extsd_path [mount_point]"
 
 Fully replace intsd with PARTITION (similar to the "one line" setup above, but more advanced)
 	part /dev/block/mmcblk1 $intsd f2fs
@@ -98,32 +98,22 @@ MISC
 If you have more than a folder listed in /mnt/media_rw -- or your SD card path is different from the standard /mnt/media_rw/*, you must specify it.
 	extsd_path /path/to/extsd
 
-Some users experiencing bind issues may need to to set these lines (especially true for Samsung devices/ROMs).
+If bound folders are displayed as files, try setting the following line:
 	intsd_path /storage/emulated/0
-	intobb_path /storage/emulated/obb
 
-Open a LUKS volume and use it as extsd -- disables auto-bind service -- fbind must be ran manually after boot to handle the process
-	part [block_device] [mount_point--L] [file_system] ["fsck OPTION(s)" (filesystem specific, optional)]` -- notice mount_point has a `--L` flag
+Open a LUKS volume -- disables auto-bind service -- fbind must be ran manually after boot to handle the process
+	part [block_device--L] [mount_point] [file_system] ["fsck OPTION(s)" (filesystem specific, optional)]` -- notice block_device has a `--L` flag
 	Set it as extsd with "extsd_path [mount_point]"
 
 Mount a loopback device
 	LOOP [/path/to/.img/file] [mount_point] ["e2fsck -OPTION(s)" (optional)]
 	Set it as extsd with "extsd_path [mount_point]"
 
-Grant storage permissions to all apps (including future installations) -- use this only if the default method (platform.xml patching) doens't make a difference.
-	perms
-
 Check for and/or fix SD card file system errors before system gets a chance to mount the target partition.
 	fsck.f2fs -f /dev/block/mmcblk1 --> fsck -OPTION(s) /path/to/partition
 
  Disable config auto backup (useful if you have a multi user setup)
 	no_bkp
-
-Mount multiple partitions
-	part [block_device] [mount_point--M] [file_system] ["fsck OPTION(s)" (filesystem specific, optional)]` -- notice mount_point has a `--M` flag
-
-Open multiple LUKS volumes
-	part [block_device] [mount_point--ML] [file_system] ["fsck OPTION(s)" (filesystem specific, optional)]` -- notice mount_point has a `--ML` flag
 
 
 

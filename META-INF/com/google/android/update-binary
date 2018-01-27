@@ -32,9 +32,24 @@ grep_prop() {
 is_mounted() { mountpoint -q "$1"; }
 
 mount_image() {
-  ui_print "- Mounting $1 to $2"
-  [ -d "$2" ] || mkdir -p "$2"
-  mount "$1" "$2"
+	ui_print "- Mounting $1 to $2"
+	[ -d "$2" ] || mkdir -p "$2"
+	if (! is_mounted $2); then
+		LOOPDEVICE=
+		for LOOP in 0 1 2 3 4 5 6 7; do
+			if (! is_mounted $2); then
+				LOOPDEVICE=/dev/block/loop$LOOP
+				[ -f "$LOOPDEVICE" ] || mknod $LOOPDEVICE b 7 $LOOP 2>/dev/null
+				losetup $LOOPDEVICE $1
+				if [ "$?" -eq "0" ]; then
+					mount -t ext4 -o loop $LOOPDEVICE $2
+					is_mounted $2 || /system/bin/toolbox mount -t ext4 -o loop $LOOPDEVICE $2
+					is_mounted $2 || /system/bin/toybox mount -t ext4 -o loop $LOOPDEVICE $2
+				fi
+				is_mounted $2 && break
+			fi
+		done
+	fi
 }
 
 set_perm() {
@@ -45,10 +60,10 @@ set_perm() {
 
 set_perm_recursive() {
   find "$1" -type d 2>/dev/null | while read dir; do
-    set_perm "$dir" $2 $3 $4 $6
+	set_perm "$dir" $2 $3 $4 $6
   done
   find "$1" -type f -o -type l 2>/dev/null | while read file; do
-    set_perm "$file" $2 $3 $5 $6
+	set_perm "$file" $2 $3 $5 $6
   done
 }
 
@@ -89,19 +104,16 @@ if [ "$?" -eq "0" ]; then
   OUTFD=0
 
   for FD in `ls /proc/$$/fd`; do
-    readlink /proc/$$/fd/$FD 2>/dev/null | grep pipe >/dev/null
-    if [ "$?" -eq "0" ]; then
-      ps | grep " 3 $FD " | grep -v grep >/dev/null
-      if [ "$?" -eq "0" ]; then
-        OUTFD=$FD
-        break
-      fi
-    fi
+	readlink /proc/$$/fd/$FD 2>/dev/null | grep pipe >/dev/null
+	if [ "$?" -eq "0" ]; then
+	  ps | grep " 3 $FD " | grep -v grep >/dev/null
+	  if [ "$?" -eq "0" ]; then
+		OUTFD=$FD
+		break
+	  fi
+	fi
   done
 fi
-
-# Fix SuperSU.....
-#$BOOTMODE && $BINDIR/sepolicy-inject --live "allow fsck * * *"
 
 # This path should work in any cases
 TMPDIR=/dev/tmp
@@ -137,13 +149,13 @@ if $BOOTMODE; then
 	done
 
 	if [ ! -d "$MountPoint" ]; then
-    echo -e "(!) Magisk mount point not found"
-	  exit 1
-  fi
+		echo -e "(!) Magisk mount point not found"
+		exit 1
+	fi
 
   if ! is_mounted $MountPoint; then
-    ui_print "(!) Magisk is not activated!... abort"
-    exit 1
+	ui_print "(!) Magisk is not activated!... abort"
+	exit 1
   fi
 
 fi
@@ -157,7 +169,7 @@ fi
 AUTOMOUNT=true
 
 # Set to true if you need to load system.prop
-PROPFILE=true
+PROPFILE=false
 
 # Set to true if you need post-fs-data script
 POSTFSDATA=true
@@ -219,28 +231,28 @@ ui_print "******************************"
 ui_print "Powered by Magisk (@topjohnwu)"
 ui_print "******************************"
 
-ui_print "- Mounting /system(ro), /vendor(ro), /data, /cache"
+ui_print "- Mounting partitions"
 mount -o ro /system 2>/dev/null
 mount -o ro /vendor 2>/dev/null
 mount /data 2>/dev/null
 mount /cache 2>/dev/null
 
-if [ ! -f '/system/build.prop' ]; then
-  ui_print "(!) Failed: /system could not be mounted!"
-  exit 1
-fi
+# if [ ! -f '/system/build.prop' ]; then
+#   ui_print "(!) Failed: /system could not be mounted!"
+#   exit 1
+# fi
 
-API=`grep_prop ro.build.version.sdk`
-ABI=`grep_prop ro.product.cpu.abi | cut -c-3`
-ABI2=`grep_prop ro.product.cpu.abi2 | cut -c-3`
-ABILONG=`grep_prop ro.product.cpu.abi`
+# API=`grep_prop ro.build.version.sdk`
+# ABI=`grep_prop ro.product.cpu.abi | cut -c-3`
+# ABI2=`grep_prop ro.product.cpu.abi2 | cut -c-3`
+# ABILONG=`grep_prop ro.product.cpu.abi`
 
-ARCH=arm
-IS64BIT=false
-if [ "$ABI" = "x86" ]; then ARCH=x86; fi;
-if [ "$ABI2" = "x86" ]; then ARCH=x86; fi;
-if [ "$ABILONG" = "arm64-v8a" ]; then ARCH=arm64; IS64BIT=true; fi;
-if [ "$ABILONG" = "x86_64" ]; then ARCH=x64; IS64BIT=true; fi;
+# ARCH=arm
+# IS64BIT=false
+# if [ "$ABI" = "x86" ]; then ARCH=x86; fi;
+# if [ "$ABI2" = "x86" ]; then ARCH=x86; fi;
+# if [ "$ABILONG" = "arm64-v8a" ]; then ARCH=arm64; IS64BIT=true; fi;
+# if [ "$ABILONG" = "x86_64" ]; then ARCH=x64; IS64BIT=true; fi;
 
 # You can get the Android API version from $API, the CPU architecture from $ARCH
 # Useful if you are creating Android version / platform dependent mods
@@ -264,9 +276,9 @@ if [ -f "$IMG" ]; then
   ui_print "- $IMG detected!"
   image_size_check $IMG
   if [ "$reqSizeM" -gt "$curFreeM" ]; then
-    SIZE=$(((reqSizeM + curUsedM) / 32 * 32 + 64))
-    ui_print "- Resizing $IMG to ${SIZE}M..."
-    resize2fs $IMG ${SIZE}M
+	SIZE=$(((reqSizeM + curUsedM) / 32 * 32 + 64))
+	ui_print "- Resizing $IMG to ${SIZE}M..."
+	resize2fs $IMG ${SIZE}M >&2
   fi
 else
   SIZE=$((reqSizeM / 32 * 32 + 64));
@@ -288,6 +300,8 @@ fi
 fbind_dir=/data/media/$MODID
 info_dir=$fbind_dir/info
 config_file=$fbind_dir/config.txt
+BkpSearchPath=/external_sd
+$BOOTMODE && BkpSearchPath=/mnt/media_rw
 
 # Create mod paths
 if [ -f $MODPATH/module.prop ]; then
@@ -300,42 +314,39 @@ mkdir -p $TMP_MODPATH
 mkdir -p $info_dir 2>/dev/null
 
 # Update fbind_dir (preserves config)
-if [ "$CurVersionCode" -lt '201801050' ]; then
+if [ "$CurVersionCode" -lt '201801270' ]; then
   unzip -o "$ZIP" config_updater.sh -d $INSTALLER >&2
   . $INSTALLER/config_updater.sh
 fi
 
 # Extract files
 ui_print "- Extracting module files"
-if echo "$ARCH" | grep -q arm; then
+if uname -m | grep -iq arm; then
   unzip -o "$ZIP" 'bin/*' -d $TMP_MODPATH >&2
   mv $TMP_MODPATH/bin/cryptsetup_arm $TMP_MODPATH/bin/cryptsetup
 fi
 unzip -o "$ZIP" core.sh 'system/*' -d $TMP_MODPATH >&2
-[ -f /data/.xfbind ] && mv $TMP_MODPATH/system/bin $TMP_MODPATH/system/xbin
+[ -f /data/.bfbind ] && mv $TMP_MODPATH/system/xbin $TMP_MODPATH/system/bin
 unzip -o "$ZIP" Changelog.md config_samples.txt README.md -d $info_dir >&2
 [ -f $info_dir/License.txt ] || unzip -o "$ZIP" 'License.md' -d $info_dir >&2
 
-
 # Restore config backup
-if $BOOTMODE; then
-  BkpSearchPath=/mnt/media_rw
-else
-  BkpSearchPath=/external_sd
+if ! grep -qs '[a-z]' "$config_file"; then
+	ui_print "- Searching for config backup"
+	BkpDir="$(find "$BkpSearchPath" -type d -name ".fbind_bkp" 2>/dev/null | head -n1)"
+	if [ -f "$BkpDir/config.txt" ]; then
+		ui_print "- Restoring config.txt"
+		cp -a "$BkpDir/config.txt" "$config_file" 2>/dev/null
+	else
+		ui_print "- Creating dummy config.txt"
+		touch "$config_file"
+	fi
 fi
-
-BkpDir="$(find "$BkpSearchPath" -type d -name ".fbind_bkp" 2>/dev/null)"
-
-if [ -f "$BkpDir/config.txt" ]; then
-  if [ ! -f "$config_file" ] || ! grep -qs '[a-z]' "$config_file"; then
-    cp -a "$BkpDir/config.txt" "$config_file" 2>/dev/null
-  fi
-fi
-
 
 # Misc tasks
 chown -R media_rw:media_rw $fbind_dir
 chmod -R 777 $fbind_dir
+rm /data/.xfbind 2>/dev/null ###
 
 ##########################################################################################
 
@@ -381,12 +392,7 @@ set_permissions
 ui_print "- Unmounting partitions"
 
 umount $MOUNTPATH
-for loop_device in /dev/block/loop*; do
-  if losetup $loop_device 2>/dev/null | grep -q "$IMG"; then
-    losetup -d $loop_device
-    break
-  fi
-done
+losetup -d $LOOPDEVICE
 rmdir $MOUNTPATH
 
 # Shrink the image if possible
@@ -394,7 +400,7 @@ image_size_check $IMG
 NEWDATASIZE=$((curUsedM / 32 * 32 + 32))
 if [ "$curSizeM" -gt "$NEWDATASIZE" ]; then
   ui_print "- Shrinking $IMG to ${NEWDATASIZE}M..."
-  resize2fs $IMG ${NEWDATASIZE}M
+  resize2fs $IMG ${NEWDATASIZE}M >&2
 fi
 
 if ! $BOOTMODE; then
@@ -402,7 +408,7 @@ if ! $BOOTMODE; then
   umount /vendor 2>/dev/null
 fi
 
-[ "IMG" = /data/adb/$IMGNAME ] && ln -s "$IMG" /data
+[ "$IMG" = /data/adb/$IMGNAME ] && ln -s "$IMG" /data 2>/dev/null
 
 ui_print "- Done"
 exit 0

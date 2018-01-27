@@ -20,9 +20,21 @@ if [ -n "$SEck" ]; then
 	fi
 fi
 
+exxit() {
+	if [ -n "$SEck" ]; then
+		$was_enforcing && setenforce 1
+	fi
+	[ -z "$1" ] && exit 0 || exit 1
+}
+
+
+# Disable sdcardfs -- necessary for "mount -o bind" to work properly.
+resetprop persist.sys.sdcardfs force_off
+setprop persist.sys.sdcardfs force_off
+
 
 # Set Magisk SU's Mount Namespace to Global
-cd /data/data/com.topjohnwu.magisk/shared_prefs || exit 1
+cd /data/data/com.topjohnwu.magisk/shared_prefs || exxit 1
 target=com.topjohnwu.magisk_preferences.xml
 target_owner="$(ls -l $target | awk '{print $3}')"
 target_Scon="$(ls -Z $target | awk '{print $1}')"
@@ -34,8 +46,4 @@ if ! grep -q 'mnt_ns">0' $target; then
 	chmod 660 $target
 fi
 
-
-if [ -n "$SEck" ]; then
-	$was_enforcing && setenforce 1
-fi
-exit 0
+exxit

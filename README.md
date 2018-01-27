@@ -4,8 +4,7 @@
 
 
 ### DESCRIPTION
-- Forces Android to save select files/folders to the external_sd (or to a partition) by default, & clean up the user's storage (select unwanted files/folders) automatically.
-
+- Take full control over your storage space with this feature-rich folder mounting software.
 
 
 ### DISCLAIMER
@@ -25,10 +24,8 @@
 
 ### CONFIG SYNTAX
 
-- part [block device] [mount_point (any path except "/folder")] [file_system] ["fsck OPTION(s)" (filesystem specific, optional) --> auto-mount a partition -- to use as extsd, add the line extsd_path [mount_point]
-- part [block device] [mount_point--M (any path except "/folder")] [file_system] ["fsck OPTION(s)" (filesystem specific, optional) --> auto-mount multiple partitions -- notice mount_point has a `--M` flag -- add extsd_path [mount_point] to use the target partition as extsd
-- part [block device] [mount_point--L (any path except "/folder")] [file_system] ["fsck OPTION(s)" (filesystem specific, optional) --> open a LUKS volume -- disables auto-bind service -- fbind must be ran manually after boot to handle the process -- notice mount_point has a `--L` flag
-- part [block device] [mount_point--ML (any path except "/folder")] [file_system] ["fsck OPTION(s)" (filesystem specific, optional) --> open multiple LUKS volumes -- notice mount_point has a `--ML` flag -- fbind must be ran manually after boot to handle the process
+- part [block_device] [mount_point (any path except "/folder")] [file_system] ["fsck OPTION(s)" (filesystem specific, optional) --> auto-mount a partition -- to use as extsd, add the line extsd_path [mount_point]
+- part [block_device--L] [mount_point (any path except "/folder")] [file_system] ["fsck OPTION(s)" (filesystem specific, optional) --> open a LUKS volume -- disables auto-bind service -- fbind must be ran manually after boot to handle the process -- notice block_device has a `--L` flag
 - LOOP [/path/to/.img/file] [mount_point] ["e2fsck -OPTION(s)" (optional)] --> mount a loopback device -- set it as extsd with "extsd_path [mount_point]"
 
 - app_data [folder] --> data/data <--> extsd/.data (needs part or LinuxFS formated SD card), to use with intsd instead, include the config line "extsd_path $intsd"
@@ -36,9 +33,8 @@
 - cleanup [file/folder] --> auto-remove unwanted files/folders from intsd & extsd -- including by default, unwanted "Android" directories
 - extsd_path [/path/to/alternate/storage]) --> ignore for default -- /mnt/media_rw/*, include the line `extsd_path $intsd` in your config file if your device hasn't or doesn't support SD card
 - from_to [intsd folder] [extsd folder] --> great for media folders & better organization
-- intobb_path [path] --> i.e., /storage/emulated/0 (ignore for default -- /data/media/0)
 - int_extf --> bind-mount the entire intsd to extsd/.fbind (includes obb)
-- intsd_path [path] --> i.e., /storage/emulated/0/Android/obb (ignore for default -- /data/media/obb)
+- intsd_path [path] --> i.e., intsd_path /storage/emulated/0 (ignore for default -- /data/media/0)
 - obb --> bind-mount the entire /data/media/obb folder to extsd/Android/obb
 - obbf [app/game folder] --> individual obb
 - target [target folder] --> great for standard paths (i.e., Android/data, TWRP/BACKUPS)
@@ -91,16 +87,14 @@ log --> Display debug.log
 
 * Default internal storage paths (auto-configured)
 - intsd_path /data/media/0
-- intobb_path /data/media/obb
 
-* Alternate internal storage paths
-- intsd_path /storage/emulated/obb
-- intobb_path /storage/emulated/0
+* Alternate internal storage path
+- intsd_path /storage/emulated/0
 
 * Bind issues
-- Try the `alternate internal storage paths` above.
+- Try the `alternate internal storage path` above.
 
-* If `/system/bin/fbind` causes a bootloop, move it to `system/xbin` by running `touch /data/.xfbind` prior to installing. The setting is persistent across updates.
+* If `/system/xbin/fbind` causes a bootloop, move it to `system/bin` by running `touch /data/.bfbind` prior to installing. The setting is persistent across updates.
 
 
 
@@ -110,7 +104,10 @@ log --> Display debug.log
 
 
 
-### CHANGELOG
+### RECENT CHANGES
+
+**2018.1.27 (201801270)**
+- General optimizations & bug fixes
 
 **2018.1.13-1 (201801131)**
 - Fixed `-m` not creating source/destinations paths & `-mb` not binding folders
@@ -118,9 +115,3 @@ log --> Display debug.log
 **2018.1.13 (201801130)**
 - General optimizations
 - Updated reference
-
-**2018.1.10 (201801100)**
-- General bug fixes & optimizations
-- Quoted paths containing spaces are now handled as expected
-- Removed storage permissions fixes -- will come back only if a new implementation (WIP) ends up being fully functional and universal
-- Redesigned `-as` command line option

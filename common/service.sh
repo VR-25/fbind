@@ -7,6 +7,7 @@
 ModPath=${0%/*}
 export PATH="/sbin/.core/busybox:/dev/magisk/bin:$PATH"
 
+
 # Intelligently toggle SELinux mode
 SEck="$(ls -1 $(echo "$PATH" | sed 's/:/ /g') 2>/dev/null | grep -E 'sestatus|getenforce' | head -n1)"
 
@@ -39,7 +40,7 @@ log_start
 # Check/fix SD Card FS
 if grep -Ev 'part|#' $config_file | grep -iq fsck; then
 	echo "<FSCK>"
-	until [ -b "$(grep -Ev 'part|#' $config_file | grep -i fsck | awk '{print $3}')" ]; do sleep 1; done
+	wait_until_true [ -b "$(grep -Ev 'part|#' $config_file | grep -i fsck | awk '{print $3}')" ]
 	$(grep -Ev 'part|#' $config_file | grep fsck)
 	echo
 	echo
@@ -47,6 +48,6 @@ fi
 
 
 apply_cfg
-bind_folders
-cleanupf
+grep -v '#' $config_file | grep -Eq 'app_data |int_extf|bind_mnt |obb.*|from_to |target ' && bind_folders || echo "(i) Nothing set"
+if is f $fbind_dir/cleanup.sh || grep -v '#' $config_file | grep -q "cleanup "; then cleanupf; else echo "(i) Nothing set"; fi
 log_end
