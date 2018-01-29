@@ -1,3 +1,6 @@
+**2018.1.29-1 (201801291)**
+- Fixed multi-thread issues in data copying operations (`-m` `--rollback` & `--restore`)
+
 **2018.1.29 (201801290)**
 - Automatically switch internal storage paths to `/storage/emulated` and SELinux mode to `permissive` if ESDFS is enabled (used in place of FUSE or SDCARDFS)
 - Don't auto-restore config from backup (until next boot) after wiping it clean with `fbind -r .` or similar command

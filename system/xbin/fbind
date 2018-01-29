@@ -76,9 +76,10 @@ mvdt() {
 		[ -d "$1" ] || mkdir -p -m 777 "$1"
 		[ -d "$2" ] || mkdir -p -m 777 "$2"
 		while read e; do
-			(cp -a "$e" "$2" 2>/dev/null) &
+			(cp -a "$1/$e" "$2" 2>/dev/null) &
 			sleep 0.1
 		done <<< "$(ls -1A "$1")"
+		wait
 		rm -rf "$1"/*
 	fi
 }
@@ -89,9 +90,10 @@ mvdtR() {
 		umount "$2"
 		echo "[$3]"
 		while read e; do
-			(cp -a "$e" "$2" 2>/dev/null) &
+			(cp -a "$1/$e" "$2" 2>/dev/null) &
 			sleep 0.1
 		done <<< "$(ls -1A "$1")"
+		wait
 		rm -rf "$1"
 	fi
 }
