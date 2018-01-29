@@ -1,3 +1,11 @@
+**2018.1.29 (201801290)**
+- Automatically switch internal storage paths to `/storage/emulated` and SELinux mode to `permissive` if ESDFS is enabled (used in place of FUSE or SDCARDFS)
+- Don't auto-restore config from backup (until next boot) after wiping it clean with `fbind -r .` or similar command
+- Major optimizations & minor cosmetic changes
+- Multi-thread support for `-m` `--rollback` & `--restore` operations -- faster copy speeds
+- `setenforce 0` is a recognized config line
+- Updated reference
+
 **2018.1.27 (201801270)**
 - General optimizations & bug fixes
 

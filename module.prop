@@ -1,7 +1,7 @@
 id=fbind
 name=Magic Folder Binder (fbind)
-version=2018.1.27
-versionCode=201801270
+version=2018.1.29
+versionCode=201801290
 author=VR25 @ XDA Developers
 description=Take full control over your storage space with this feature-rich folder mounting software.
 minMagisk=1500

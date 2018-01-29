@@ -6,15 +6,16 @@
 # Environment
 PATH="/sbin/.core/busybox:/dev/magisk/bin:$PATH"
 ModID=fbind
-umask 022
 
 
 # Root check
-# if ! id 2>/dev/null | grep -iq 'root'; then
-# 	echo -e "\n(!) $ModID must run as root.\n"
-# 	exit 1
-# fi
-echo
+if ! id 2>/dev/null | grep -iq 'root'; then
+	echo -e "\n(!) $ModID must run as root.\n"
+	exit 1
+else
+	echo
+	umask 022
+fi
 
 
 # Intelligently toggle SELinux mode
@@ -44,11 +45,12 @@ done
 
 if [ ! -f "$ModPath/module.prop" ]; then
   echo -e "(!) $ModID path not found"
-  echo -e "- Unsupported Magisk version or not running as root (su)\n"
+  echo -e "- Unsupported Magisk version\n"
   exit 1
 fi
 
 export tk=true
+grep -iq esdfs /proc/mounts && intsd=/storage/emulated/0 && setenforce 0 && was_enforcing=false
 . $ModPath/core.sh
 export PATH="$PATH:$ModPath/bin"
 tmp=$fbind_dir/.term_tmp
@@ -69,21 +71,27 @@ yn() {
 
 # Move data
 mvdt() {
-	if ! is_mounted "$1" && [ "$(ls "$1" 2>/dev/null)" ]; then
+	if ! is_mounted "$1" && [ "$(ls -A "$1" 2>/dev/null)" ]; then
 		echo "[$3]"
 		[ -d "$1" ] || mkdir -p -m 777 "$1"
 		[ -d "$2" ] || mkdir -p -m 777 "$2"
-		cp -a "$1"/* "$2" 2>/dev/null
+		while read e; do
+			(cp -a "$e" "$2" 2>/dev/null) &
+			sleep 0.1
+		done <<< "$(ls -1A "$1")"
 		rm -rf "$1"/*
 	fi
 }
 
 # Move data (rollback)
 mvdtR() {
-	if is_mounted "$2" && [ "$(ls "$1" 2>/dev/null)" ]; then
+	if is_mounted "$2" && [ "$(ls -A "$1" 2>/dev/null)" ]; then
 		umount "$2"
 		echo "[$3]"
-		cp -a "$1"/* "$2" 2>/dev/null
+		while read e; do
+			(cp -a "$e" "$2" 2>/dev/null) &
+			sleep 0.1
+		done <<< "$(ls -1A "$1")"
 		rm -rf "$1"
 	fi
 }
@@ -222,8 +230,12 @@ add_line() {
 
 
 list_cfg() {
-	echo -e "Your fbind config:\n"
-	cat $config_file
+	if ! grep -q '[a-z]' $config_file; then
+		echo "(i) Your fbind config is null"
+	else
+		echo -e "Your fbind config:\n"
+		cat $config_file
+	fi
 	echo
 }
 
@@ -251,7 +263,7 @@ move_data() {
 	
 	# Other
 	bind_mnt() {
-		if ! is_mounted "$2" && [ "$(ls "$2" 2>/dev/null)" ] && [ "$3" = "-mv" ]; then
+		if ! is_mounted "$2" && [ "$(ls -A "$2" 2>/dev/null)" ] && [ "$3" = "-mv" ]; then
 			echo "[$2]"
 			[ -d "$1" ] || mkdir -p -m 777 "$1"
 			cp -a "$2"/* "$1" 2>/dev/null
@@ -294,6 +306,7 @@ rm_line() {
 		if [ -z "$1" ]; then echo "Removed line(s):"; else echo "Removed line:"; fi
 		cat $tmp2
 		rm -f $tmp $tmp2
+		grep -q '[a-z]' $config_file || touch $fbind_dir/.no_restore
 	else
 		echo "No line(s) removed."
 	fi
@@ -375,7 +388,7 @@ rollback() {
 
 	# Other
 	bind_mnt() {
-		if is_mounted "$2" && [ "$(ls "$1" 2>/dev/null)" ] && [ "$3" = "-mv" ]; then
+		if is_mounted "$2" && [ "$(ls -A "$1" 2>/dev/null)" ] && [ "$3" = "-mv" ]; then
 			echo "[$2]"
 			umount "$2"
 			cp -a "$1"/* "$2" 2>/dev/null

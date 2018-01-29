@@ -3,8 +3,8 @@
 
 
 # ENVIRONMENT
-intsd=/data/media/0
-intobb=/data/media/obb
+[ -z "$intsd" ] && intsd=/data/media/0
+intobb="$(echo $intsd | sed "s/$(basename $intsd)/obb/")"
 fbind_dir=/data/media/fbind
 config_file=$fbind_dir/config.txt
 config_path=$fbind_dir/.config
@@ -78,6 +78,7 @@ bind_mnt() {
 intsd_path() {
 	intsd="$1"
 	intobb="$(echo $intsd | sed "s/$(basename $intsd)/obb/")"
+	#echo $intsd | grep -q '/emulated' && setenforce 0 && was_enforcing=false
 }
 
 
@@ -87,6 +88,7 @@ log_start() {
 	echo -e "$(date)\n"
 }
 log_end() {
+	sed -i "s:intsd:$intsd:g; s:extsd:$extsd:g" $logfile
 	set_perms $logfile
 	if [ -n "$SEck" ]; then
 		$was_enforcing && setenforce 1
@@ -97,8 +99,7 @@ log_end() {
 
 
 # Mount partition
-# For safety reasons, the mount point can't be "/FOLDER"
-# $1=block_device, $2=mount_point, $3=file_system, $4="fsck OPTION(s)" (filesystem specific, optional)
+# $1=block_device, $2=mount_point, $3=file_system, $4="fsck OPTION(s)" (file system specific, optional)
 part() {
 	if z "$3"; then
 		echo "(!) part(): missing argument(s)"
@@ -126,16 +127,14 @@ part() {
 			mount -t $3 -o noatime,rw $PPath "$MountPoint"
 		fi
 		
-		if ! is_mounted "$MountPoint"; then
+		if is_mounted "$MountPoint"; then
+			echo "***"
+			df -h "$MountPoint" | sed "s/Filesystem/   Partition ($3)/"
+		else
 			echo '***'
 			echo "(!) $PARTITION mount failed"
 			rmdir "$MountPoint" 2>/dev/null
 			exit 1
-		fi
-		
-		if [ "$?" ]; then
-			echo "***"
-			df -h "$MountPoint" | sed "s/Filesystem/   Partition ($3)/"
 		fi
 	fi
 	echo
@@ -268,7 +267,7 @@ cleanupf() {
 	app_data() { if is_mounted /data/data/$1 && [ -z "$2" ]; then rm -rf $extsd/.app_data/$1/Android; fi; }
 	
 	: >$fbind_dir/.tmp
-	grep -v '#' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' >$fbind_dir/.tmp
+	grep -v '#' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb.*|from_to |target ' >$fbind_dir/.tmp
 	. $fbind_dir/.tmp
 	
 	# Source optional cleanup script
@@ -284,7 +283,7 @@ cleanupf() {
 
 
 # Restore config backup
-if ! grep -qs '[a-z]' "$config_file"; then
+if ! grep -qs '[a-z]' "$config_file" && ! is f $fbind_dir/.no_restore; then
 	echo "(i) Searching for config backup"
 	BkpDir="$(find /mnt/media_rw -type d -name ".fbind_bkp" 2>/dev/null | head -n1)"
 	if [ -f "$BkpDir/config.txt" ]; then
@@ -293,7 +292,7 @@ if ! grep -qs '[a-z]' "$config_file"; then
 	else
 		echo "- Creating dummy config.txt"
 		touch "$config_file"
-		echo
 		$tk || exit 1
 	fi
+	echo
 fi

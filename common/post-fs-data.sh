@@ -8,6 +8,10 @@ export PATH="/sbin/.core/busybox:/dev/magisk/bin:$PATH"
 umask 022
 
 
+rm /data/media/fbind/.no_restore 2>/dev/null
+grep -v '#' /data/media/fbind/config.txt 2>/dev/null | grep -q 'setenforce 0' && setenforce 0
+
+
 # Intelligently toggle SELinux mode
 SEck="$(ls -1 $(echo "$PATH" | sed 's/:/ /g') 2>/dev/null | grep -E 'sestatus|getenforce' | head -n1)"
 
@@ -28,7 +32,7 @@ exxit() {
 }
 
 
-# Disable sdcardfs -- necessary for "mount -o bind" to work properly.
+# Reinforcement/fail-safe -- disable sdcardfs -- necessary for "mount -o bind" to work properly.
 resetprop persist.sys.sdcardfs force_off
 setprop persist.sys.sdcardfs force_off
 

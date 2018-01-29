@@ -21,7 +21,14 @@ if [ -n "$SEck" ]; then
 fi
 
 
+# Default permissions
 umask 022
+
+
+# Change internal storage path & SElinux mode if ESDFS is in use
+getprop | grep -i esdfs | grep -iq true && intsd=/storage/emulated/0 && setenforce 0 && was_enforcing=false
+
+
 . $ModPath/core.sh
 
 
@@ -39,15 +46,16 @@ log_start
 
 # Check/fix SD Card FS
 if grep -Ev 'part|#' $config_file | grep -iq fsck; then
-	echo "<FSCK>"
+	echo -e "\n<FSCK>"
 	wait_until_true [ -b "$(grep -Ev 'part|#' $config_file | grep -i fsck | awk '{print $3}')" ]
 	$(grep -Ev 'part|#' $config_file | grep fsck)
 	echo
-	echo
 fi
 
-
+echo
 apply_cfg
-grep -v '#' $config_file | grep -Eq 'app_data |int_extf|bind_mnt |obb.*|from_to |target ' && bind_folders || echo "(i) Nothing set"
-if is f $fbind_dir/cleanup.sh || grep -v '#' $config_file | grep -q "cleanup "; then cleanupf; else echo "(i) Nothing set"; fi
+echo
+grep -v '#' $config_file | grep -Eq 'app_data |int_extf|bind_mnt |obb.*|from_to |target ' && bind_folders || echo "(i) Nothing to bind-mount"
+echo
+if is f $fbind_dir/cleanup.sh || grep -v '#' $config_file | grep -q "cleanup "; then cleanupf; else echo "(i) Nothing to clean"; fi
 log_end

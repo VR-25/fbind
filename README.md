@@ -7,6 +7,7 @@
 - Take full control over your storage space with this feature-rich folder mounting software.
 
 
+
 ### DISCLAIMER
 - ALWAYS read the reference prior to installing/updating fbind. While no cats have been harmed in any way, shape or form, I assume no responsibility under anything that might go wrong due to the use/misuse of this module. 
 
@@ -24,8 +25,8 @@
 
 ### CONFIG SYNTAX
 
-- part [block_device] [mount_point (any path except "/folder")] [file_system] ["fsck OPTION(s)" (filesystem specific, optional) --> auto-mount a partition -- to use as extsd, add the line extsd_path [mount_point]
-- part [block_device--L] [mount_point (any path except "/folder")] [file_system] ["fsck OPTION(s)" (filesystem specific, optional) --> open a LUKS volume -- disables auto-bind service -- fbind must be ran manually after boot to handle the process -- notice block_device has a `--L` flag
+- part [block_device] [mount_point] [file_system] ["fsck OPTION(s)" (file system specific, optional) --> auto-mount a partition -- to use as extsd, add the line extsd_path [mount_point]
+- part [block_device--L] [mount_point] [file_system] ["fsck OPTION(s)" (file system specific, optional) --> open a LUKS volume -- disables auto-bind service -- fbind must be ran manually after boot to handle the process -- notice block_device has a `--L` flag
 - LOOP [/path/to/.img/file] [mount_point] ["e2fsck -OPTION(s)" (optional)] --> mount a loopback device -- set it as extsd with "extsd_path [mount_point]"
 
 - app_data [folder] --> data/data <--> extsd/.data (needs part or LinuxFS formated SD card), to use with intsd instead, include the config line "extsd_path $intsd"
@@ -92,6 +93,7 @@ log --> Display debug.log
 - intsd_path /storage/emulated/0
 
 * Bind issues
+- Add the line `setenforce 0` to your config
 - Try the `alternate internal storage path` above.
 
 * If `/system/xbin/fbind` causes a bootloop, move it to `system/bin` by running `touch /data/.bfbind` prior to installing. The setting is persistent across updates.
@@ -106,12 +108,16 @@ log --> Display debug.log
 
 ### RECENT CHANGES
 
+**2018.1.29 (201801290)**
+- Automatically switch internal storage paths to `/storage/emulated` and SELinux mode to `permissive` if ESDFS is enabled (used in place of FUSE or SDCARDFS)
+- Don't auto-restore config from backup (until next boot) after wiping it clean with `fbind -r .` or similar command
+- Major optimizations & minor cosmetic changes
+- Multi-thread support for `-m` `--rollback` & `--restore` operations -- faster copy speeds
+- `setenforce 0` is a recognized config line
+- Updated reference
+
 **2018.1.27 (201801270)**
 - General optimizations & bug fixes
 
 **2018.1.13-1 (201801131)**
 - Fixed `-m` not creating source/destinations paths & `-mb` not binding folders
-
-**2018.1.13 (201801130)**
-- General optimizations
-- Updated reference
