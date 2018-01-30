@@ -4,7 +4,7 @@
 
 # ENVIRONMENT
 [ -z "$intsd" ] && intsd=/data/media/0
-intobb="$(echo $intsd | sed "s/$(basename $intsd)/obb/")"
+intobb=/data/media/obb
 fbind_dir=/data/media/fbind
 config_file=$fbind_dir/config.txt
 config_path=$fbind_dir/.config
@@ -77,7 +77,6 @@ bind_mnt() {
 # Set Alternate intsd Path
 intsd_path() {
 	intsd="$1"
-	intobb="$(echo $intsd | sed "s/$(basename $intsd)/obb/")"
 	#echo $intsd | grep -q '/emulated' && setenforce 0 && was_enforcing=false
 }
 
@@ -88,7 +87,7 @@ log_start() {
 	echo -e "$(date)\n"
 }
 log_end() {
-	sed -i "s:intsd:$intsd:g; s:extsd:$extsd:g" $logfile
+	sed -i "s:intsd:$intsd:g; s:extsd:$extsd:g; s:intobb:$intobb:g; s:extobb:$extobb:g" $logfile
 	set_perms $logfile
 	if [ -n "$SEck" ]; then
 		$was_enforcing && setenforce 1

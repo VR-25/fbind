@@ -1,3 +1,6 @@
+**2018.1.30 (201801300)**
+- Fixed internal obb path not working with ESDFS
+
 **2018.1.29-1 (201801291)**
 - Fixed multi-thread issues in data copying operations (`-m` `--rollback` & `--restore`)
 

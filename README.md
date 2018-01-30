@@ -108,6 +108,9 @@ log --> Display debug.log
 
 ### RECENT CHANGES
 
+**2018.1.30 (201801300)**
+- Fixed internal obb path not working with ESDFS
+
 **2018.1.29-1 (201801291)**
 - Fixed multi-thread issues in data copying operations (`-m` `--rollback` & `--restore`)
 
@@ -118,6 +121,3 @@ log --> Display debug.log
 - Multi-thread support for `-m` `--rollback` & `--restore` operations -- faster copy speeds
 - `setenforce 0` is a recognized config line
 - Updated reference
-
-**2018.1.27 (201801270)**
-- General optimizations & bug fixes
