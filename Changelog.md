@@ -1,3 +1,7 @@
+**2018.1.31 (201801310)**
+- [Boot scripts] run loop operations in the background and in parallel to avoid delaying other modules' scripts
+- Minor optimizations
+
 **2018.1.30 (201801300)**
 - Fixed internal obb path not working with ESDFS
 

@@ -3,7 +3,7 @@
 # VR25 @ XDA Developers
 
 
-ModPath=${0%/*}
+export ModPath=${0%/*}
 export PATH="/sbin/.core/busybox:/dev/magisk/bin:$PATH"
 umask 022
 

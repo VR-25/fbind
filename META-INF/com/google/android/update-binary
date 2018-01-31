@@ -123,6 +123,13 @@ MOUNTPATH=$TMPDIR/magisk_img
 $BOOTMODE && IMGNAME=magisk_merge.img || IMGNAME=magisk.img
 [ -d /data/adb/magisk ] && IMG=/data/adb/$IMGNAME || IMG=/data/$IMGNAME
 
+if [ ! -d /data/adb/magisk ] && [ ! -d /data/magisk ]; then
+	ui_print " "
+	ui_print "(!) No Magisk installation found or installed version is not supported"
+	ui_print " "
+	exit 1
+fi
+
 # Initial cleanup
 rm -rf $TMPDIR 2>/dev/null
 mkdir -p $INSTALLER 2>/dev/null
@@ -261,7 +268,7 @@ if ! is_mounted /data; then
   IMG=/cache/$IMGNAME
   ui_print " "
   ui_print "***********************************"
-  ui_print "*      !! Data unavailible !!     *"
+  ui_print "*      !! Data unavailable !!     *"
   ui_print "* Magisk detection is impossible  *"
   ui_print "* Installation will still proceed *"
   ui_print "*  But please make sure you have  *"
@@ -321,7 +328,7 @@ fi
 
 # Extract files
 ui_print "- Extracting module files"
-if uname -m | grep -iq arm; then
+if uname -m | grep -Eiq 'arm|aarch'; then
   unzip -o "$ZIP" 'bin/*' -d $TMP_MODPATH >&2
   mv $TMP_MODPATH/bin/cryptsetup_arm $TMP_MODPATH/bin/cryptsetup
 fi

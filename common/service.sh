@@ -4,7 +4,7 @@
 
 
 # Environment
-ModPath=${0%/*}
+export ModPath=${0%/*}
 export PATH="/sbin/.core/busybox:/dev/magisk/bin:$PATH"
 
 
@@ -44,18 +44,22 @@ fi
 log_start
 
 
-# Check/fix SD Card FS
-if grep -Ev 'part|#' $config_file | grep -iq fsck; then
-	echo -e "\n<FSCK>"
-	wait_until_true [ -b "$(grep -Ev 'part|#' $config_file | grep -i fsck | awk '{print $3}')" ]
-	$(grep -Ev 'part|#' $config_file | grep fsck)
-	echo
-fi
+BackgroundActions() {
+	# Check/fix SD Card FS
+	if grep -Ev 'part|#' $config_file | grep -iq fsck; then
+		echo -e "\n<FSCK>"
+		wait_until_true [ -b "$(grep -Ev 'part|#' $config_file | grep -i fsck | awk '{print $3}')" ]
+		$(grep -Ev 'part|#' $config_file | grep fsck)
+		echo
+	fi
 
-echo
-apply_cfg
-echo
-grep -v '#' $config_file | grep -Eq 'app_data |int_extf|bind_mnt |obb.*|from_to |target ' && bind_folders || echo "(i) Nothing to bind-mount"
-echo
-if is f $fbind_dir/cleanup.sh || grep -v '#' $config_file | grep -q "cleanup "; then cleanupf; else echo "(i) Nothing to clean"; fi
-log_end
+	echo
+	apply_cfg
+	echo
+	grep -v '#' $config_file | grep -Eq 'app_data |int_extf|bind_mnt |obb.*|from_to |target ' && bind_folders || echo "(i) Nothing to bind-mount"
+	echo
+	if is f $fbind_dir/cleanup.sh || grep -v '#' $config_file | grep -q "cleanup "; then cleanupf; else echo "(i) Nothing to clean"; fi
+	log_end
+}
+
+(BackgroundActions) &
