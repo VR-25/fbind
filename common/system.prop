@@ -1,2 +1,4 @@
-# Disable sdcardfs -- necessary for "mount -o bind" to work properly.
+# Disable ESDFS and SDCARDFS & enable FUSE
+persist.esdfs_sdcard=false
 persist.sys.sdcardfs=force_off
+persist.fuse_sdcard=true

@@ -1,3 +1,16 @@
+**2018.3.6 (201803060)**
+- -ad, -b, -m, -mb, restore, -u and -umb, now work with PATTERN and 'PATTERN1|PATTERN2|PATTERNn' arguments as well -- check the `PRO TIPS` section in config_samples.txt for more info
+- Disable ESDFS and SDCARDFS & enable FUSE
+- "fbind" (no args) command now displays a quick on-terminal reference
+- Fixed root check issue with certain Magisk versions
+- Log additional storage info
+- Major optimizations
+- Optional SELinux mode handling (config lines: setenforce auto, setenforce 0)
+- [TEST] Universal full external SD card read-write access (new platform.xml workaround) -- some [or all] users may need to set SELinux mode to permissive to actually benefit from this (config line: setenforce 0)
+- The `-l` (list config lines) option now displays corresponding mount statuses too
+- Updated cryptsetup binary -- LUKS2 support (untested, possibly kernel module needed)
+- Updated documentation
+
 **2018.1.31 (201801310)**
 - [Boot scripts] run loop operations in the background and in parallel to avoid delaying other modules' scripts
 - Minor optimizations
@@ -6,13 +19,13 @@
 - Fixed internal obb path not working with ESDFS
 
 **2018.1.29-1 (201801291)**
-- Fixed multi-thread issues in data copying operations (`-m` `--rollback` & `--restore`)
+- Fixed multi-thread issues in data copying operations (`-m` `rollback` & `restore`)
 
 **2018.1.29 (201801290)**
 - Automatically switch internal storage paths to `/storage/emulated` and SELinux mode to `permissive` if ESDFS is enabled (used in place of FUSE or SDCARDFS)
 - Don't auto-restore config from backup (until next boot) after wiping it clean with `fbind -r .` or similar command
 - Major optimizations & minor cosmetic changes
-- Multi-thread support for `-m` `--rollback` & `--restore` operations -- faster copy speeds
+- Multi-thread support for `-m` `rollback` & `restore` operations -- faster copy speeds
 - `setenforce 0` is a recognized config line
 - Updated reference
 

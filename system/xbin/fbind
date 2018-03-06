@@ -1,27 +1,27 @@
 #!/system/bin/sh
 # fbind
-# VR25 @ XDA Developers
+# VR25 @ xda-developers
 
 
 # Environment
 PATH="/sbin/.core/busybox:/dev/magisk/bin:$PATH"
 ModID=fbind
+fbind_dir=/data/media/fbind
+umask 000
+echo
 
 
-# Root check
-if ! id 2>/dev/null | grep -iq 'root'; then
-	echo -e "\n(!) $ModID must run as root.\n"
-	exit 1
-else
-	echo
-	umask 022
-fi
+[ -d "$fbind_dir" ] || mkdir -m 777 $fbind_dir
+[ -f $fbind_dir/.no_restore ] && rm $fbind_dir/.no_restore
 
 
-# Intelligently toggle SELinux mode
+# Intelligently handle SELinux mode
+grep -v '#' $fbind_dir/config.txt 2>/dev/null | grep -q 'setenforce 0' && setenforce 0
+grep -v '#' $fbind_dir/config.txt 2>/dev/null | grep -q 'setenforce auto' \
+	&& SELinuxAutoMode=true || SELinuxAutoMode=false
 SEck="$(ls -1 $(echo "$PATH" | sed 's/:/ /g') 2>/dev/null | grep -E 'sestatus|getenforce' | head -n1)"
 
-if [ -n "$SEck" ]; then
+if [ -n "$SEck" ] && $SELinuxAutoMode; then
 	if $SEck | grep -iq enforcing; then
 		was_enforcing=true
 		setenforce 0
@@ -34,23 +34,22 @@ fi
 # Find ModPath
 for loop_device in /dev/block/loop*; do
 	if losetup $loop_device 2>/dev/null | grep -q '\(/data/.*magisk.img\)'; then
-		while read MountPoint; do
+		for MountPoint in $(grep $loop_device /proc/mounts | awk '{print $2}' | grep -v '/system'); do
 			if [ -f "$MountPoint/$ModID/module.prop" ]; then
 				ModPath=$MountPoint/$ModID
 				break 2
 			fi
-		done <<< "$(grep $loop_device /proc/mounts | awk '{print $2}' | grep -v '/system')"
+		done
 	fi
 done
 
 if [ ! -f "$ModPath/module.prop" ]; then
   echo -e "(!) $ModID path not found"
-  echo -e "- Unsupported Magisk version\n"
+  echo -e "- Unsupported Magisk version or not running as root (su)\n"
   exit 1
 fi
 
 export tk=true
-grep -iq esdfs /proc/mounts && intsd=/storage/emulated/0 && setenforce 0 && was_enforcing=false
 . $ModPath/core.sh
 export PATH="$PATH:$ModPath/bin"
 tmp=$fbind_dir/.term_tmp
@@ -63,9 +62,12 @@ service_disabled=$ModPath/service.disabled
 # Yes/No prompt
 yn() {
 	case "$1" in
-		[Yy]* ) "$2";;
+		[Yy]* ) $($@);;
 		[Nn]* ) exit 0;;
-		* ) echo "(!) Invalid INPUT! Please re-run the command and answer yes or no."; exit 1;;
+		* ) echo "(!) Invalid input"
+			echo "- Please re-run the command and answer yes or no"
+			exit 1
+			;;
 	esac
 }
 
@@ -75,10 +77,10 @@ mvdt() {
 		echo "[$3]"
 		[ -d "$1" ] || mkdir -p -m 777 "$1"
 		[ -d "$2" ] || mkdir -p -m 777 "$2"
-		while read e; do
+		ls -1A "$1" | while read e; do
 			(cp -a "$1/$e" "$2" 2>/dev/null) &
 			sleep 0.1
-		done <<< "$(ls -1A "$1")"
+		done
 		wait
 		rm -rf "$1"/*
 	fi
@@ -89,10 +91,10 @@ mvdtR() {
 	if is_mounted "$2" && [ "$(ls -A "$1" 2>/dev/null)" ]; then
 		umount "$2"
 		echo "[$3]"
-		while read e; do
+		ls -1A "$1" | while read e; do
 			(cp -a "$1/$e" "$2" 2>/dev/null) &
 			sleep 0.1
-		done <<< "$(ls -1A "$1")"
+		done
 		wait
 		rm -rf "$1"
 	fi
@@ -119,26 +121,35 @@ Usage: fbind OPTION(s) ARGUMENT(s)
 -d --> Disable auto-bind service
 -e --> Re-enable auto-bind service
 -f --> Disable this toolkit
--l --> Show config.txt
+-l --> List config lines with corresponding mount statuses
 -m --> Move data to the SD card (unmounted folders only)
 -r --> Remove lines(s) from config.txt (interactive)
 -u --> Unmount all folders
 -x --> Disable fbind
 -mb --> Move data & bind corresponding folders
-ref --> Display README
-log --> Display debug.log
+ref --> Display full reference (README.md)
+log --> View debug.log
 
 -ad --> Add "app_data" line(s) to config.txt (interactive)
 
 -as --> Asks for SOURCE dirs (intsd/SOURCE) & adds corresponding "from_to" lines to config.txt (interactive)
 
--umb --> (!) Unmount all folders, move data & rebind
+restore --> Move select data back to original locations (interactive)
 
---restore --> Move select data back to original locations (interactive)
+rollback --> Unmount all folders, uninstall fbind & restore data
 
---rollback --> Unmount all folders, uninstall fbind & restore data
+[no args] --> Open quick reference
 
---uninstall --> Unmount all folders & uninstall fbind
+uninstall --> Unmount all folders & uninstall fbind
+
+-h/--help/help --> See all of this again
+
+Pro tip: -ad, -b, -m, -mb, restore, -u and -umb, work with PATTERN and 'PATTERN1|PATTERN2|PATTERNn' arguments as well.
+- Examples:
+-- fbind -b 'WhatsA|Downl|ADM'
+-- fbind -u '^obb$'
+-- fbind -m mGit
+-- fbind restore from_to
 END
 	echo
 }
@@ -160,7 +171,7 @@ disable_service() {
 add_line() {
 	echo -e "<Add config line(s)>\n"
 	: > $tmp
-	INPUT=0
+	Input=0
 	[ "$(tail -c 1 $config_file)" ] && printf "\n" >> $config_file
 	
 	if [ "$1" = '-ad' ]; then
@@ -169,14 +180,16 @@ add_line() {
 
 		if [ -z "$2" ]; then
 			cat $tmp
-			echo -e "\n(i) Input a matching word/string at a time."
+			echo -e "\n(i) Input a matching pattern at a time."
 			echo "- Hit ENTER when done or press CTRL (Vol. Down) + C to abort."
-			until [ -z "$INPUT" ]; do
-				read -r INPUT
-				[ -n "$INPUT" ] && grep "$INPUT" $tmp | sed 's/^/app_data /' >> $tmp2
+			until [ -z "$Input" ]; do
+				read -r Input
+				[ -n "$Input" ] && grep "$Input" $tmp | sed 's/^/app_data /' >> $tmp2
 			done
 		else
-			grep "$2" $tmp | sed 's/^/app_data /' >> $tmp2
+			for Line in $(grep -E "$2" $tmp); do
+				echo $Line | sed 's/^/app_data /' >>$tmp2
+			done
 		fi
 		
 		if grep -q '[a-z]' $tmp2; then
@@ -190,10 +203,10 @@ add_line() {
 		if [ -z "$2" ]; then
 			echo "(i) Input a source path at a time (i.e., Download or \"WhatsApp/Media/WhatsApp Video\")."
 			echo "- Hit ENTER when done or press CTRL (Vol. Down) + C to abort."
-			until [ -z "$INPUT" ]; do
-				read -r INPUT
-				if [ -n "$INPUT" ]; then
-					echo "from_to \"$INPUT\" \".fbind/$INPUT\"" >> $tmp
+			until [ -z "$Input" ]; do
+				read -r Input
+				if [ -n "$Input" ]; then
+					echo "from_to \"$Input\" \".fbind/$Input\"" >> $tmp
 				fi
 			done
 		else
@@ -211,9 +224,9 @@ add_line() {
 		if [ -z "$2" ]; then
 			echo -e "(i) Input one line at a time."
 			echo "- Hit ENTER when done or press CTRL (Vol. Down) + C to abort."
-			until [ -z "$INPUT" ]; do
-				read -r INPUT
-				[ -n "$INPUT" ] && echo "$INPUT" >> $tmp
+			until [ -z "$Input" ]; do
+				read -r Input
+				[ -n "$Input" ] && echo "$Input" >> $tmp
 			done
 		else
 			echo "$2" >> $tmp
@@ -236,7 +249,28 @@ list_cfg() {
 		echo "(i) Your fbind config is null"
 	else
 		echo -e "Your fbind config:\n"
-		cat $config_file
+		echo -e "LINE		[MOUNT STATUS]\n"
+		cat $config_file | while read line; do
+			if echo "$line" | grep -Eq '^from_to |^target '; then
+				is_mounted "$intsd/$(echo "$line" | awk '{print $2}' | sed 's/"//g' | sed "s/'//g")" \
+					&& echo "$line [MOUNTED]" \
+					|| echo "$line [UNMOUNTED]"
+			elif echo "$line" | grep -q '^obbf '; then
+				is_mounted "$intobb/$(echo "$line" | awk '{print $2}' | sed 's/"//g' | sed "s/'//g")" \
+					&& echo "$line [MOUNTED]" \
+					|| echo "$line [UNMOUNTED]"
+			elif echo "$line" | grep -q '^obb$'; then
+				is_mounted "$intobb" \
+					&& echo "$line [MOUNTED]" \
+					|| echo "$line [UNMOUNTED]"
+			elif echo "$line" | grep -q '^part |^LOOP |^bind_mnt '; then
+				is_mounted "$(echo "$line" | awk '{print $3}' | sed 's/"//g' | sed "s/'//g")" \
+					&& echo "$line [MOUNTED]" \
+					|| echo "$line [UNMOUNTED]"
+			else
+				echo "$line [N/A]"
+			fi
+		done
 	fi
 	echo
 }
@@ -273,8 +307,11 @@ move_data() {
 		fi
 	}
 	
-	: >$fbind_dir/.tmp
-	grep -v '#' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' >$fbind_dir/.tmp
+	if n "$1"; then
+		grep -v '#' $config_file | grep -E "$1" >$fbind_dir/.tmp
+	else
+		grep -v '#' $config_file | grep -E '^app_data |^int_extf|^bind_mnt |^obb.*|^from_to |^target ' >$fbind_dir/.tmp
+	fi
 	. $fbind_dir/.tmp
 
 	echo -e "- Done.\n"
@@ -284,22 +321,22 @@ move_data() {
 rm_line() {
 	: >$tmp
 	: >$tmp2
-	INPUT=0
+	Input=0
 	if [ -z "$1" ]; then
 		echo -e "<Remove Config Line(s)>\n"
 		grep -v '^$' $config_file
-		echo -e "\nInput a matching pattern at once."
+		echo -e "\nInput a matching pattern at at a time."
 		echo "- Hit ENTER when done or press CTRL (Vol. Down) + C to abort."
-		until [ -z "$INPUT" ]; do
-			read -r INPUT
-			if [ -n "$INPUT" ]; then
-				grep -v "$INPUT" $config_file >> $tmp
-				grep "$INPUT" $config_file >> $tmp2
+		until [ -z "$Input" ]; do
+			read -r Input
+			if [ -n "$Input" ]; then
+				grep -v "$Input" $config_file >> $tmp
+				grep "$Input" $config_file >> $tmp2
 			fi
 		done
 	else
-		grep -v "$1" $config_file >> $tmp
-		grep "$1" $config_file >> $tmp2
+		grep -Ev "$1" $config_file >> $tmp
+		grep -E "$1" $config_file >> $tmp2
 	fi
 
 	if grep -q '[a-z]' $tmp2; then
@@ -317,7 +354,7 @@ rm_line() {
 
 
 unmount_folders() {	
-	echo 'Unmounting folders...'
+	echo "Unmounting..."
 	
 	# entire obb folder
 	obb() { umnt $intobb "obb"; }
@@ -348,9 +385,12 @@ unmount_folders() {
 	}
 	
 	bind_mnt() { umnt "$2" "$2"; }
-	
-	: >$fbind_dir/.tmp
-	grep -v '#' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' >$fbind_dir/.tmp
+
+	if n "$1"; then
+		grep -v '#' $config_file | grep -E "$1" >$fbind_dir/.tmp
+	else
+		grep -v '#' $config_file | grep -E '^app_data |^int_extf|^bind_mnt |^obb.*|^from_to |^target ' >$fbind_dir/.tmp
+	fi
 	. $fbind_dir/.tmp
 	
 	echo -e "- Done.\n"
@@ -400,8 +440,8 @@ rollback() {
 
 	if [ -z "$1" ]; then
 		echo -e "<Rollback>\n"
-		: >$fbind_dir/.tmp
-		grep -Ev '#' $config_file | grep -E 'app_data |int_extf|bind_mnt |obb|obbf |from_to |target ' >$fbind_dir/.tmp
+
+		grep -Ev '#' $config_file | grep -E '^app_data |^int_extf|^bind_mnt |^obb.*|^from_to |^target ' >$fbind_dir/.tmp
 		. $fbind_dir/.tmp
 
 		uninstall
@@ -411,25 +451,25 @@ rollback() {
 
 
 restore() {
-	rollback --restore
+	rollback restore
 	: >$tmp
 	: >$tmp2
-	INPUT=0
+	Input=0
 	if [ -z "$1" ]; then
 		echo -e "<Data Restore>\n"
-		grep -Ev '#|^$' $config_file | grep -E 'bind_mnt |from_to |target |obb.*'
-		echo -e "\nInput a matching pattern at once."
+		grep -Ev '#|^$' $config_file | grep -E '^bind_mnt |^from_to |^target |^obb.*'
+		echo -e "\nInput PATTERN or 'PATTERN1|PATTERN2|PATTERNn'."
 		echo "- Hit ENTER when done or press CTRL (Vol. Down) + C to abort."
-		until [ -z "$INPUT" ]; do
-			read -r INPUT
-			if [ -n "$INPUT" ]; then
-				grep -v "$INPUT" $config_file >> $tmp
-				grep "$INPUT" $config_file >> $tmp2
+		until [ -z "$Input" ]; do
+			read -r Input
+			if [ -n "$Input" ]; then
+				grep -v "$Input" $config_file >> $tmp
+				grep "$Input" $config_file >> $tmp2
 			fi
 		done
 	else
-		grep -v "$1" $config_file >> $tmp
-		grep "$1" $config_file >> $tmp2
+		grep -Ev "$1" $config_file >> $tmp
+		grep -E "$1" $config_file >> $tmp2
 	fi
 
 	if grep -q '[a-z]' $tmp2; then
@@ -445,6 +485,35 @@ restore() {
 }
 
 
+quick_ref() {
+	cat <<BLOCK
+Magic Folder Binder Quick Reference
+
+ <Basic config lines>
+  from_to SOURCE .fbind/DESTINATION --> best for media
+  target SOURCE --> non-media folders (source=dest.)
+  obbf FOLDER --> obb/FOLDER to external storage
+  obb --> obb/* to external storage
+
+ <Debugging lines>
+  setenforce 0 --> set SELinux mode to permissive
+  intsd_path /storage/emulated/0 (default is /data/media/0)
+  
+ <Essential commands>
+  fbind -a --> add cfg lines (interactive)
+  fbind -b --> bind-mount all
+  fbind -h --> list all commands
+  fbind -l --> show config lines & corresp. mount statuses
+  fbind -r --> rem. cfg lines (interactive)
+  fbind -u --> unmount all
+  fbind -mb --> move unmounted; bind-mount all
+  fbind log --> view debug.log
+  fbind ref --> display full reference (README.md)
+BLOCK
+	echo -e "\n(i) Run \"fbind\" (no args) to see this again.\n"
+}
+
+
 if grep -v '#' $config_file | grep -q '\-\-L'; then
 	apply_cfg
 else
@@ -456,32 +525,32 @@ case $1 in
 	-a) add_line "-a" "$2";;
 	-ad) add_line "-ad" "$2";;
 	-as) add_line "-as" "$2";;
-	-b) bind_folders;;
+	-b) bind_folders "$2";;
 	-c) cleanupf;;
 	-l) list_cfg;;
-	-m) move_data;;
+	-m) move_data "$2";;
 	-r) rm_line "$2";;
-	-u) unmount_folders;;
-	-mb) move_data; fbind -b;;
+	-u) unmount_folders "$2";;
+	-mb) move_data "$2"; fbind -b "$2";;
 	-d) disable_service;;
 	-e) enable_service;;
-	--restore) restore "$2";;
-	-log) cat $logfile;;
-	-ref) cat $fbind_dir/info/README.md;;
+	restore) restore "$2";;
+	log) cat $logfile;;
+	ref) cat $fbind_dir/info/README.md;;
 
 	-umb)
 		echo "Are you sure you know exactly what you're doing? (y/n)"
 		read ans
-		yn $ans "unmount_folders; move_data; bind_folders"
+		yn $ans unmount_folders "$2"\; move_data "$2"\; bind_folders "$2"
 		;;
 
-	--uninstall)
+	uninstall)
 		echo "Are you sure you want to uninstall fbind? (y/n)"
 		read ans
 		yn $ans uninstall
 		;;
 
-	--rollback)
+	rollback)
 		echo 'Are you sure you want to uninstall fbind & move data back to intsd? (y/n)'
 		read ans
 		yn $ans rollback
@@ -498,14 +567,16 @@ case $1 in
 		echo "(i) Module disabled. Reboot to apply change."
 		echo -e "- Re-enable from Magisk Manager or run \"rm $ModPath/disable\".\n"
 		;;
+		
+	-h|--help|help) usage;;
 	
-	*) usage;;
+	*) quick_ref;;
 esac
 
+rm $fbind_dir/.tmp $tmp $tmp2 2>/dev/null
 
-if [ -n "$SEck" ]; then
+if [ -n "$SEck" ] && $SELinuxAutoMode; then
 	$was_enforcing && setenforce 1
 fi
 
-rm $fbind_dir/.tmp $tmp $tmp2 2>/dev/null
 exit 0

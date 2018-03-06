@@ -1,6 +1,6 @@
 #!/sbin/sh -x
 # Magic Folder Binder (fbind) Installer
-# VR25 @ XDA Developers
+# VR25 @ xda-developers
 
 # Detect whether in boot mode
 ps | grep zygote | grep -v grep >/dev/null && BOOTMODE=true || BOOTMODE=false
@@ -188,7 +188,7 @@ ModVersion="`grep_prop version $INSTALLER/module.prop`"
 print_modname() {
   ui_print "***************************************"
   ui_print "Magic Folder Binder (fbind) $ModVersion"
-  ui_print "         VR25 @ XDA Developers         "
+  ui_print "         VR25 @ xda-developers         "
   ui_print "***************************************"
 }
 
@@ -238,7 +238,7 @@ ui_print "******************************"
 ui_print "Powered by Magisk (@topjohnwu)"
 ui_print "******************************"
 
-ui_print "- Mounting partitions"
+$BOOTMODE || ui_print "- Mounting partitions"
 mount -o ro /system 2>/dev/null
 mount -o ro /vendor 2>/dev/null
 mount /data 2>/dev/null
@@ -350,6 +350,67 @@ if ! grep -qs '[a-z]' "$config_file"; then
 	fi
 fi
 
+
+
+# Patch platform.xml -- storage permissions
+XML_mod_dir=$TMP_MODPATH/system/etc/permissions
+XML_list="/sbin/.core/mirror/system/etc/permissions/platform.xml
+/dev/magisk/mirror/system/etc/permissions/platform.xml
+/system/etc/permissions/platform.xml"
+
+for f in $XML_list; do
+  if [ -f "$f" ]; then
+    cp "$f" $INSTALLER
+	XMLPath="$f"
+    break
+  fi
+done
+
+grep -q '_.*NAL_STO.*/>$' $INSTALLER/platform.xml && Patch=true || Patch=false
+
+if $Patch; then
+	ui_print " "
+	ui_print "- Patching /system/etc/permissions/platform.xml"
+	sed -i '/<\/permissions>/d' $INSTALLER/platform.xml
+	echo >>$INSTALLER/platform.xml
+	
+	Perms="READ_EXTERNAL_STORAGE
+	WRITE_EXTERNAL_STORAGE"
+
+	for Perm in $Perms; do
+		if grep $Perm $INSTALLER/platform.xml | grep -q '/>'; then
+			sed -i /$Perm/d $INSTALLER/platform.xml
+			ui_print "-- android.permission.$Perm"
+			if echo $Perm | grep -q READ; then
+				cat <<BLOCK >>$INSTALLER/platform.xml
+    <permission name="android.permission.READ_EXTERNAL_STORAGE" >
+        <group gid="sdcard_r" />
+    </permission>"
+BLOCK
+			else
+				cat <<BLOCK >>$INSTALLER/platform.xml
+    <permission name="android.permission.WRITE_EXTERNAL_STORAGE" >
+        <group gid="media_rw" />
+        <group gid="sdcard_r" />
+        <group gid="sdcard_rw" />
+    </permission>"
+BLOCK
+			fi
+		fi
+	done
+
+	echo -e "\n</permissions>" >>$INSTALLER/platform.xml
+
+	mkdir -p $XML_mod_dir
+	mv $INSTALLER/platform.xml $XML_mod_dir
+
+	# Export /system size for platform.xml automatic re-patching across ROM updates
+    du -s "$(echo "$XMLPath" | sed 's/\/etc.*//')" | cut -f1 >$TMP_MODPATH/.SystemSizeK
+	ui_print " "
+fi
+
+
+
 # Misc tasks
 chown -R media_rw:media_rw $fbind_dir
 chmod -R 777 $fbind_dir
@@ -396,7 +457,7 @@ fi
 ui_print "- Setting permissions"
 set_permissions
 
-ui_print "- Unmounting partitions"
+$BOOTMODE || ui_print "- Unmounting partitions"
 
 umount $MOUNTPATH
 losetup -d $LOOPDEVICE
@@ -414,8 +475,6 @@ if ! $BOOTMODE; then
   umount /system
   umount /vendor 2>/dev/null
 fi
-
-[ "$IMG" = /data/adb/$IMGNAME ] && ln -s "$IMG" /data 2>/dev/null
 
 ui_print "- Done"
 exit 0

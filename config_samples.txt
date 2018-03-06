@@ -100,7 +100,7 @@ MISC
 		extsd_path /path/to/extsd
 
 	If bound folders are displayed as files, test with the following lines, one at a time and/or both:
-		setenforce 0
+		setenforce auto (or setenforce 0)
 		intsd_path /storage/emulated/0
 
 	Open a LUKS volume -- disables auto-bind service -- fbind must be ran manually after boot to handle the process
@@ -129,14 +129,14 @@ PRO TIPS
 		Example: fbind -as "WhatsaApp/Media/WhatsApp Video" (notice the quotes)
 	"fbind -as" -- asks for SOURCES and adds multiple corresponding "from_to SOURCE .fbind/SOURCE" lines (interactive mode)
 
-	"fbind -ad "PKG_NAME"" -- add a single "app_data PKG_NAME" line
-		Example: fbind -ad com.spotify.music
+	"fbind -ad 'PKG1|PKG2|PKGn' -- add a single or multiple "app_data PKG_NAME" line(s)
+		Example: fbind -ad 'spotify|xda'
 	"fbind -ad" -- add multiple "app_data PKG_NAME" lines (interactive mode)
 
-	"fbind -r ""LINE/PATTERN"" -- remove a line or lines matching PATTERN
-		Example: fbind -r "WhatsApp.*"
+	"fbind -r 'PATTERN1|PATTERN2|PATTERNn' -- remove line(s) matching PATTERN(s)
+		Example: fbind -r 'WhatsApp.*|ADM'
 	"fbind -r" -- remove multiple lines (interactive mode)
 
-	"fbind --restore ""LINE"" -- move LINE associated data back to original location
-		Example: fbind -a "from_to \"WhatsaApp/Media/WhatsApp Video\" \".fbind/WhatsaApp/Media/WhatsApp Video\" (notice the quotes and backslashes)
-	"fbind --restore" -- batch move select data back to original locations (interactive mode)
+	"fbind restore 'PATTERN1|PATTERN2|PATTERNn' -- move data associated with line(s) matching PATTERN(s) back to original location(s)
+		Example: fbind restore 'WhatsApp Video|git'
+	"fbind restore" -- batch move select data back to original locations (interactive mode)
