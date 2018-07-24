@@ -2,6 +2,7 @@
 # Magic Folder Binder (fbind) Installer
 # VR25 @ xda-developers
 
+
 # Detect whether in boot mode
 ps | grep zygote | grep -v grep >/dev/null && BOOTMODE=true || BOOTMODE=false
 $BOOTMODE || ps -A 2>/dev/null | grep zygote | grep -v grep >/dev/null && BOOTMODE=true
@@ -142,29 +143,24 @@ MODPATH=$TMP_MODPATH
 
 # Find MODPATH
 if $BOOTMODE; then
-	for loop_device in /dev/block/loop*; do
-		if losetup $loop_device 2>/dev/null | grep -q '\(/data/.*magisk.img\)'; then
-			for MountPoint in $(grep $loop_device /proc/mounts | awk '{print $2}' | grep -v '/system'); do
-				if [ -d "$MountPoint/.core" ] || [ -d "$MountPoint/lost+found" ]; then
-					MountPoint=$MountPoint
-					MODPATH=$MountPoint/$MODID
-					mkdir -p $MODPATH 2>/dev/null
-					break 2
-				fi
-			done
-		fi
-	done
+  for MountPoint in /sbin/.core/img /magisk; do
+    if [ -d "$MountPoint/.core" ] || [ -d "$MountPoint/lost+found" ]; then
+      MountPoint=$MountPoint
+      MODPATH=$MountPoint/$MODID
+      mkdir -p $MODPATH 2>/dev/null
+      break
+    fi
+  done
 
-	if [ ! -d "$MountPoint" ]; then
+	if [ ! -d "$MODPATH" ]; then
 		echo -e "(!) Magisk mount point not found"
 		exit 1
 	fi
 
   if ! is_mounted $MountPoint; then
-	ui_print "(!) Magisk is not activated!... abort"
-	exit 1
+    ui_print "(!) Magisk is not activated!... abort"
+    exit 1
   fi
-
 fi
 
 ##########################################################################################
@@ -304,11 +300,17 @@ fi
 ##########################################################################################
 
 # Environment
-fbind_dir=/data/media/$MODID
-info_dir=$fbind_dir/info
-config_file=$fbind_dir/config.txt
+fbindDir=/data/media/$MODID
+info_dir=$fbindDir/info
+cfgFile=$fbindDir/config.txt
 BkpSearchPath=/external_sd
 $BOOTMODE && BkpSearchPath=/mnt/media_rw
+
+# Detect CPU architecture
+case "$(uname -m)" in
+  *86*) binArch=x86;;
+  *ar*) binArch=arm;;
+esac
 
 # Create mod paths
 if [ -f $MODPATH/module.prop ]; then
@@ -317,36 +319,36 @@ else
   CurVersionCode=0
 fi
 rm -rf $TMP_MODPATH 2>/dev/null
-mkdir -p $TMP_MODPATH
+mkdir -p $TMP_MODPATH/bin
 mkdir -p $info_dir 2>/dev/null
 
-# Update fbind_dir (preserves config)
-if [ "$CurVersionCode" -lt '201801270' ]; then
+# Update fbindDir (preserves config)
+if [ "$CurVersionCode" -lt '201807240' ]; then
   unzip -o "$ZIP" config_updater.sh -d $INSTALLER >&2
   . $INSTALLER/config_updater.sh
 fi
 
 # Extract files
 ui_print "- Extracting module files"
-if uname -m | grep -Eiq 'arm|aarch'; then
-  unzip -o "$ZIP" 'bin/*' -d $TMP_MODPATH >&2
-  mv $TMP_MODPATH/bin/cryptsetup_arm $TMP_MODPATH/bin/cryptsetup
-fi
+unzip -o "$ZIP" 'bin/*' -d $INSTALLER >&2
+[ "$binArch" = "arm" ] && mv $INSTALLER/bin/cryptsetup_$binArch $TMP_MODPATH/bin/cryptsetup
+mv $INSTALLER/bin/rsync_$binArch $TMP_MODPATH/bin/rsync
 unzip -o "$ZIP" core.sh 'system/*' -d $TMP_MODPATH >&2
-[ -f /data/.bfbind ] && mv $TMP_MODPATH/system/xbin $TMP_MODPATH/system/bin
-unzip -o "$ZIP" Changelog.md config_samples.txt README.md -d $info_dir >&2
+[[ -f /data/.bfbind ]] && mv /data/.bfbind $fbindDir/
+[[ -f $fbindDir/.bfbind ]] && mv $TMP_MODPATH/system/xbin $TMP_MODPATH/system/bin
+unzip -o "$ZIP" Changelog.md tutorial.txt README.md -d $info_dir >&2
 [ -f $info_dir/License.txt ] || unzip -o "$ZIP" 'License.md' -d $info_dir >&2
 
 # Restore config backup
-if ! grep -qs '[a-z]' "$config_file"; then
+if ! grep -qs '[a-z]' "$cfgFile"; then
 	ui_print "- Searching for config backup"
 	BkpDir="$(find "$BkpSearchPath" -type d -name ".fbind_bkp" 2>/dev/null | head -n1)"
 	if [ -f "$BkpDir/config.txt" ]; then
 		ui_print "- Restoring config.txt"
-		cp -a "$BkpDir/config.txt" "$config_file" 2>/dev/null
+		cp -a "$BkpDir/config.txt" "$cfgFile" 2>/dev/null
 	else
 		ui_print "- Creating dummy config.txt"
-		touch "$config_file"
+		touch "$cfgFile"
 	fi
 fi
 
@@ -412,8 +414,8 @@ fi
 
 
 # Misc tasks
-chown -R media_rw:media_rw $fbind_dir
-chmod -R 777 $fbind_dir
+chown -R media_rw:media_rw $fbindDir
+chmod -R 777 $fbindDir
 rm /data/.xfbind 2>/dev/null ###
 
 ##########################################################################################

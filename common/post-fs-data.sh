@@ -3,19 +3,25 @@
 # VR25 @ XDA Developers
 
 
+# Verbose logging
+logsDir=/data/media/fbind/logs
+newLog=$logsDir/post-fs-data.sh_verbose_log.txt
+oldLog=$logsDir/post-fs-data.sh_verbose_previous_log.txt
+[[ -d $logsDir ]] || mkdir -p -m 777 $logsDir
+[[ -f $newLog ]] && mv $newLog $oldLog
+set -x 2>>$newLog
+
+
 export ModPath=${0%/*}
-export PATH="/sbin/.core/busybox:/dev/magisk/bin:$PATH"
-fbind_dir=/data/media/fbind
+export PATH="$ModPath/bin:$ModPath/system/xbin:$ModPath/system/bin:/sbin/.core/busybox:/dev/magisk/bin:$PATH"
+fbindDir=/data/media/fbind
 umask 000
-
-
-[ -d "$fbind_dir" ] || mkdir -m 777 $fbind_dir
-[ -f $fbind_dir/.no_restore ] && rm $fbind_dir/.no_restore
+[ -f $fbindDir/.no_restore ] && rm $fbindDir/.no_restore
 
 
 # Intelligently handle SELinux mode
-grep -v '#' $fbind_dir/config.txt 2>/dev/null | grep -q 'setenforce 0' && setenforce 0
-grep -v '#' $fbind_dir/config.txt 2>/dev/null | grep -q 'setenforce auto' \
+grep -v '^#' $fbindDir/config.txt 2>/dev/null | grep -q 'setenforce 0' && setenforce 0
+grep -v '^#' $fbindDir/config.txt 2>/dev/null | grep -q 'setenforce auto' \
 	&& SELinuxAutoMode=true || SELinuxAutoMode=false
 SEck="$(ls -1 $(echo "$PATH" | sed 's/:/ /g') 2>/dev/null | grep -E 'sestatus|getenforce' | head -n1)"
 
@@ -32,18 +38,29 @@ exxit() {
 	if [ -n "$SEck" ] && $SELinuxAutoMode; then
 		$was_enforcing && setenforce 1
 	fi
-	[ -z "$1" ] && exit 0 || exit 1
+	if [ -z "$1" ]; then
+    exit 0
+  else
+    echo "$1" && exit 1
+  fi
 }
 
 
+
 # Disable ESDFS and SDCARDFS & enable FUSE (fail-safe)
-resetprop persist.esdfs_sdcard false || setprop persist.esdfs_sdcard false
-resetprop persist.sys.sdcardfs force_off || setprop persist.sys.sdcardfs force_off
-resetprop persist.fuse_sdcard true || setprop persist.fuse_sdcard true
+
+resetprop persist.esdfs_sdcard false
+setprop persist.esdfs_sdcard false
+
+resetprop persist.sys.sdcardfs force_off
+setprop persist.sys.sdcardfs force_off
+
+resetprop persist.fuse_sdcard true
+setprop persist.fuse_sdcard true
 
 
 
-# Patch platform.xml -- storage permissions
+# Auto re-patch platform.xml -- storage permissions
 XML_mod_dir=$ModPath/system/etc/permissions
 
 XML_list="/sbin/.core/mirror/system/etc/permissions/platform.xml
@@ -55,7 +72,7 @@ mkdir /dev/fbind_tmp
 for f in $XML_list; do
   if [ -f "$f" ]; then
     cp "$f" /dev/fbind_tmp
-	Mirror="$(echo $f | sed 's/\/etc.*//')"
+    Mirror="$(echo $f | sed 's/\/etc.*//')"
     break
   fi
 done
@@ -94,27 +111,11 @@ BLOCK
 
 	mkdir -p $XML_mod_dir
 	mv /dev/fbind_tmp/platform.xml $XML_mod_dir
+  chmod -R 755 $XML_mod_dir
 	
 	# Export /system size for platform.xml automatic re-patching across ROM updates
     du -s "$(echo "$f" | sed 's/\/etc.*//')" | cut -f1 >$ModPath/.SystemSizeK
 fi
 
 rm -rf /dev/fbind_tmp 2>/dev/null
-
-
-
-# Set Magisk SU's Mount Namespace to Global
-cd /data/data/com.topjohnwu.magisk/shared_prefs || exxit 1
-target=com.topjohnwu.magisk_preferences.xml
-target_owner="$(ls -l $target | awk '{print $3}')"
-target_Scon="$(ls -Z $target | awk '{print $1}')"
-
-if ! grep -q 'mnt_ns">0' $target; then
-	sed -i '/mnt_ns/s/[0-9]/0/' $target
-	chown $target_owner:$target_owner $target
-	chcon $target_Scon $target
-	chmod 660 $target
-fi
-
-
 exxit

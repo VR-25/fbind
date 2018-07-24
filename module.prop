@@ -1,7 +1,7 @@
 id=fbind
 name=Magic Folder Binder (fbind)
-version=2018.3.6
-versionCode=201803060
+version=2018.7.24
+versionCode=201807240
 author=VR25 @ xda-developers
-description=Take full control over your storage space with this feature-rich folder mounting tool.
+description=Redirect internal storage data writes to the sdcard, auto-mount ext4 .img files (loop devices) & external storage partitions, save app data to external storage, open & mount LUKS/LUKS2 volumes... and more.
 minMagisk=1500

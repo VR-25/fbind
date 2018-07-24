@@ -1,3 +1,19 @@
+**2018.7.24 (201807240)**
+- Ability to unmount loop devices and partitions on demand (i.e., fbind -u 'pattern1|pattern2|pattern...').
+- Better loop device mounting logic ("ugly bugs" fixed)
+- Bind-mount folders automatically regardless of --L (LUKS) flag's usage.
+- Dedicated logs dir -- /data/media/fbind/logs (easier & advanced debugging)
+- Deprecated `fbind -l` in favor of `fbind -i` (outputs much more information)
+- Fixed "misleading [N/A] mount status".
+- Fixed modPath detection & bad PATH variable issues (Magisk V16.6).
+- Fixed "rm -rf not affecting hidden files/folders" in data moving functions.
+- Ignore `app_data` line whose target apk is missing (to avoid app data loss).
+- Option to mount app_data in ext4 .img file (loop device)
+- Shipping with a comprehensive, noob-friendly tutorial (tutorial.txt, /data/media/fbind/info/tutorial.txt)
+- Reliability improvements (better data loss protection algorithms)
+- Updated documentation
+- Using `rsync -a` for advanced copy operations, instead of `cp -a`.
+
 **2018.3.6 (201803060)**
 - -ad, -b, -m, -mb, restore, -u and -umb, now work with PATTERN and 'PATTERN1|PATTERN2|PATTERNn' arguments as well -- check the `PRO TIPS` section in config_samples.txt for more info
 - Disable ESDFS and SDCARDFS & enable FUSE
@@ -265,7 +281,7 @@
 - Bug fixes
 
 **v2017.8.18**
-- Fixed "intobb path" typo
+- Fixed "obb path" typo
 - [EXPERIMENTAL] Added "data_data" function to bind /data/data to $extsd/.data (ext2,3,4 partition only)
 - [TEST-FIX] Wait for alternate partition to show up in /dev/block before attempting to auto-mount it to $extsd_path
 - Auto "e2fsck -fy" alternate partition
