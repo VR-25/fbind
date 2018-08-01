@@ -1,6 +1,7 @@
 #!/system/bin/sh
 # fbind
-# VR25 @ xda-developers
+## (c) 2017-2018, VR25 @ xda-developers
+### License: GPL v3+
 
 
 # Verbose logging
@@ -79,7 +80,7 @@ yn() {
 
 # Move data
 mvdt() {
-	if ! is_mounted "$1" && [ "$(ls -A "$1" 2>/dev/null)" ]; then
+	if ! is_mounted "$1" && [ -n "$(ls -A "$1" 2>/dev/null)" ]; then
 		echo "[$3]"
 		[ -d "$1" ] || mkdir -p -m 777 "$1"
 		[ -d "$2" ] || mkdir -p -m 777 "$2"
@@ -90,7 +91,7 @@ mvdt() {
 
 # Move data (rollback)
 mvdtR() {
-	if is_mounted "$2" && [ "$(ls -A "$1" 2>/dev/null)" ]; then
+	if is_mounted "$2" && [ -n "$(ls -A "$1" 2>/dev/null)" ]; then
 		umount "$2"
 		echo "[$3]"
 		rsync -a "$1/" "$2" && rm -rf "$1"/* "$1"/.* 2>/dev/null || \
@@ -170,9 +171,9 @@ add_line() {
 	echo -e "<Add config line(s)>\n"
 	: > $tmp
 	Input=0
-	[ "$(tail -c 1 $cfgFile)" ] && printf "\n" >> $cfgFile
+	[ -n "$(tail -c 1 $cfgFile)" ] && printf "\n" >> $cfgFile
 	
-	if [ "$1" = '-ad' ]; then
+	if [ "$1" = "-ad" ]; then
 		: > $tmp2
 		echo "$(ls -1 /data/data)" >> $tmp
 
@@ -197,7 +198,7 @@ add_line() {
 			echo "(i) No line(s) added."
 		fi
 	
-	elif [ "$1" = '-as' ]; then
+	elif [ "$1" = "-as" ]; then
 		if [ -z "$2" ]; then
 			echo "(i) Input a source path at a time (i.e., Download or \"WhatsApp/Media/WhatsApp Video\")."
 			echo "- Hit ENTER twice when finished. Press CTRL (Vol. Down) + C to abort."
@@ -218,7 +219,7 @@ add_line() {
 			echo "(i) No line(s) added."
 		fi
 	
-	elif [ "$1" = '-a' ]; then
+	elif [ "$1" = "-a" ]; then
 		if [ -z "$2" ]; then
 			echo -e "(i) Input one line at a time."
 			echo "- Hit ENTER twice when finished. Press CTRL (Vol. Down) + C to abort."
@@ -318,7 +319,7 @@ move_data() {
 	
 	# Other
 	bind_mnt() {
-		if ! is_mounted "$2" && [ "$(ls -A "$2" 2>/dev/null)" ] && [ "$3" = "-mv" ]; then
+		if ! is_mounted "$2" && [ -n "$(ls -A "$2" 2>/dev/null)" ] && [ "$3" = "-mv" ]; then
 			echo "[$2]"
 			[ -d "$1" ] || mkdir -p -m 777 "$1"
 			rsync -a "$2/" "$1" && rm -rf "$2"/* "$2"/.* 2>/dev/null || \
@@ -476,7 +477,7 @@ rollback() {
 
 	# Other
 	bind_mnt() {
-		if is_mounted "$2" && [ "$(ls -A "$1" 2>/dev/null)" ] && [ "$3" = "-mv" ]; then
+		if is_mounted "$2" && [ -n "$(ls -A "$1" 2>/dev/null)" ] && [ "$3" = "-mv" ]; then
 			echo "[$2]"
 			umount "$2"
 			rsync -a "$1/" "$2" && rm -rf "$1"/* "$1"/.* 2>/dev/null || \

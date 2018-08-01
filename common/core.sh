@@ -1,5 +1,6 @@
 # fbind Core
-# VR25 @ xda-developers
+## (c) 2017-2018, VR25 @ xda-developers
+### License: GPL v3+
 
 
 # ENVIRONMENT
@@ -11,7 +12,7 @@ fbindDir=/data/media/fbind
 cfgFile=$fbindDir/config.txt
 logFile=$fbindDir/logs/service.sh_main_log.txt
 previousLogFile=$fbindDir/logs/service.sh_main_previous_log.txt
-[[ -z $interactiveMode ]] && interactiveMode=false
+[ -z "$interactiveMode" ] && interactiveMode=false
 
 
 is() { [ -$1 "$2" ]; }
@@ -66,7 +67,7 @@ wait_until_true() {
 bind_mnt() {
 	if ! is_mounted "$2"; then
 		ECHO
-    [ "$3" ] && echo "$3" || echo "bind_mount [$1] [$2]"
+    [ -n "$3" ] && echo "$3" || echo "bind_mount [$1] [$2]"
  
 		echo "$1 $2" | grep -Eq '/data/media/[1-9]|/storage/emulated/[1-9]' && (wait_until_true) &
     echo "$1 $2" | grep -Eq '/mnt/media_rw/' && (wait_until_true grep -q '/mnt/media_rw/' /proc/mounts) &
@@ -162,16 +163,16 @@ extsd_path() {
     # Unmount all FUSE mount points
     wait_until_true grep -q '/mnt/media_rw/' /proc/mounts
     
-    if [[ $? ]]; then
+    if [ "$?" -eq "0" ]; then
       for m in $(grep -E '/storage/|/mnt/' /proc/mounts | awk '{print $2}'); do
-        if [[ $? ]] && is_mounted $m; then umount -f $m; fi
+        if [ "$?" -eq "0" ] && is_mounted $m; then umount -f $m; fi
       done
       
       for m in $(grep -E '/storage/|/mnt/' /proc/mounts | awk '{print $2}'); do
-        if [[ $? ]] && is_mounted $m; then umount -f $m; fi
+        if [ "$?" -eq "0" ] && is_mounted $m; then umount -f $m; fi
       done
       
-      if [[ $? ]]; then
+      if [ "$?" -eq "0" ]; then
         # Internal
         bind_mnt /data/media /mnt/runtime/default/emulated
         bind_mnt /data/media /storage/emulated
@@ -217,7 +218,7 @@ LOOP() {
     fi
 
   if ! is_mounted "$2"; then
-    echo -n "\n(!) Failed to mount $1" && return 1
+    echo -n "\n(!) Failed to mount $1\n" && return 1
   fi
 }
 

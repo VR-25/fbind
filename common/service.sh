@@ -1,6 +1,7 @@
 #!/system/bin/sh
 # fbind Boot Service (auto-bind)
-# VR25 @ XDA Developers
+## (c) 2017-2018, VR25 @ xda-developers
+### License: GPL v3+
 
 
 # Verbose logging
@@ -51,7 +52,7 @@ BackgroundActions() {
 	if grep -Ev '^#|^part ' $cfgFile | grep -iq fsck; then
 		echo -e "\n\nFSCK\n"
 		wait_until_true [ -b "$(grep -Ev '^#|^part ' $cfgFile | grep -i fsck | sed -n 's:^.*/dev/:/dev/:p')" ]
-		[[ $? ]] && $(grep -Ev '^#|^part ' $cfgFile | grep fsck) || \
+		[ "$?" -eq "0" ] && $(grep -Ev '^#|^part ' $cfgFile | grep fsck) || \
 		  echo "(!) $(grep -Ev '^#|^part ' $cfgFile | grep -i fsck | sed -n 's:^.*/dev/:/dev/:p') not ready"
 		echo
 	fi

@@ -1,6 +1,7 @@
 #!/system/bin/sh
 # fbind Early Bird
-# VR25 @ XDA Developers
+## (c) 2017-2018, VR25 @ xda-developers
+### License: GPL v3+
 
 
 # Verbose logging

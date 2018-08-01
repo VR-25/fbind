@@ -1,28 +1,33 @@
 # Magic Folder Binder (fbind)     
-## VR25 @ xda-developers
+## (c) 2018, VR25 @ xda-developers
+### License: GPL v3+
 
 
 
-### DISCLAIMER
-- This software is provided as is, in the hope that it will be useful, but without any warranty. Always read the reference prior to installing/updating it. While no cats have been harmed in any way, shape or form, I assume no responsibility under anything that might go wrong due to the use/misuse of it.
-- A copy of the GNU General Public License, version 3 or newer is included with every version. Please, read it prior to using, modifying and/or sharing any part of this work.
-- To avoid fraud, DO NOT mirror any link associated with the project.
+#### DISCLAIMER
+
+- This software is provided as is, in the hope that it will be useful, but without any warranty. Always read the reference prior to installing/updating. While no cats have been harmed, I assume no responsibility under anything that might go wrong due to the use/misuse of it.
+- A copy of the GNU General Public License, version 3 or newer ships with every build. Please, read it prior to using, modifying and/or sharing any part of this work.
+- To prevent fraud, DO NOT mirror any link associated with this project.
 
 
 
-### DESCRIPTION
+#### DESCRIPTION
+
 - Redirect internal storage data writes to the sdcard, auto-mount ext4 .img files (loop devices) & external storage partitions, save app data to external storage, open & mount LUKS/LUKS2 volumes... and more.
 
 
 
-### DEPENDENCIES
+#### PRE-REQUISITES
+
 - Magisk
 - Mount Namespace mode set to "Global" in Magisk Manager settings
-- Terminal emulator app(Termux is recommended)
+- Terminal emulator app (Termux is recommended)
 
 
 
-### SETUP STEPS
+#### SETUP STEPS
+
 1. Read `Config Syntax` below and/or `$zipFile/config_samples.txt`.
 2. Read the `debugging section` at the bottom.
 3. Install the module from Magisk Manager or TWRP and reboot.
@@ -32,7 +37,7 @@
 
 
 
-### CONFIG SYNTAX (lines to put in /data/media/fbind/config.txt)
+#### CONFIG SYNTAX (lines to put in /data/media/fbind/config.txt)
 
 - part [/path/to/block/device or /path/to/block/device--L] [/path/to/mount/point] [filesystem] ["fsck -OPTION(s)" (filesystem specific, optional) --> auto-mount a partition (the --L flag is for LUKS volume, opened manually by running `fbind` on terminal)
 
@@ -66,7 +71,7 @@
 
 
 
-### TERMINAL COMMANDS
+#### TERMINAL COMMANDS
 
 Usage: fbind [options(s)] [argument(s)]
 
@@ -110,40 +115,47 @@ Pro tip: -ad, -b, -m, -mb, restore, -u and -umb, work with PATTERN and 'PATTERN1
 
 ### THROUBLESHOOTING
 
-* If `/system/xbin/fbind` causes a bootloop, move it to `system/bin` by running `touch /data/.bfbind` prior to installing. This setting is persistent across updates.
+* logsDir=/data/media/fbind/logs
+
+* Make sure Mount Namespace mode is set to "Global" in Magisk Manager settings
 
 * Set alternate internal storage path (default is /data/media/0)
 - intsd_path /storage/emulated/0
 
 - Add the line `setenforce auto` to your config. If that doesn't work, replace it with `setenforce 0`. "Auto" means fbind sets SELinux mode to permissive before running its operations and back to enforcing afterwards. If the mode was already permissive, it's left untouched. `setenforce 0` forces permissive mode.
 
-* logsDir=/data/media/fbind/logs
 
 
-
-### NOTES/TIPS
+#### NOTES/TIPS
 
 - Always use Unix line ending (LF) when editing config.txt with other tools. NEVER use Windows Notepad!
 - Busybox installation is unnecessary. The module uses Magisk's built-in version.
-- If you're having a hard time understanding all of the above, read a few more times until you've had enough, then check out config_samples.txt (in the zip or at /data/media/fbind/info). If you're still stuck, head to the xda-developers thread for additional/interactive support.
+- If you're having a hard time understanding all of the above, read a few more times until you've had enough, then check out config_samples.txt (in the zip or at /data/media/fbind/info). If you're still stuck, head to the xda-developers thread for additional/interactive support (link below).
 
 
 
-### DEVICE-RELATED ISSUES
+#### DEVICE-RELATED ISSUES
 
 - Available free space in internal storage may be misreported.
 - Duplicate sdcard may show up in file managers. In actuality, there's no such thing under the hood. That's a system bug.
 
 
 
-### ONLINE SUPPORT
+#### ONLINE SUPPORT
 
-- [Main Git Repository](https://github.com/Magisk-Modules-Repo/Magic-Folder-Binder)
+- [Git Repository](https://github.com/Magisk-Modules-Repo/Magic-Folder-Binder)
 - [XDA Thread](https://forum.xda-developers.com/apps/magisk/module-magic-folder-binder-t3621814/page2post72688621)
 
 
 
-### RECENT CHANGES
+#### RECENT CHANGES
+
+**2018.8.1 (201808010)**
+- Auto-detect whether fbind should go to bin or xbin dir to avoid bootloops
+- General optimizations
+- Striped down (removed unnecessary code & files)
+- New and simplified installer
+- Updated documentation
 
 **2018.7.24 (201807240)**
 - Ability to unmount loop devices and partitions on demand (i.e., fbind -u 'pattern1|pattern2|pattern...').
@@ -173,7 +185,3 @@ Pro tip: -ad, -b, -m, -mb, restore, -u and -umb, work with PATTERN and 'PATTERN1
 - The `-l` (list config lines) option now displays corresponding mount statuses too
 - Updated cryptsetup binary -- LUKS2 support (untested, possibly kernel module needed)
 - Updated documentation
-
-**2018.1.31 (201801310)**
-- [Boot scripts] run loop operations in the background and in parallel to avoid delaying other modules' scripts
-- Minor optimizations
