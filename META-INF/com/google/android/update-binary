@@ -4,9 +4,7 @@
 # License: GPL v3+
 
 # detect whether in bootmode
-ps | grep zygote | grep -v grep >/dev/null && bootMode=true || bootMode=false
-$bootMode || ps -A 2>/dev/null | grep zygote | grep -v grep >/dev/null && bootMode=true
-$bootMode || id | grep -q 'uid=0' || bootMode=true
+getprop | grep zygote | grep -q running && bootMode=true || bootMode=false
 
 # default perms
 umask 022
@@ -23,27 +21,33 @@ grep_prop() {
   sed -n "$REGEX" $FILES 2>/dev/null | head -n 1
 }
 
-is_mounted() { mountpoint -q "$1"; }
+is_mounted() { mountpoint -q "$1" 2>/dev/null; }
 
 mount_image() {
-	ui_print "- Mounting $1 to $2"
-	[ -d "$2" ] || mkdir -p "$2"
-	if (! is_mounted $2); then
-		loopDevice=
-		for LOOP in 0 1 2 3 4 5 6 7; do
-			if (! is_mounted $2); then
-				loopDevice=/dev/block/loop$LOOP
-				[ -f "$loopDevice" ] || mknod $loopDevice b 7 $LOOP 2>/dev/null
-				losetup $loopDevice $1
-				if [ "$?" -eq "0" ]; then
-					mount -t ext4 -o loop $loopDevice $2
-					is_mounted $2 || /system/bin/toolbox mount -t ext4 -o loop $loopDevice $2
-					is_mounted $2 || /system/bin/toybox mount -t ext4 -o loop $loopDevice $2
-				fi
-				is_mounted $2 && break
-			fi
-		done
-	fi
+  ui_print "- Mounting $1 to $2"
+  [ -d "$2" ] || mkdir -p "$2"
+  if (! is_mounted $2); then
+    loopDevice=
+    for LOOP in 0 1 2 3 4 5 6 7; do
+      if (! is_mounted $2); then
+        loopDevice=/dev/block/loop$LOOP
+        [ -f "$loopDevice" ] || mknod $loopDevice b 7 $LOOP 2>/dev/null
+        losetup $loopDevice $1
+        if [ "$?" -eq "0" ]; then
+          mount -t ext4 -o loop $loopDevice $2
+          is_mounted $2 || /system/bin/toolbox mount -t ext4 -o loop $loopDevice $2
+          is_mounted $2 || /system/bin/toybox mount -t ext4 -o loop $loopDevice $2
+        fi
+        is_mounted $2 && break
+      fi
+    done
+  fi
+  if ! is_mounted $2; then
+    ui_print " "
+    ui_print "(!) Failed to mount $IMG"
+    ui_print " "
+    exit 1
+  fi
 }
 
 set_perm() {
@@ -54,10 +58,10 @@ set_perm() {
 
 set_perm_recursive() {
   find "$1" -type d 2>/dev/null | while read dir; do
-	set_perm "$dir" $2 $3 $4 $6
+  set_perm "$dir" $2 $3 $4 $6
   done
   find "$1" -type f -o -type l 2>/dev/null | while read file; do
-	set_perm "$file" $2 $3 $5 $6
+  set_perm "$file" $2 $3 $5 $6
   done
 }
 
@@ -106,8 +110,12 @@ set_permissions() {
   # set_perm  $modPath/system/bin/dex2oat         0       2000    0755         u:object_r:dex2oat_exec:s0
   # set_perm  $modPath/system/lib/libart.so       0       0       0644
 
-  # The following is default permissions, DO NOT remove
-  set_perm_recursive  $tmpModPath  0  0  0755  0755
+  # The following are default permissions, DO NOT remove
+  set_perm_recursive  $tmpModPath  0  0  0755  0644
+
+  for f in $tmpModPath/bin/* $(find $tmpModPath -type f -name $modID) $(find $tmpModPath -type f -name *.sh); do
+    [ -f "$f" ] && set_perm $f 0 0 0755
+  done
 }
 
 OUTFD=$2
@@ -118,14 +126,14 @@ if [ "$?" -eq "0" ]; then
   OUTFD=0
 
   for FD in `ls /proc/$$/fd`; do
-	readlink /proc/$$/fd/$FD 2>/dev/null | grep pipe >/dev/null
-	if [ "$?" -eq "0" ]; then
-	  ps | grep " 3 $FD " | grep -v grep >/dev/null
-	  if [ "$?" -eq "0" ]; then
-		OUTFD=$FD
-		break
-	  fi
-	fi
+  readlink /proc/$$/fd/$FD 2>/dev/null | grep pipe >/dev/null
+  if [ "$?" -eq "0" ]; then
+    ps | grep " 3 $FD " | grep -v grep >/dev/null
+    if [ "$?" -eq "0" ]; then
+    OUTFD=$FD
+    break
+    fi
+  fi
   done
 fi
 
@@ -136,10 +144,10 @@ $bootMode && imgName=magisk_merge.img || imgName=magisk.img
 [ -d /data/adb/magisk ] && IMG=/data/adb/$imgName || IMG=/data/$imgName
 
 if [ ! -d /data/adb/magisk ] && [ ! -d /data/magisk ]; then
-	ui_print " "
-	ui_print "(!) No Magisk installation found or installed version is not supported"
-	ui_print " "
-	exit 1
+  ui_print " "
+  ui_print "(!) No Magisk installation found or installed version is not supported"
+  ui_print " "
+  exit 1
 fi
 
 # initial cleanup
@@ -158,12 +166,11 @@ if $bootMode; then
     if [ -d "$mountPoint/.core" ] || [ -d "$mountPoint/lost+found" ]; then
       mountPoint=$mountPoint
       modPath=$mountPoint/$modID
-      mkdir -p $modPath 2>/dev/null
       break
     fi
   done
-  [[ -d $modPath ]] || { echo -e "\n(!) Magisk mount point not found\n"; exit 1; }
-  is_mounted $mountPoint || { echo -e "\n(!) Magisk is not activated!... abort\n"; exit 1; }
+  is_mounted $mountPoint && mkdir -p $modPath 2>/dev/null \
+    || { echo -e "\n(!) $IMG mount point not found\n"; exit 1; }
 fi
 
 # Print mod name
@@ -181,9 +188,9 @@ if [ -f "$IMG" ]; then
   ui_print "- $IMG detected!"
   image_size_check $IMG
   if [ "$reqSizeM" -gt "$curFreeM" ]; then
-	SIZE=$(((reqSizeM + curUsedM) / 32 * 32 + 64))
-	ui_print "- Resizing $IMG to ${SIZE}M..."
-	resize2fs $IMG ${SIZE}M >&2
+  SIZE=$(((reqSizeM + curUsedM) / 32 * 32 + 64))
+  ui_print "- Resizing $IMG to ${SIZE}M..."
+  resize2fs $IMG ${SIZE}M >&2
   fi
 else
   SIZE=$((reqSizeM / 32 * 32 + 64));
@@ -192,18 +199,11 @@ else
 fi
 
 mount_image $IMG $mountPath
-if ! is_mounted $mountPath; then
-  ui_print " "
-  ui_print "(!) $IMG mount failed... abort"
-  ui_print " "
-  exit 1
-fi
 
 ##########################################################################################
 # module-specific code
 ##########################################################################################
 
-# environment
 modData=/data/media/$modID
 modInfo=$modData/info
 config=$modData/config.txt
@@ -214,14 +214,14 @@ case "$(uname -m)" in
   *ar*) binArch=arm;;
 esac
 
+# cleanup obsolete data
+[ "$(grep_prop versionCode $modPath/module.prop)" -lt "201807300" ] \
+  && rm $modInfo/Change* 2>/dev/null
+
 # create module paths
 rm -rf $tmpModPath 2>/dev/null
 mkdir -p $tmpModPath/bin
 mkdir -p $modInfo 2>/dev/null
-
-# cleanup obsolete data
-[[ $(grep_prop versionCode $modPath/module.prop) -lt 201807300 ]] && \
-  rm $modInfo/Change* 2>/dev/null
 
 # extract module files
 ui_print "- Extracting module files"
@@ -230,8 +230,8 @@ cd $INSTALLER
 mv bin/rsync_$binArch $tmpModPath/bin/rsync
 [[ $binArch = arm ]] && mv bin/cryptsetup_arm $tmpModPath/bin/cryptsetup
 mv common/* $tmpModPath/
-[[ ! -d /system/xbin && ! -d /system_root/system/xbin ]] && \
-  mv $tmpModPath/system/xbin $tmpModPath/system/bin
+[[ ! -d /system/xbin && ! -d /system_root/system/xbin ]] \
+  && mv $tmpModPath/system/xbin $tmpModPath/system/bin
 mv -f $tmpModPath/tutorial.txt License.md README.md $modInfo/
 
 # patch config.txt

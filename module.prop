@@ -1,7 +1,7 @@
 id=fbind
 name=Magic Folder Binder (fbind)
-version=2018.8.1
-versionCode=201808010
+version=2018.8.6
+versionCode=201808060
 author=VR25 @ xda-developers
 description=Redirect internal storage data writes to the sdcard, auto-mount ext4 .img files (loop devices) & external storage partitions, save app data to external storage, open & mount LUKS/LUKS2 volumes... and more.
 minMagisk=1500

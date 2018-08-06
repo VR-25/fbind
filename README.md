@@ -150,6 +150,10 @@ Pro tip: -ad, -b, -m, -mb, restore, -u and -umb, work with PATTERN and 'PATTERN1
 
 #### RECENT CHANGES
 
+**2018.8.6 (201808060)**
+- General optimizations
+- Set second fallback extsd path (intsd)
+
 **2018.8.1 (201808010)**
 - Auto-detect whether fbind should go to bin or xbin dir to avoid bootloops
 - General optimizations
@@ -172,16 +176,3 @@ Pro tip: -ad, -b, -m, -mb, restore, -u and -umb, work with PATTERN and 'PATTERN1
 - Reliability improvements (better data loss protection algorithms)
 - Updated documentation
 - Using `rsync -a` for advanced copy operations, instead of `cp -a`.
-
-**2018.3.6 (201803060)**
-- -ad, -b, -m, -mb, restore, -u and -umb, now work with PATTERN and 'PATTERN1|PATTERN2|PATTERNn' arguments as well -- check the `PRO TIPS` section in config_samples.txt for more info
-- Disable ESDFS and SDCARDFS & enable FUSE
-- "fbind" (no args) command now displays a quick on-terminal reference
-- Fixed root check issue with certain Magisk versions
-- Log additional storage info
-- Major optimizations
-- Optional SELinux mode handling (config lines: setenforce auto, setenforce 0)
-- [TEST] Universal full external SD card read-write access (new platform.xml workaround) -- some [or all] users may need to set SELinux mode to permissive to actually benefit from this (config line: setenforce 0)
-- The `-l` (list config lines) option now displays corresponding mount statuses too
-- Updated cryptsetup binary -- LUKS2 support (untested, possibly kernel module needed)
-- Updated documentation
