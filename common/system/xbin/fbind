@@ -242,14 +242,8 @@ statusf() {
   echo -e "PROPS\n"
   getprop | grep -E 'product|version|esdfs_sdcard|fuse_sdcard|sdcardfs' | sed 's/^/ /'
   echo -e "\n\nVARS\n"
-  echo -e " modData=$modData
- config=$config
- intsd=$intsd
- obb=$obb
- extsd=$extsd
- logsDir=$logsDir
- modPath=$modPath
- PATH=$PATH\n\n\n"
+  set | sed 's/^/ /'
+  echo -e '\n'
   echo -e "CONFIG\n"
   if ! grep -q '[a-z]' $config; then
     echo "-- NULL --"

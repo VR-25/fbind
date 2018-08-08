@@ -50,9 +50,9 @@ main() {
     echo
   fi
 
-  echo -e \n\n
+  echo -e '\n'
   apply_config
-  echo -e \n\n
+  echo -e '\n'
 
   if grep -v '^#' $config | grep -Eq '^app_data |^int_extf$|^bind_mnt |^obb.*|^from_to |^target '; then
     bind_folders
@@ -60,7 +60,7 @@ main() {
     echo -e "\nBIND-MOUNT>\n- Nothing to bind-mount"
   fi
 
-  echo -e \n\n
+  echo -e '\n\n'
 
   if [ -f $modData/cleanup.sh ] || grep -v '^#' $config | grep -q '^cleanup '; then
     cleanupf
