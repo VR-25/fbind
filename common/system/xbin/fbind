@@ -233,7 +233,6 @@ add_line() {
       echo "(i) No line(s) added."
     fi
   fi
-  set_perms $config
   echo
 }
 
@@ -351,7 +350,6 @@ rm_line() {
 
   if grep -q '[a-z]' $tmp2; then
     mv $tmp $config
-    set_perms $config
     if [ -z "$1" ]; then echo "Removed line(s):"; else echo "Removed line:"; fi
     cat $tmp2
     rm -f $tmp $tmp2
@@ -512,7 +510,6 @@ restore() {
 
   if grep -q '[a-z]' $tmp2; then
     mv $tmp $config
-    set_perms $config
     echo "Restoring..."
     . $tmp2
     rm -f $tmp $tmp2

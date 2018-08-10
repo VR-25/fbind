@@ -150,6 +150,9 @@ Pro tip: -ad, -b, -m, -mb, restore, -u and -umb, work with PATTERN and 'PATTERN1
 
 #### RECENT CHANGES
 
+**2018.8.10-1 (201808101)**
+- Fixed "set_perms: not found"
+
 **2018.8.10 (201808100)**
 - General bug fixes
 - Minor cosmetic changes
