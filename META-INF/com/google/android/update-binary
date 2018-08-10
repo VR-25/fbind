@@ -1,6 +1,6 @@
 #!/sbin/sh -x
 # Magic Folder Binder (fbind) Installer
-# (c) 2017-2018, VR25 @ xda-developers
+# Copyright (C) 2017-2018, VR25 @ xda-developers
 # License: GPL v3+
 
 # detect whether in bootmode

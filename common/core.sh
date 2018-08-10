@@ -1,5 +1,5 @@
 # fbind Core
-# (c) 2017-2018, VR25 @ xda-developers
+# Copyright (C) 2017-2018, VR25 @ xda-developers
 # License: GPL v3+
 
 
@@ -23,13 +23,13 @@ wait_until_true() {
   until [ "$Count" -ge "90" ]; do
     ((Count++))
     if [ -n "$1" ]; then
-      $($@) && break || sleep 1
+      $@ && break || sleep 1
     else
       is_mounted /storage/emulated && break || sleep 1
     fi
   done
   if [ -n "$1" ]; then
-    $($@) || return 1
+    $@ || return 1
   else
     is_mounted /storage/emulated || return 1
   fi
@@ -95,12 +95,12 @@ part() {
       if echo "$1" | grep -q '\-\-L' && $interactiveMode; then
         # open LUKS volume (manually)
         $modPath/bin/cryptsetup luksOpen $PPath $PARTITION
-        [ -n "$4" ] && $($4 /dev/mapper/$PARTITION)
+        [ -n "$4" ] && $4 /dev/mapper/$PARTITION
         mount -t $3 -o noatime,rw /dev/mapper/$PARTITION "$2"
 
       else
         # mount regular partition
-        [ -n "$4" ] && $($4 $PPath)
+        [ -n "$4" ] && $4 $PPath
         mount -t $3 -o noatime,rw $PPath "$2"
       fi
 

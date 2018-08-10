@@ -1,6 +1,6 @@
 #!/system/bin/sh
 # fbind Boot Service (auto-bind)
-# (c) 2017-2018, VR25 @ xda-developers
+# Copyright (C) 2017-2018, VR25 @ xda-developers
 # License: GPL v3+
 
 
@@ -60,7 +60,7 @@ main() {
     echo -e "\nBIND-MOUNT>\n- Nothing to bind-mount"
   fi
 
-  echo -e '\n\n'
+  echo -e '\n'
 
   if [ -f $modData/cleanup.sh ] || grep -v '^#' $config | grep -q '^cleanup '; then
     cleanupf

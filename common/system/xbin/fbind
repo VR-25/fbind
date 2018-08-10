@@ -1,6 +1,6 @@
 #!/system/bin/sh
 # fbind
-# (c) 2017-2018, VR25 @ xda-developers
+# Copyright (C) 2017-2018, VR25 @ xda-developers
 # License: GPL v3+
 
 
@@ -62,7 +62,7 @@ serviceDisabled=$modPath/service.disabled
 # yes/no prompt
 yn() {
   case "$1" in
-    [Yy]* ) $($@);;
+    [Yy]* ) shift; $@;;
     [Nn]* ) exit 0;;
     * ) echo "(!) Invalid input"
       echo "- Please re-run the command and answer yes or no"
@@ -581,7 +581,7 @@ case $1 in
   uninstall)
     echo "Are you sure you want to uninstall fbind? (y/n)"
     read ans
-    yn $ans uninstall
+    yn $ans uninstall | grep -v fbind
     ;;
 
   rollback)

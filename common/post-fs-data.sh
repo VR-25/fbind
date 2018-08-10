@@ -1,6 +1,6 @@
 #!/system/bin/sh
 # fbind Early Bird
-# (c) 2017-2018, VR25 @ xda-developers
+# Copyright (C) 2017-2018, VR25 @ xda-developers
 # License: GPL v3+
 
 
@@ -32,18 +32,6 @@ if [ -n "$SEck" ] && $SELinuxAutoMode; then
     wasEnforcing=false
   fi
 fi
-
-
-# disable ESDFS and SDCARDFS & enable FUSE (fail-safe)
-
-resetprop persist.esdfs_sdcard false
-setprop persist.esdfs_sdcard false
-
-resetprop persist.sys.sdcardfs force_off
-setprop persist.sys.sdcardfs force_off
-
-resetprop persist.fuse_sdcard true
-setprop persist.fuse_sdcard true
 
 
 # patch platform.xml -- storage permissions

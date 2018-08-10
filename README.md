@@ -1,5 +1,5 @@
 # Magic Folder Binder (fbind)     
-## (c) 2018, VR25 @ xda-developers
+## Copyright (C) 2018, VR25 @ xda-developers
 ### License: GPL v3+
 
 
@@ -149,6 +149,10 @@ Pro tip: -ad, -b, -m, -mb, restore, -u and -umb, work with PATTERN and 'PATTERN1
 
 
 #### RECENT CHANGES
+
+**2018.8.10 (201808100)**
+- General bug fixes
+- Minor cosmetic changes
 
 **2018.8.8 (201808080)**
 - Updated debugging tools

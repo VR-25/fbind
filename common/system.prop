@@ -1,4 +1,6 @@
-# Disable ESDFS and SDCARDFS & enable FUSE
+# disable ESDFS & SDCARDFS and enable FUSE
+# Copyright (C) 2018, VR25 @ xda-developers
+# License: GPL v3+
 persist.esdfs_sdcard=false
 persist.sys.sdcardfs=force_off
 persist.fuse_sdcard=true
