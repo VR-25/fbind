@@ -22,13 +22,13 @@
 
 - Magisk
 - Mount Namespace mode set to "Global" in Magisk Manager settings
-- Terminal emulator app (Termux is recommended)
+- Terminal emulator app (i.e., Termux)
 
 
 
 #### SETUP STEPS
 
-1. Read `Config Syntax` below and/or `$zipFile/config_samples.txt`.
+1. Read `Config Syntax` below and/or `$zipFile/common/tutorial.txt`.
 2. Read the `debugging section` at the bottom.
 3. Install the module from Magisk Manager or TWRP and reboot.
 4. Add config lines to /data/media/fbind/config.txt with `fbind -a` interactive command.
@@ -41,7 +41,7 @@
 
 - part [/path/to/block/device or /path/to/block/device--L] [/path/to/mount/point] [filesystem] ["fsck -OPTION(s)" (filesystem specific, optional) --> auto-mount a partition (the --L flag is for LUKS volume, opened manually by running `fbind` on terminal)
 
-- LOOP [/path/to/.img/file] [/path/to/mount/point] --> mount an ext4 ext4 .img file (loop device) (preceded by e2fsck -fy /path/to/.img/file)
+- LOOP [/path/to/.img/file] [/path/to/mount/point] --> mount an ext4 .img file (loop device) (preceded by e2fsck -fy /path/to/.img/file)
 
 - app_data [pkgName] [/path/to/mount/point (excl. pkgName, optional)] [-u (optional)] --> save data/data/pkgName to $appDataRoot/pkgName (requires a supported Linux filesystem, i.e., ext2-4, f2fs. The default $appDataRoot is $extsd/.app_data. /path/to/mount/point can be a loop device mount point)
 
@@ -130,7 +130,7 @@ Pro tip: -ad, -b, -m, -mb, restore, -u and -umb, work with PATTERN and 'PATTERN1
 
 - Always enforce Unix line ending (LF) when editing config.txt with other tools. NEVER use Windows Notepad!
 - Busybox installation is unnecessary. The module uses Magisk's built-in version.
-- If you're having a hard time understanding all of the above, read a few more times until you've had enough, then check out config_samples.txt (in the zip or at /data/media/fbind/info). If you're still stuck, head to the xda-developers thread for additional/interactive support (link below).
+- If you're having a hard time understanding all of the above, read a few more times until you've had enough, then check out tutorial.txt (in the zip or at /data/media/fbind/info). If you're still stuck, head to the xda-developers thread for additional/interactive support (link below).
 
 
 
@@ -141,14 +141,23 @@ Pro tip: -ad, -b, -m, -mb, restore, -u and -umb, work with PATTERN and 'PATTERN1
 
 
 
-#### ONLINE SUPPORT
+#### LINKS
 
+- [Facebook Support Page](https://facebook.com/VR25-at-xda-developers-258150974794782)
 - [Git Repository](https://github.com/Magisk-Modules-Repo/Magic-Folder-Binder)
 - [XDA Thread](https://forum.xda-developers.com/apps/magisk/module-magic-folder-binder-t3621814/page2post72688621)
 
 
 
-#### RECENT CHANGES
+#### LATEST CHANGES
+
+**2018.8.14 (201808140)**
+- Aggressively enable FUSE & disable ESDFS and SDCARDFS
+- Fixed `fbind -i` always showing mount points containing spaces as [UNMOUNTED]
+- Fixed install failure from MM (Android P, Magisk 16.7)
+- Fixed storage permissions patcher not working on A/B partition devices
+- General optimizations
+- Updated README.md, debugging tools and tutorial.txt (now includes "APK to sdcard")
 
 **2018.8.10-1 (201808101)**
 - Fixed "set_perms: not found"
@@ -156,17 +165,3 @@ Pro tip: -ad, -b, -m, -mb, restore, -u and -umb, work with PATTERN and 'PATTERN1
 **2018.8.10 (201808100)**
 - General bug fixes
 - Minor cosmetic changes
-
-**2018.8.8 (201808080)**
-- Updated debugging tools
-
-**2018.8.6 (201808060)**
-- General optimizations
-- Set second fallback extsd path (intsd)
-
-**2018.8.1 (201808010)**
-- Auto-detect whether fbind should go to bin or xbin dir to avoid bootloops
-- General optimizations
-- Striped down (removed unnecessary code & files)
-- New and simplified installer
-- Updated documentation

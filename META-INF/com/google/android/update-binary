@@ -26,18 +26,13 @@ is_mounted() { mountpoint -q "$1" 2>/dev/null; }
 mount_image() {
   ui_print "- Mounting $1 to $2"
   [ -d "$2" ] || mkdir -p "$2"
-  if (! is_mounted $2); then
-    loopDevice=
-    for LOOP in 0 1 2 3 4 5 6 7; do
+  if ! is_mounted $2; then
+    for n in 0 1 2 3 4 5 6 7; do
       if (! is_mounted $2); then
-        loopDevice=/dev/block/loop$LOOP
-        [ -f "$loopDevice" ] || mknod $loopDevice b 7 $LOOP 2>/dev/null
+        loopDevice=/dev/block/loop$n
+        [ -b "$loopDevice" ] || mknod $loopDevice b 7 $n 2>/dev/null
         losetup $loopDevice $1
-        if [ "$?" -eq "0" ]; then
-          mount -t ext4 -o loop $loopDevice $2
-          is_mounted $2 || /system/bin/toolbox mount -t ext4 -o loop $loopDevice $2
-          is_mounted $2 || /system/bin/toybox mount -t ext4 -o loop $loopDevice $2
-        fi
+        [ "$?" -eq "0" ] && mount -t ext4 -o loop $loopDevice $2
         is_mounted $2 && break
       fi
     done
@@ -113,7 +108,10 @@ set_permissions() {
   # The following are default permissions, DO NOT remove
   set_perm_recursive  $tmpModPath  0  0  0755  0644
 
-  for f in $tmpModPath/bin/* $(find $tmpModPath -type f -name $modID) $(find $tmpModPath -type f -name *.sh); do
+  for f in $tmpModPath/bin/* \
+    $(find $tmpModPath -type f -name $modID) \
+    $(find $tmpModPath -type f -name *.sh)
+  do
     [ -f "$f" ] && set_perm $f 0 0 0755
   done
 }
@@ -124,22 +122,22 @@ ZIP="$3"
 readlink /proc/$$/fd/$OUTFD 2>/dev/null | grep /tmp >/dev/null
 if [ "$?" -eq "0" ]; then
   OUTFD=0
-
   for FD in `ls /proc/$$/fd`; do
-  readlink /proc/$$/fd/$FD 2>/dev/null | grep pipe >/dev/null
-  if [ "$?" -eq "0" ]; then
-    ps | grep " 3 $FD " | grep -v grep >/dev/null
+    readlink /proc/$$/fd/$FD 2>/dev/null | grep pipe >/dev/null
     if [ "$?" -eq "0" ]; then
-    OUTFD=$FD
-    break
+      ps | grep " 3 $FD " | grep -v grep >/dev/null
+      if [ "$?" -eq "0" ]; then
+        OUTFD=$FD
+        break
+      fi
     fi
-  fi
   done
 fi
 
 tmpDir=/dev/tmp
 INSTALLER=$tmpDir/install
 mountPath=$tmpDir/magisk_img
+magiskBin=/data/adb/magisk/magisk
 $bootMode && imgName=magisk_merge.img || imgName=magisk.img
 [ -d /data/adb/magisk ] && IMG=/data/adb/$imgName || IMG=/data/$imgName
 
@@ -177,10 +175,10 @@ fi
 print_modname
 
 $bootMode || ui_print "- Mounting partitions"
-mount -o ro /system 2>/dev/null
-mount -o ro /vendor 2>/dev/null
-mount /data 2>/dev/null
-mount /cache 2>/dev/null
+{ mount -o ro /system
+mount -o ro /vendor
+mount /data
+mount /cache; } 2>/dev/null
 
 request_zip_size_check "$ZIP"
 
@@ -188,14 +186,18 @@ if [ -f "$IMG" ]; then
   ui_print "- $IMG detected!"
   image_size_check $IMG
   if [ "$reqSizeM" -gt "$curFreeM" ]; then
-  SIZE=$(((reqSizeM + curUsedM) / 32 * 32 + 64))
-  ui_print "- Resizing $IMG to ${SIZE}M..."
-  resize2fs $IMG ${SIZE}M >&2
+    SIZE=$(((reqSizeM + curUsedM) / 32 * 32 + 64))
+    ui_print "- Resizing $IMG to ${SIZE}M..."
+    $magiskBin imgtool resize $IMG $SIZE >&2 \
+      || $magiskBin --resizeimg $IMG $SIZE >&2 \
+        || resize2fs $IMG ${SIZE}M >&2
   fi
 else
   SIZE=$((reqSizeM / 32 * 32 + 64));
   ui_print "- Creating $IMG with size ${SIZE}M"
-  make_ext4fs -l ${SIZE}M $IMG >&2
+  $magiskBin imgtool create $IMG $SIZE >&2 \
+    || $magiskBin --createimg $IMG $SIZE >&2 \
+      || make_ext4fs -l ${SIZE}M $IMG >&2
 fi
 
 mount_image $IMG $mountPath
@@ -217,6 +219,9 @@ esac
 # cleanup obsolete data
 [ "$(grep_prop versionCode $modPath/module.prop)" -lt "201807300" ] \
   && rm $modInfo/Change* 2>/dev/null
+
+[ "$(grep_prop versionCode $modPath/module.prop)" -lt "201808140" ] \
+  && rm -rf $modData/logs 2>/dev/null
 
 # create module paths
 rm -rf $tmpModPath 2>/dev/null
@@ -264,7 +269,9 @@ image_size_check $IMG
 NEWDATASIZE=$((curUsedM / 32 * 32 + 32))
 if [ "$curSizeM" -gt "$NEWDATASIZE" ]; then
   ui_print "- Shrinking $IMG to ${NEWDATASIZE}M..."
-  resize2fs $IMG ${NEWDATASIZE}M >&2
+  $magiskBin imgtool resize $IMG $SIZE >&2 \
+    || $magiskBin --resizeimg $IMG $SIZE >&2 \
+      || resize2fs $IMG ${SIZE}M >&2
 fi
 
 if ! $bootMode; then
@@ -274,4 +281,30 @@ fi
 
 ui_print "- End"
 ui_print " "
+
+##########################################################################################
+# module-specific code
+##########################################################################################
+
+ui_print "  Facebook Support Page: https://facebook.com"
+ui_print "    /VR25-at-xda-developers-258150974794782/"
+ui_print " "
+
+ui_print "  WHAT'S NEW"
+ui_print "    Aggressively enable FUSE & disable ESDFS and SDCARDFS"
+ui_print "    Fixed \"fbind -i\" -- dirs with spaces always [UNMOUNTED]"
+ui_print "    Fixed install failure from MM (Android P, Magisk 16.7)"
+ui_print "    Fixed storage perms patcher not working on A/B part devices"
+ui_print "    General optimizations"
+ui_print "    Updated README.md and debugging tools"
+ui_print "    Updated tutorial.txt (now inc. \"APK to sdcard\")"
+ui_print "    "
+
+grep -q '16\.7' /data/adb/magisk/util_functions.sh 2>/dev/null \
+  && ui_print "  *Note*: a Magisk 16.7 bug causes $modID to" \
+  && ui_print "    generate empty verbose logs (\"set -x\" is broken)" \
+  && ui_print " "
+
+##########################################################################################
+
 exit 0

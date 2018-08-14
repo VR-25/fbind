@@ -5,12 +5,11 @@
 
 
 modID=fbind
-modPath=${0%/*}
 modData=/data/media/$modID
 interactiveMode=true
 logsDir=$modData/logs
-newLog=$logsDir/post-fs-data.sh_verbose_log.txt
-oldLog=$logsDir/post-fs-data.sh_verbose_previous_log.txt
+newLog=$logsDir/terminal.log
+oldLog=$logsDir/terminal_old.log
 
 
 # use Magisk's busybox
@@ -249,7 +248,7 @@ statusf() {
   else
     cat $config | while read line; do
       if echo "$line" | grep -Eq '^from_to |^target '; then
-        is_mounted "$intsd/$(echo "$line" | awk '{print $2}' | sed 's/"//g' | sed "s/'//g")" \
+        echo $line | grep -q "$intsd/$(echo "$line" | awk '{print $2}' | sed 's/"//g' | sed "s/'//g")" /proc/mounts \
           && echo " $line [MOUNTED]" \
           || echo " $line [UNMOUNTED]"
       elif echo "$line" | grep -q '^obbf '; then
@@ -261,7 +260,7 @@ statusf() {
           && echo " $line [MOUNTED]" \
           || echo " $line [UNMOUNTED]"
       elif echo "$line" | grep -Eq '^part |^LOOP |^bind_mnt '; then
-        is_mounted "$(echo "$line" | awk '{print $3}' | sed 's/"//g' | sed "s/'//g")" \
+        echo $line | grep -q "$(echo "$line" | awk '{print $3}' | sed 's/"//g' | sed "s/'//g")" /proc/mounts \
           && echo " $line [MOUNTED]" \
           || echo " $line [UNMOUNTED]"
       elif echo "$line" | grep -q 'app_data '; then

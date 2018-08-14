@@ -8,8 +8,8 @@ modID=fbind
 modPath=${0%/*}
 modData=/data/media/$modID
 logsDir=$modData/logs
-newLog=$logsDir/post-fs-data.sh_verbose_log.txt
-oldLog=$logsDir/post-fs-data.sh_verbose_previous_log.txt
+newLog=$logsDir/post-fs-data.sh.log
+oldLog=$logsDir/post-fs-data.sh_old.log
 
 
 # verbosity engine
@@ -18,8 +18,22 @@ mkdir -p $logsDir 2>/dev/null
 set -x 2>>$newLog
 
 
+# disable ESDFS & SDCARDFS and enable FUSE (aggressive mode, fail-safe)
+# this is necessary for bind-mounts to sdcard and storage permissions fix
+while read prop; do
+  resetprop $prop
+  setprop $prop
+done <<PROPS
+persist.esdfs_sdcard false
+persist.sys.sdcardfs force_off
+persist.fuse_sdcard true
+ro.sys.sdcardfs false
+PROPS
+
+
 # intelligently handle SELinux mode
-grep -v '^#' $modData/config.txt 2>/dev/null | grep -q 'setenforce 0' && setenforce 0
+grep -v '^#' $modData/config.txt 2>/dev/null | grep -q 'setenforce 0' \
+  && setenforce 0
 grep -v '^#' $modData/config.txt 2>/dev/null | grep -q 'setenforce auto' \
   && SELinuxAutoMode=true || SELinuxAutoMode=false
 SEck="$(ls -1 $(echo "$PATH" | sed 's/:/ /g') 2>/dev/null | grep -E 'sestatus|getenforce' | head -n1)"
@@ -34,66 +48,75 @@ if [ -n "$SEck" ] && $SELinuxAutoMode; then
 fi
 
 
+
 # patch platform.xml -- storage permissions
 xmlModDir=$modPath/system/etc/permissions
+TMPDIR=/dev/fbind_tmp
 
-xmlList="/sbin/.core/mirror/system/etc/permissions/platform.xml
-/dev/magisk/mirror/system/etc/permissions/platform.xml"
+sysMirror="$(dirname "$(find /sbin/.core/mirror/system \
+  /dev/magisk/mirror/system -type f -name build.prop \
+  2>/dev/null | head -n1)")"
 
-mkdir /dev/fbind_tmp
+if [ -f "$sysMirror/build.prop" ]; then
 
-for f in $xmlList; do
-  if [ -f "$f" ]; then
-    cp "$f" /dev/fbind_tmp
-    Mirror="$(echo $f | sed 's/\/etc.*//')"
-    break
-  fi
-done
+  mkdir $TMPDIR
+  cp -f $sysMirror/etc/permissions/platform.xml $TMPDIR/
 
-grep -q '_.*NAL_STO.*/>$' /dev/fbind_tmp/platform.xml && Patch=true || Patch=false
+  grep -q '_.*NAL_STO.*/>$' $TMPDIR/platform.xml \
+    && unpatched=true \
+    || unpatched=false
 
-if $Patch && [ "$(cat $modPath/.systemSizeK)" -ne "$(du -s "$Mirror" | cut -f1)" ]; then
-  sed -i '/<\/permissions>/d' /dev/fbind_tmp/platform.xml
-  echo >>/dev/fbind_tmp/platform.xml
+  if $unpatched; then
+    if [ "$(cat $modPath/.systemSizeK 2>/dev/null)" != "$(du -s "$sysMirror" | cut -f1)" ]; then
+      sed -i '/<\/permissions>/d' $TMPDIR/platform.xml
+      echo >>$TMPDIR/platform.xml
 
-  Perms="READ_EXTERNAL_STORAGE
-  WRITE_EXTERNAL_STORAGE"
+      Perms="READ_EXTERNAL_STORAGE
+      WRITE_EXTERNAL_STORAGE"
 
-  for Perm in $Perms; do
-    if grep $Perm /dev/fbind_tmp/platform.xml | grep -q '/>'; then
-      sed -i /$Perm/d /dev/fbind_tmp/platform.xml
-      if echo $Perm | grep -q READ; then
-        cat <<BLOCK >>/dev/fbind_tmp/platform.xml
+      for Perm in $Perms; do
+        if grep $Perm $TMPDIR/platform.xml | grep -q '/>'; then
+          sed -i /$Perm/d $TMPDIR/platform.xml
+          if echo $Perm | grep -q READ; then
+            cat <<BLOCK >>$TMPDIR/platform.xml
     <permission name="android.permission.READ_EXTERNAL_STORAGE" >
         <group gid="sdcard_r" />
     </permission>"
 BLOCK
-      else
-        cat <<BLOCK >>/dev/fbind_tmp/platform.xml
+          else
+            cat <<BLOCK >>$TMPDIR/platform.xml
     <permission name="android.permission.WRITE_EXTERNAL_STORAGE" >
         <group gid="media_rw" />
         <group gid="sdcard_r" />
         <group gid="sdcard_rw" />
     </permission>"
 BLOCK
-      fi
+          fi
+        fi
+      done
+
+      echo -e "\n</permissions>" >>$TMPDIR/platform.xml
+
+      mkdir -p $xmlModDir 2>/dev/null
+      mv -f $TMPDIR/platform.xml $xmlModDir
+      chmod -R 755 $xmlModDir
+      chmod 644 $xmlModDir/platform.xml
+      chcon 'u:object_r:system_file:s0' $xmlModDir/platform.xml
+
+      # export /system size for automatic re-patching across ROM updates
+      du -s $sysMirror | cut -f1 >$modPath/.systemSizeK
     fi
-  done
-
-  echo -e "\n</permissions>" >>/dev/fbind_tmp/platform.xml
-
-  mkdir -p $xmlModDir 2>/dev/null
-  mv -f /dev/fbind_tmp/platform.xml $xmlModDir
-  chmod -R 755 $xmlModDir
-  chmod 644 $xmlModDir/platform.xml
-  chcon 'u:object_r:system_file:s0' $xmlModDir/platform.xml
-
-  # export /system size for automatic re-patching across ROM updates
-    du -s "$(echo "$f" | sed 's/\/etc.*//')" | cut -f1 >$modPath/.systemSizeK
+  fi
+else
+  echo -e "\n(!) sysMirror not found"
+  echo -e "ls: $(ls $sysMirror)\n"
 fi
 
-rm -rf /dev/fbind_tmp
+
+
+rm -rf $TMPDIR
 rm $modData/.no_restore 2>/dev/null
+
 
 if [ -n "$SEck" ] && $SELinuxAutoMode; then
   $wasEnforcing && setenforce 1

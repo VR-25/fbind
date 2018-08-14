@@ -50,6 +50,7 @@ GENERIC SETUP
 
 
 
+#####################################################################
 ONE LINE SETUP
 
   Bind-mount the entire $intsd to $extsd/.fbind (includes obb)
@@ -58,6 +59,7 @@ ONE LINE SETUP
 
 
 
+#####################################################################
 MULTI-USER SETUP
 
   User 11
@@ -73,6 +75,7 @@ MULTI-USER SETUP
 
 
 
+#####################################################################
 APP DATA TO SDCARD (a Linux file system (i.e, EXT2-4, F2FS) is required for this. Alternatively, an ext4 .img file (loop device) can be used)
 
   To $intsd/.app_data/pkgName (when your device hasn't or "doesn't support" sdcard)
@@ -82,16 +85,25 @@ APP DATA TO SDCARD (a Linux file system (i.e, EXT2-4, F2FS) is required for this
   To $extsd/.app_data/pkgName
     app_data pkgName
 
-  To $extsd/app_data.img
-    LOOP /path/to/.img/file /path/to/mount/point
+  To $extsd/.img/file
+    LOOP $extsd/.img/file /path/to/mount/point
     app_data pkgName /path/to/loop/device/mount/point
 #####################################################################
 
 
 
+#####################################################################
+APK TO SEPARATE SDCARD PARTITION (a Linux file system (i.e, EXT[2-4], F2FS) is required for this)
+  part /dev/block/mmcblk1 /data/.hugeAPKs f2fs -- note that mmcblk1 and .hugeAPKs are just examples.
+  bind_mnt /data/.hugeAPKs/pkgName /data/app/pkgName-NUMBER -- note that NUMBER changes when the app is updated/reinstalled.
+#####################################################################
+
+
+
+#####################################################################
 ADVANCED SETUP
 
-  Mount an ext4 ext4 .img file (loop device) (preceded by e2fsck -fy /path/to/.img/file)
+  Mount an ext4 .img file (loop device) (preceded by e2fsck -fy /path/to/.img/file)
     LOOP [/path/to/.img/file] [/path/to/mount/point]
     Optionally, it can be used by fbind as $extsd by setting the line "extsd_path [/loop/device/mount/point]"
 
@@ -124,6 +136,7 @@ ADVANCED SETUP
 
 
 
+#####################################################################
 MISC
 
   If you have more than one folder listed in /mnt/media_rw or your sdcard path is different from the standard /mnt/media_rw/sdcardName, you must specify it.
@@ -139,6 +152,7 @@ MISC
 
 
 
+#####################################################################
 ESSENTIAL TERMINAL COMMANDS
 
   "fbind -a "LINE"" -- add a single line to your config

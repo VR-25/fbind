@@ -9,8 +9,8 @@ intsd=/data/media/0
 obb=/data/media/obb
 modData=/data/media/fbind
 config=$modData/config.txt
-newLog=$modData/logs/service.sh_main_log.txt
-oldLog=$modData/logs/service.sh_main_previous_log.txt
+newLog=$modData/logs/main.log
+oldLog=$modData/logs/main_old.log
 [ -z "$interactiveMode" ] && interactiveMode=false
 
 

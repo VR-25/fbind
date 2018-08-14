@@ -10,8 +10,8 @@ main() {
   modPath=${0%/*}
   modData=/data/media/$modID
   logsDir=$modData/logs
-  newLog=$logsDir/post-fs-data.sh_verbose_log.txt
-  oldLog=$logsDir/post-fs-data.sh_verbose_previous_log.txt
+  newLog=$logsDir/service.sh.log
+  oldLog=$logsDir/service.sh_old.log
 
   # verbosity engine
   mkdir -p $logsDir 2>/dev/null
@@ -23,7 +23,8 @@ main() {
 
 
   # intelligently handle SELinux mode
-  grep -v '^#' $modData/config.txt 2>/dev/null | grep -q 'setenforce 0' && setenforce 0
+  grep -v '^#' $modData/config.txt 2>/dev/null | grep -q 'setenforce 0' \
+    && setenforce 0
   grep -v '^#' $modData/config.txt 2>/dev/null | grep -q 'setenforce auto' \
     && SELinuxAutoMode=true || SELinuxAutoMode=false
   SEck="$(ls -1 $(echo "$PATH" | sed 's/:/ /g') 2>/dev/null | grep -E 'sestatus|getenforce' | head -n1)"
