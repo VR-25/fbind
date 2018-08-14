@@ -151,6 +151,10 @@ Pro tip: -ad, -b, -m, -mb, restore, -u and -umb, work with PATTERN and 'PATTERN1
 
 #### LATEST CHANGES
 
+**2018.8.15 (201808150)**
+- Auto-revert persistent props if fbind is disabled/removed
+- Misc optimizations
+
 **2018.8.14 (201808140)**
 - Aggressively enable FUSE & disable ESDFS and SDCARDFS
 - Fixed `fbind -i` always showing mount points containing spaces as [UNMOUNTED]

@@ -9,6 +9,7 @@ main() {
   modID=fbind
   modPath=${0%/*}
   modData=/data/media/$modID
+  config=$modData/config.txt
   logsDir=$modData/logs
   newLog=$logsDir/service.sh.log
   oldLog=$logsDir/service.sh_old.log
@@ -23,11 +24,11 @@ main() {
 
 
   # intelligently handle SELinux mode
-  grep -v '^#' $modData/config.txt 2>/dev/null | grep -q 'setenforce 0' \
+  grep -q '^setenforce 0' $config 2>/dev/null \
     && setenforce 0
-  grep -v '^#' $modData/config.txt 2>/dev/null | grep -q 'setenforce auto' \
+  grep -q '^setenforce auto' $config 2>/dev/null \
     && SELinuxAutoMode=true || SELinuxAutoMode=false
-  SEck="$(ls -1 $(echo "$PATH" | sed 's/:/ /g') 2>/dev/null | grep -E 'sestatus|getenforce' | head -n1)"
+  SEck="$(echo -e "$(which sestatus)\n$(which getenforce)" | grep . | head -n1)"
 
   if [ -n "$SEck" ] && $SELinuxAutoMode; then
     if $SEck | grep -iq enforcing; then
@@ -55,7 +56,7 @@ main() {
   apply_config
   echo -e '\n'
 
-  if grep -v '^#' $config | grep -Eq '^app_data |^int_extf$|^bind_mnt |^obb.*|^from_to |^target '; then
+  if grep -Eq '^app_data |^int_extf$|^bind_mnt |^obb.*|^from_to |^target ' $config; then
     bind_folders
   else
     echo -e "\nBIND-MOUNT>\n- Nothing to bind-mount"
@@ -63,7 +64,7 @@ main() {
 
   echo -e '\n'
 
-  if [ -f $modData/cleanup.sh ] || grep -v '^#' $config | grep -q '^cleanup '; then
+  if [ -f $modData/cleanup.sh ] || grep -q '^cleanup ' $config; then
     cleanupf
   else
     echo -e "\nCLEANUP\n- Nothing to clean"

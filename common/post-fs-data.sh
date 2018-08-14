@@ -7,6 +7,7 @@
 modID=fbind
 modPath=${0%/*}
 modData=/data/media/$modID
+config=$modData/config.txt
 logsDir=$modData/logs
 newLog=$logsDir/post-fs-data.sh.log
 oldLog=$logsDir/post-fs-data.sh_old.log
@@ -32,11 +33,11 @@ PROPS
 
 
 # intelligently handle SELinux mode
-grep -v '^#' $modData/config.txt 2>/dev/null | grep -q 'setenforce 0' \
+grep -q '^setenforce 0' $config 2>/dev/null \
   && setenforce 0
-grep -v '^#' $modData/config.txt 2>/dev/null | grep -q 'setenforce auto' \
+grep -q '^setenforce auto' $config 2>/dev/null \
   && SELinuxAutoMode=true || SELinuxAutoMode=false
-SEck="$(ls -1 $(echo "$PATH" | sed 's/:/ /g') 2>/dev/null | grep -E 'sestatus|getenforce' | head -n1)"
+SEck="$(echo -e "$(which sestatus)\n$(which getenforce)" | grep . | head -n1)"
 
 if [ -n "$SEck" ] && $SELinuxAutoMode; then
   if $SEck | grep -iq enforcing; then

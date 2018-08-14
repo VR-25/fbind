@@ -209,6 +209,7 @@ mount_image $IMG $mountPath
 modData=/data/media/$modID
 modInfo=$modData/info
 config=$modData/config.txt
+postFsD="$(echo $modPath | sed "s/$modID//").core/post-fs-data.d"
 
 # detect CPU architecture
 case "$(uname -m)" in
@@ -224,9 +225,8 @@ esac
   && rm -rf $modData/logs 2>/dev/null
 
 # create module paths
-rm -rf $tmpModPath 2>/dev/null
-mkdir -p $tmpModPath/bin
-mkdir -p $modInfo 2>/dev/null
+{ rm -rf $tmpModPath
+mkdir -p $tmpModPath/bin $modInfo $postFsD; } 2>/dev/null
 
 # extract module files
 ui_print "- Extracting module files"
@@ -235,6 +235,8 @@ cd $INSTALLER
 mv bin/rsync_$binArch $tmpModPath/bin/rsync
 [[ $binArch = arm ]] && mv bin/cryptsetup_arm $tmpModPath/bin/cryptsetup
 mv common/* $tmpModPath/
+mv -f $tmpModPath/${modID}.sh "$postFsD"/
+set_perm "$postFsD/${modID}.sh" 0 0 755
 [[ ! -d /system/xbin && ! -d /system_root/system/xbin ]] \
   && mv $tmpModPath/system/xbin $tmpModPath/system/bin
 mv -f $tmpModPath/tutorial.txt License.md README.md $modInfo/
@@ -291,13 +293,8 @@ ui_print "    /VR25-at-xda-developers-258150974794782/"
 ui_print " "
 
 ui_print "  WHAT'S NEW"
-ui_print "    Aggressively enable FUSE & disable ESDFS and SDCARDFS"
-ui_print "    Fixed \"fbind -i\" -- dirs with spaces always [UNMOUNTED]"
-ui_print "    Fixed install failure from MM (Android P, Magisk 16.7)"
-ui_print "    Fixed storage perms patcher not working on A/B part devices"
-ui_print "    General optimizations"
-ui_print "    Updated README.md and debugging tools"
-ui_print "    Updated tutorial.txt (now inc. \"APK to sdcard\")"
+ui_print "    Auto-revert persistent props if fbind is disabled/removed"
+ui_print "    Misc optimizations"
 ui_print "    "
 
 grep -q '16\.7' /data/adb/magisk/util_functions.sh 2>/dev/null \

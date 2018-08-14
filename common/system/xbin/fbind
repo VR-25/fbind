@@ -6,6 +6,7 @@
 
 modID=fbind
 modData=/data/media/$modID
+config=$modData/config.txt
 interactiveMode=true
 logsDir=$modData/logs
 newLog=$logsDir/terminal.log
@@ -29,10 +30,11 @@ rm $modData/.no_restore 2>/dev/null
 
 
 # intelligently handle SELinux mode
-grep -v '^#' $modData/config.txt 2>/dev/null | grep -q 'setenforce 0' && setenforce 0
-grep -v '^#' $modData/config.txt 2>/dev/null | grep -q 'setenforce auto' \
+grep -q '^setenforce 0' $config 2>/dev/null \
+  && setenforce 0
+grep -q '^setenforce auto' $config 2>/dev/null \
   && SELinuxAutoMode=true || SELinuxAutoMode=false
-SEck="$(ls -1 $(echo "$PATH" | sed 's/:/ /g') 2>/dev/null | grep -E 'sestatus|getenforce' | head -n1)"
+SEck="$(echo -e "$(which sestatus)\n$(which getenforce)" | grep . | head -n1)"
 
 if [ -n "$SEck" ] && $SELinuxAutoMode; then
   if $SEck | grep -iq enforcing; then
@@ -316,9 +318,9 @@ move_data() {
   }
 
   if [ -n "$1" ]; then
-    grep -v '^#' $config | grep -E '^app_data |^int_extf$|^bind_mnt |^obb.*|^from_to |^target ' | grep -E "$1" 2>/dev/null >$modData/.tmp
+    grep -E '^app_data |^int_extf$|^bind_mnt |^obb.*|^from_to |^target ' $config | grep -E "$1" 2>/dev/null >$modData/.tmp
   else
-    grep -v '^#' $config | grep -E '^app_data |^int_extf$|^bind_mnt |^obb.*|^from_to |^target ' >$modData/.tmp
+    grep -E '^app_data |^int_extf$|^bind_mnt |^obb.*|^from_to |^target ' $config >$modData/.tmp
   fi
   . $modData/.tmp
 
@@ -414,9 +416,9 @@ unmountf() {
       fi
     }
 
-    grep -v '^#' $config | grep -E '^app_data |^int_extf|^bind_mnt |^obb.*|^from_to |^target |^LOOP |^part ' | grep -v '^#' $config | grep -E "$1" 2>/dev/null >$modData/.tmp
+    grep -E '^app_data |^int_extf|^bind_mnt |^obb.*|^from_to |^target |^LOOP |^part ' $config | grep -E "$1" 2>/dev/null >$modData/.tmp
   else
-    grep -v '^#' $config | grep -E '^app_data |^int_extf|^bind_mnt |^obb.*|^from_to |^target ' >$modData/.tmp
+    grep -E '^app_data |^int_extf|^bind_mnt |^obb.*|^from_to |^target ' $config >$modData/.tmp
   fi
   . $modData/.tmp
 
@@ -476,7 +478,7 @@ rollback() {
   if [ -z "$1" ]; then
     echo -e "<Rollback>\n"
 
-    grep -Ev '^#' $config | grep -E '^app_data |^int_extf$|^bind_mnt |^obb.*|^from_to |^target ' >$modData/.tmp
+    grep -E '^app_data |^int_extf$|^bind_mnt |^obb.*|^from_to |^target ' $conf >$modData/.tmp
     . $modData/.tmp
 
     uninstall

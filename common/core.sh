@@ -204,11 +204,11 @@ LOOP() {
 
 apply_config() {
   echo "STORAGE INFORMATION"
-  grep -v '^#' $config | grep -E '^extsd_path |^intsd_path |^part |^LOOP ' >$modData/.tmp
+  grep -E '^extsd_path |^intsd_path |^part |^LOOP ' $config >$modData/.tmp
   . $modData/.tmp
   $altExtsd || default_extsd
 
-  grep -v '^#' $config | grep -E '^part |^LOOP ' | \
+  grep -E '^part |^LOOP ' $config | \
   while read line; do
     target="$(echo "$line" | awk '{print $3}' | sed 's/"//g' | sed "s/'//g")"
     if is_mounted "$target"; then
@@ -217,7 +217,7 @@ apply_config() {
     fi
   done
 
-  target() { grep -v '^#' $config | grep -E '^part |^LOOP ' | awk '{print $3}' | sed 's/"//g' | sed "s/'//g"; }
+  target() { grep -E '^part |^LOOP ' $config | awk '{print $3}' | sed 's/"//g' | sed "s/'//g"; }
   target | grep -q "$intsd" || { echo; df -h "$intsd"; }
   if ! target | grep -q "$extsd" && is_mounted "$extsd"; then
     echo
@@ -229,7 +229,7 @@ apply_config() {
   configBkp=$extsd/.fbind_bkp/config.txt
   if [ "$configBkp" -ot "$config" ] \
     && grep -q '[a-z]' $config \
-    && ! grep -v '^#' $config | grep -q no_bkp \
+    && ! grep -q '^no_bkp' $config \
     && is_mounted "$extsd"
   then
       mkdir $extsd/.fbind_bkp 2>/dev/null
@@ -280,9 +280,9 @@ bind_folders() {
     obb; } &>/dev/null
   }
   if [ -n "$1" ]; then
-    grep -v '^#' $config | grep -E '^app_data |^int_extf$|^bind_mnt |^obb.*|^from_to |^target ' | grep -E "$1" >$modData/.tmp
+    grep -E '^app_data |^int_extf$|^bind_mnt |^obb.*|^from_to |^target ' $config | grep -E "$1" >$modData/.tmp
   else
-    grep -v '^#' $config | grep -E '^app_data |^int_extf$|^bind_mnt |^obb.*|^from_to |^target ' >$modData/.tmp
+    grep -E '^app_data |^int_extf$|^bind_mnt |^obb.*|^from_to |^target ' $config >$modData/.tmp
   fi
   . $modData/.tmp
   ECHO
@@ -298,7 +298,7 @@ cleanupf() {
     if [ -f "$intsd/$1" ] || [ -d "$intsd/$1" ]; then rm -rf "$intsd/$1"; fi
     if [ -f "$extsd/$1" ] || [ -d "$extsd/$1" ]; then rm -rf "$extsd/$1"; fi
   }
-  grep -v '^#' $config | grep '^cleanup ' >$modData/.tmp
+  grep '^cleanup ' $config >$modData/.tmp
   . $modData/.tmp
 
   # unwanted "Android" directories
@@ -315,7 +315,7 @@ cleanupf() {
 
   app_data() { is_mounted /data/data/$1 && rm -rf "$appData/$1/Android"; }
 
-  grep -v '^#' $config | grep -E '^app_data |^int_extf$|^bind_mnt |^obb.*|^from_to |^target ' >$modData/.tmp
+  grep -E '^app_data |^int_extf$|^bind_mnt |^obb.*|^from_to |^target ' $config >$modData/.tmp
   . $modData/.tmp
 
   # source optional cleanup script
