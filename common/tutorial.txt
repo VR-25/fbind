@@ -93,8 +93,8 @@ APP DATA TO SDCARD (a Linux file system (i.e, EXT2-4, F2FS) is required for this
 
 
 #####################################################################
-APK TO SEPARATE SDCARD PARTITION (a Linux file system (i.e, EXT[2-4], F2FS) is required for this)
-  part /dev/block/mmcblk1 /data/.hugeAPKs f2fs -- note that mmcblk1 and .hugeAPKs are just examples.
+APK TO SEPARATE SDCARD PARTITION (a Linux file system (i.e, EXT<2-4>, F2FS) is required for this)
+  part /dev/block/mmcblk1 /data/.hugeAPKs -- note that mmcblk1 and .hugeAPKs are just examples.
   bind_mnt /data/.hugeAPKs/pkgName /data/app/pkgName-NUMBER -- note that NUMBER changes when the app is updated/reinstalled.
 #####################################################################
 
@@ -104,24 +104,21 @@ APK TO SEPARATE SDCARD PARTITION (a Linux file system (i.e, EXT[2-4], F2FS) is r
 ADVANCED SETUP
 
   Mount an ext4 .img file (loop device) (preceded by e2fsck -fy /path/to/.img/file)
-    LOOP [/path/to/.img/file] [/path/to/mount/point]
-    Optionally, it can be used by fbind as $extsd by setting the line "extsd_path [/loop/device/mount/point]"
-
-  Check for and/or fix SD card file system errors before system gets a chance to mount the target partition.
-    fsck -OPTION(s) /path/to/partition --> i.e., fsck.f2fs -f /dev/block/mmcblk1
+    LOOP </path/to/.img/file> </path/to/mount/point>
+    Optionally, it can be used by fbind as $extsd by setting the line "extsd_path </loop/device/mount/point>"
 
   Auto-mount a partition
-    Syntax: part [/path/to/partition] [/path/to/mount/point] [filesystem] ["fsck OPTION(s)" (filesystem specific, optional)]
-      part /dev/block/mmcblk1 /data/.extsd f2fs "fsck.f2fs -f"
-      Optionally, it can be used by fbind as $extsd by setting the line "extsd_path [/partition/mount/point]"
+    Syntax: part </path/to/partition> </path/to/mount/point> <"fsck OPTION(s)" (filesystem specific, optional)>
+      part /dev/block/mmcblk1 /data/.extsd "fsck.f2fs -f"
+      Optionally, it can be used by fbind as $extsd by setting the line "extsd_path </partition/mount/point>"
 
   Open a LUKS/LUKS2 volume (executed manually by running "fbind" on terminal)
-    Syntax: part [/path/to/partition--L] [/path/to/mount/point] [filesystem] ["fsck OPTION(s)" (filesystem specific, optional)]
-      part /dev/block/mmcblk1--L /data/.extsd f2fs "fsck.f2fs -f"
-      Optionally, it can be used by fbind as $extsd by setting the line "extsd_path [/partition/mount/point]"
+    Syntax: part </path/to/partition--L> </path/to/mount/point> <"fsck OPTION(s)" (filesystem specific, optional)>
+      part /dev/block/mmcblk1--L /data/.extsd "fsck.f2fs -f"
+      Optionally, it can be used by fbind as $extsd by setting the line "extsd_path </partition/mount/point>"
 
   Fully replace $intsd with PARTITION (similar to the "one line" setup above, but more advanced -- hides extsd completely)
-    part /dev/block/mmcblk1 /data/media/0 f2fs # Note: fsck'ing here would delay the process, thus making it unreliable.
+    part /dev/block/mmcblk1 /data/media/0 # Note: fsck'ing here would delay the process, thus making it unreliable.
     extsd_path $intsd
     target Android
     target data
@@ -139,15 +136,12 @@ ADVANCED SETUP
 #####################################################################
 MISC
 
-  If you have more than one folder listed in /mnt/media_rw or your sdcard path is different from the standard /mnt/media_rw/sdcardName, you must specify it.
+  If your sdcard path is different from the standard /mnt/media_rw/sdcardName, you must specify it.
     extsd_path /alternate/path/to/extsd
 
-  If bound folders are displayed as files, test with the following lines, one at a time and/or both:
-    setenforce auto (or setenforce 0)
+  If bound folders are displayed as files, test with the following line:
     intsd_path /storage/emulated/0
 
-  Disable config auto-backup
-    no_bkp
 #####################################################################
 
 

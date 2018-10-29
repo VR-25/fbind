@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+echo
+cd ${0%/*}
+for f in $(find ./ -type f -name '*.sh') ./common/fbind; do
+  echo $f
+  bash -n $f
+done

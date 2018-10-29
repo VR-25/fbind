@@ -1,64 +1,34 @@
 #!/system/bin/sh
-# fbind
+# fbind (fbind CLI)
 # Copyright (C) 2017-2018, VR25 @ xda-developers
 # License: GPL v3+
 
 
-modID=fbind
-modData=/data/media/$modID
+modData=/data/media/fbind
+tmp=/dev/fbind/tmp
 config=$modData/config.txt
 interactiveMode=true
-logsDir=$modData/logs
-newLog=$logsDir/terminal.log
-oldLog=$logsDir/terminal_old.log
 
+
+# default perms
+umask 000
 
 # use Magisk's busybox
-[ -d /sbin/.core/busybox ] && PATH=/sbin/.core/busybox:$PATH \
-  || PATH=/dev/magisk/bin:$PATH
-
-
-# verbosity engine
-mkdir -p $logsDir 2>/dev/null
-[[ -f $newLog ]] && mv $newLog $oldLog
-set -x 2>>$newLog
-
+PATH=/sbin/.core/busybox:$PATH
 
 echo
-mkdir $modData 2>/dev/null
-rm $modData/.no_restore 2>/dev/null
 
+ls /data/system 2>/dev/null | grep -q . \
+  || { echo -e "(!) fbind must run with root (su) privileges!\n"; exit 1; }
 
-# intelligently handle SELinux mode
-grep -q '^setenforce 0' $config 2>/dev/null \
-  && setenforce 0
-grep -q '^setenforce auto' $config 2>/dev/null \
-  && SELinuxAutoMode=true || SELinuxAutoMode=false
-SEck="$(echo -e "$(which sestatus)\n$(which getenforce)" | grep . | head -n1)"
+mkdir -p $modData
+touch $modData/config.txt
 
-if [ -n "$SEck" ] && $SELinuxAutoMode; then
-  if $SEck | grep -iq enforcing; then
-    wasEnforcing=true
-    setenforce 0
-  else
-    wasEnforcing=false
-  fi
-fi
-
-
-# find modPath
-modPath=/sbin/.core/img/$modID
-[[ -f $modPath/module.prop ]] || modPath=/magisk/$modID
-[[ -f $modPath/module.prop ]] \
+# find modPath & load core
+modPath=/sbin/.core/img/fbind
+[ -f $modPath/module.prop ] \
   || { echo -e "\n(!) modPath not found\n"; exit 1; }
-
-
-. $modPath/core.sh
-tmp=$modData/.term_tmp
-tmp2=$modData/.term_tmp2
-serviceEnabled=$modPath/service.sh
-serviceDisabled=$modPath/service.disabled
-
+source $modPath/core.sh
 
 # yes/no prompt
 yn() {
@@ -66,9 +36,8 @@ yn() {
     [Yy]* ) shift; $@;;
     [Nn]* ) exit 0;;
     * ) echo "(!) Invalid input"
-      echo "- Please re-run the command and answer yes or no"
-      exit 1
-      ;;
+        echo "- Please re-run the command and answer yes or no"
+        exit 1;;
   esac
 }
 
@@ -76,11 +45,9 @@ yn() {
 mvdt() {
   if ! is_mounted "$1" && [ -n "$(ls -A "$1" 2>/dev/null)" ]; then
     echo "[$3]"
-    mkdir -p -m 777 "$1" 2>/dev/null
-    mkdir -p -m 777 "$2" 2>/dev/null
     $modPath/bin/rsync -a "$1/" "$2" \
-          && rm -rf "$1"/* "$1"/.* 2>/dev/null \
-          || { echo "(!) Source and destination data sizes don't match. Source data left intact"; return 1; }
+      && { rm -rf "$1"/* "$1"/.* 2>/dev/null || true; } \
+      || { echo "(!) Source and destination data sizes don't match. Source data left intact"; return 1; }
   fi
 }
 
@@ -90,8 +57,8 @@ mvdtR() {
     umount "$2"
     echo "[$3]"
     $modPath/bin/rsync -a "$1/" "$2" \
-          && rm -rf "$1"/* "$1"/.* 2>/dev/null \
-          || { echo "(!) Source and destination data sizes don't match. Source data left intact" && return 1; }
+      && { rm -rf "$1"/* "$1"/.* 2>/dev/null || true; } \
+      || { echo "(!) Source and destination data sizes don't match. Source data left intact"; return 1; }
   fi
 }
 
@@ -110,68 +77,54 @@ Magic Folder Binder
 
 Usage: fbind [options(s)] [argument(s)]
 
--a --> Add line(s) to config.txt (interactive)
--b --> Bind-mount all folders
--c --> Cleanup storage
--d --> Disable auto-bind service
--e --> Re-enable auto-bind service
--f --> Disable auto-mount module files (Magisk built-in feature)
--i --> Display comprehensive info (config & statuses)
--m --> Move data to the sdcard (affects unmounted folders only)
--r --> Remove lines(s) from config.txt (interactive)
--u --> Unmount all folders
--x --> Disable module (Magisk built-in feature)
--mb --> Move data & bind corresponding folders
-ref --> Display full reference (README.md)
-log --> Display latest service.sh_main_log.txt
+-a   Add line(s) to config.txt (interactive)
+-b   Bind-mount all folders
+-c   Cleanup storage
+-f   Disable auto-mount module files (Magisk built-in feature)
+-i   Display comprehensive info (config & statuses)
+-m   Move data to the sdcard (affects unmounted folders only)
+-r   Remove lines(s) from config.txt (interactive)
+-u   Unmount all folders
+-x   Disable module (Magisk built-in feature)
+-mb   Move data & bind corresponding folders
+ref   Display full reference (README.md)
+log   Display last service.sh.log
 
--ad --> Add "app_data" line(s) to config.txt (interactive)
+-ad   Add "app_data" line(s) to config.txt (interactive)
 
--as --> Ask for SOURCE dirs (intsd/SOURCE) & add corresponding "from_to" lines to config.txt (interactive)
+-as   Ask for SOURCE dirs (intsd/SOURCE) & add corresponding "from_to" lines to config.txt (interactive)
 
-restore --> Move select data back to original locations (interactive)
+restore   Move select data back to original locations (interactive)
 
-rollback --> Unmount all folders, uninstall fbind & restore data
+rollback   Unmount all folders, uninstall fbind & restore data
 
-[no args] --> Open quick reference
+[no args]   Open quick reference
 
-uninstall --> Unmount all folders & uninstall fbind
+uninstall   Unmount all folders & uninstall fbind
 
--h/--help/help --> See all of this again
+-h/--help/help   See all of this again
 
-Pro tip: -ad, -b, -m, -mb, restore, -u and -umb, work with PATTERN and 'PATTERN1|PATTERN2|PATTERN...' arguments as well.
-- Examples:
--- fbind -b 'WhatsA|Downl|ADM'
--- fbind -u '^obb$|mmcblk1p3|loop1.img'
--- fbind -m mGit
--- fbind restore from_to
+Pro tip: -ad, -b, -m, -mb, restore, -u and -umb, work with PATTERN and PATTERN1|PATTERN2|PATTERN... arguments as well.
+  Examples:
+    fbind -b WhatsA|Downl|ADM
+    fbind -u ^obb$|mmcblk1p3|loop1.img
+    fbind -m mGit
+    fbind restore from_to
 
 END
-}
-
-
-enable_service() {
-  mv $serviceDisabled $serviceEnabled
-  chmod 755 $serviceEnabled
-  echo -e "(i) Auto-bind enabled.\n"
-}
-
-disable_service() {
-  mv $serviceEnabled $serviceDisabled
-  echo "(i) Auto-bind disabled.\n"
 }
 
 
 # add line(s) to fbind config
 add_line() {
   echo -e "<Add config line(s)>\n"
-  : > $tmp
+  : >$tmp
   Input=0
   [ -n "$(tail -c 1 $config)" ] && printf "\n" >>$config
 
   if [ "$1" = "-ad" ]; then
-    : >$tmp2
-    echo "$(ls -1 /data/data)" >>$tmp
+    : >$tmp.2
+    ls -1 /data/data >$tmp
 
     if [ -z "$2" ]; then
       cat $tmp
@@ -179,17 +132,17 @@ add_line() {
       echo "- Hit ENTER twice when finished. Press CTRL (Vol. Down) + C to abort."
       until [ -z "$Input" ]; do
         read -r Input
-        [ -n "$Input" ] && grep "$Input" $tmp | sed 's/^/app_data /' >>$tmp2
+        [ -n "$Input" ] && grep "$Input" $tmp | sed 's/^/app_data /' >>$tmp.2
       done
     else
       for Line in $(grep -E "$2" $tmp 2>/dev/null); do
-        echo $Line | sed 's/^/app_data /' >>$tmp2
+        echo $Line | sed 's/^/app_data /' >>$tmp.2
       done
     fi
 
-    if grep -q '[a-z]' $tmp2; then
+    if grep -q '[a-z]' $tmp.2; then
       if [ -z "$2" ]; then echo "Added line(s):"; else echo "Added line:"; fi
-      cat $tmp2 | tee -a $config
+      cat $tmp.2 | tee -a $config
     else
       echo "(i) No line(s) added."
     fi
@@ -240,7 +193,7 @@ add_line() {
 
 statusf() {
   echo -e "PROPS\n"
-  getprop | grep -E 'product|version|esdfs_sdcard|fuse_sdcard|sdcardfs' | sed 's/^/ /'
+  getprop | grep -E 'product|version|esdfs|fuse|sdcardfs' | sed 's/^/ /'
   echo -e "\n\nVARS\n"
   set | sed 's/^/ /'
   echo -e '\n'
@@ -310,7 +263,7 @@ move_data() {
   bind_mnt() {
     if ! is_mounted "$2" && [ -n "$(ls -A "$2" 2>/dev/null)" ] && [ "$3" = "-mv" ]; then
       echo "[$2]"
-            mkdir -p -m 777 "$1" 2>/dev/null
+            mkdir -p "$1" 2>/dev/null
       $modPath/bin/rsync -a "$2/" "$1" \
               && rm -rf "$2"/* "$2"/.* 2>/dev/null \
               || { echo "(!) Source and destination data sizes don't match. Source data left intact"; return 1; }
@@ -318,11 +271,11 @@ move_data() {
   }
 
   if [ -n "$1" ]; then
-    grep -E '^app_data |^int_extf$|^bind_mnt |^obb.*|^from_to |^target ' $config | grep -E "$1" 2>/dev/null >$modData/.tmp
+    grep -E '^app_data |^int_extf$|^bind_mnt |^obb.*|^from_to |^target ' $config | grep -E "$1" 2>/dev/null >$tmp.3
   else
-    grep -E '^app_data |^int_extf$|^bind_mnt |^obb.*|^from_to |^target ' $config >$modData/.tmp
+    grep -E '^app_data |^int_extf$|^bind_mnt |^obb.*|^from_to |^target ' $config >$tmp.3
   fi
-  . $modData/.tmp
+  . $tmp.3
 
   echo -e "- End\n"
 }
@@ -330,30 +283,30 @@ move_data() {
 
 rm_line() {
   : >$tmp
-  : >$tmp2
+  : >$tmp.2
   Input=0
   if [ -z "$1" ]; then
     echo -e "<Remove Config Line(s)>\n"
     grep -v '^$' $config
-    echo -e "\nInput a matching pattern at at a time."
+    echo -e "\nInput a matching pattern at a time."
     echo "- Hit ENTER twice when done. Press CTRL (Vol. Down) + C to abort."
     until [ -z "$Input" ]; do
       read -r Input
       if [ -n "$Input" ]; then
         grep -v "$Input" $config >> $tmp
-        grep "$Input" $config >> $tmp2
+        grep "$Input" $config >> $tmp.2
       fi
     done
   else
     grep -Ev "$1" $config 2>/dev/null >>$tmp
-    grep -E "$1" $config 2>/dev/null >>$tmp2
+    grep -E "$1" $config 2>/dev/null >>$tmp.2
   fi
 
-  if grep -q '[a-z]' $tmp2; then
+  if grep -q '[a-z]' $tmp.2; then
     mv $tmp $config
     if [ -z "$1" ]; then echo "Removed line(s):"; else echo "Removed line:"; fi
-    cat $tmp2
-    rm -f $tmp $tmp2
+    cat $tmp.2
+    rm -f $tmp $tmp.2
     grep -q '[a-z]' $config || touch $modData/.no_restore
   else
     echo "No line(s) removed."
@@ -401,7 +354,7 @@ unmountf() {
       is_mounted "$2" && loopDevice="$(grep "$2" /proc/mounts | grep -i \.img | awk '{print $1}')" || \
         loopDevice=""
       umnt "$2" "$1"
-      n $loopDevice && losetup -d $loopDevice
+      [ -n "$loopDevice" ] && losetup -d $loopDevice
     }
 
     # partitions
@@ -416,11 +369,11 @@ unmountf() {
       fi
     }
 
-    grep -E '^app_data |^int_extf|^bind_mnt |^obb.*|^from_to |^target |^LOOP |^part ' $config | grep -E "$1" 2>/dev/null >$modData/.tmp
+    grep -E '^app_data |^int_extf|^bind_mnt |^obb.*|^from_to |^target |^LOOP |^part ' $config | grep -E "$1" 2>/dev/null >$tmp.3
   else
-    grep -E '^app_data |^int_extf|^bind_mnt |^obb.*|^from_to |^target ' $config >$modData/.tmp
+    grep -E '^app_data |^int_extf|^bind_mnt |^obb.*|^from_to |^target ' $config >$tmp.3
   fi
-  . $modData/.tmp
+  . $tmp.3
 
   echo -e "- End\n"
 }
@@ -478,8 +431,8 @@ rollback() {
   if [ -z "$1" ]; then
     echo -e "<Rollback>\n"
 
-    grep -E '^app_data |^int_extf$|^bind_mnt |^obb.*|^from_to |^target ' $conf >$modData/.tmp
-    . $modData/.tmp
+    grep -E '^app_data |^int_extf$|^bind_mnt |^obb.*|^from_to |^target ' $conf >$tmp.3
+    . $tmp.3
 
     uninstall
     rm -rf $modData
@@ -490,30 +443,30 @@ rollback() {
 restore() {
   rollback restore
   : >$tmp
-  : >$tmp2
+  : >$tmp.2
   Input=0
   if [ -z "$1" ]; then
     echo -e "<Data Restore>\n"
-    grep -Ev '^#|^$' $config | grep -E '^bind_mnt |^from_to |^target |^obb.*|^int_extf$'
+    grep -v '^$' $config | grep -E '^bind_mnt |^from_to |^target |^obb.*|^int_extf$'
     echo -e "\nInput PATTERN or 'PATTERN1|PATTERN2|PATTERNn'."
     echo "- Hit ENTER twice when done. Press CTRL (Vol. Down) + C to abort."
     until [ -z "$Input" ]; do
       read -r Input
       if [ -n "$Input" ]; then
         grep -v "$Input" $config >> $tmp
-        grep "$Input" $config >> $tmp2
+        grep "$Input" $config >> $tmp.2
       fi
     done
   else
     grep -Ev "$1" $config 2>/dev/null >>$tmp
-    grep -E "$1" $config 2>/dev/null >>$tmp2
+    grep -E "$1" $config 2>/dev/null >>$tmp.2
   fi
 
-  if grep -q '[a-z]' $tmp2; then
+  if grep -q '[a-z]' $tmp.2; then
     mv $tmp $config
     echo "Restoring..."
-    . $tmp2
-    rm -f $tmp $tmp2
+    . $tmp.2
+    rm -f $tmp $tmp.2
   else
     echo "(i) Nothing restored."
   fi
@@ -526,32 +479,28 @@ quick_ref() {
 Magic Folder Binder Quick Reference
 
  <Essential commands>
-  fbind -a --> add cfg lines (interactive)
-  fbind -b --> bind-mount all folders
-  fbind -h --> list all commands
-  fbind -i --> comprehensive info (debugging, config & more)
-  fbind -r --> rem. cfg lines (interactive)
-  fbind -u --> unmount all folders
-  fbind -mb --> move unmounted; bind-mount all folders
-  fbind log --> last service.sh_main_log.txt
-  fbind ref --> README.md
+  fbind -a   add cfg lines (interactive)
+  fbind -b   bind-mount all folders
+  fbind -h   list all commands
+  fbind -i   comprehensive info (debugging, config & more)
+  fbind -r   rem. cfg lines (interactive)
+  fbind -u   unmount all folders
+  fbind -mb   move unmounted; bind-mount all folders
+  fbind log   last service.sh.log
+  fbind ref   README.md
 
  <Basic config lines>
-  obb --> entire obb content to \$extsd
-  int_extf --> entire \$intsd to \$extsd/.fbind
-  target Android/data --> for non-media folders only
-  obbf com.mojang.minecraftpe --> single obb to \$extsd
-  from_to WhatsApp .fbind/WhatsApp --> best for media
-
- <Debugging lines>
-  setenforce 0 --> set SELinux mode to permissive
-  intsd_path /storage/emulated/0 (default is /data/media/0)
+  obb   entire obb content to \$extsd
+  int_extf   entire \$intsd to \$extsd/.fbind
+  target Android/data   for non-media folders only
+  obbf com.mojang.minecraftpe   single obb to \$extsd
+  from_to WhatsApp .fbind/WhatsApp   best for media
 BLOCK
   echo -e "\n(i) Run \"fbind\" (no args) to see this again.\n"
 }
 
 
-apply_config &>/dev/null
+apply_config 1>/dev/null 2>&1
 
 case $1 in
   -a) add_line "-a" "$2";;
@@ -564,8 +513,6 @@ case $1 in
   -r) rm_line "$2";;
   -u) unmountf "$2";;
   -mb) move_data "$2"; fbind -b "$2";;
-  -d) disable_service;;
-  -e) enable_service;;
   restore) restore "$2";;
   log) cat $logFile;;
   ref) cat $modData/info/README.md;;
@@ -604,11 +551,5 @@ case $1 in
 
   *) quick_ref;;
 esac
-
-rm $modData/.tmp $tmp $tmp2 2>/dev/null
-
-if [ -n "$SEck" ] && $SELinuxAutoMode; then
-  $wasEnforcing && setenforce 1
-fi
 
 exit 0
