@@ -155,6 +155,13 @@ Pro tip: -ad, -b, -m, -mb, restore, -u and -umb, work with PATTERN and PATTERN1|
 ---
 #### LATEST CHANGES
 
+**2018.10.30 (201810300)**
+- Boot script is now in two different locations, but it'll run only once. Hopefully this rogue behavior ensures auto-bind works every time.
+- Corrected wrong version numbers in module.prop.
+- Fixed <fbind.sh permissions not changing due to MOUNTPOINT0 variable being local to install_module()>.
+- Minor cosmetic changes
+- Use </sbin/su -Mc mount -o rw,gid=9997,noatime> as <mount> alias.
+
 **2018.10.29 (201810290)**
 - Automatic partition filesystem detection
 - Doubled SDcard wait timeout
@@ -172,11 +179,3 @@ Pro tip: -ad, -b, -m, -mb, restore, -u and -umb, work with PATTERN and PATTERN1|
 **2018.8.15 (201808150)**
 - Auto-revert persistent props if fbind is disabled/removed
 - Misc optimizations
-
-**2018.8.14 (201808140)**
-- Aggressively enable FUSE & disable ESDFS and SDCARDFS
-- Fixed `fbind -i` always showing mount points containing spaces as <UNMOUNTED>
-- Fixed install failure from MM (Android P, Magisk 16.7)
-- Fixed storage permissions patcher not working on A/B partition devices
-- General optimizations
-- Updated README.md, debugging tools and tutorial.txt (now includes "APK to sdcard")

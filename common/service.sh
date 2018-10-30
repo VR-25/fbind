@@ -4,6 +4,9 @@
 # License: GPL v3+
 
 
+# if service.sh already ran, exit
+[ -f /dev/fbind/service.sh.ran ] && rm /dev/fbind/service.sh.ran && exit 0
+
 modPath=/sbin/.core/img/fbind
 log=/data/media/fbind/logs/service.sh.log
 
@@ -16,19 +19,18 @@ fi
 
 source $modPath/core.sh
 
+# log
 mkdir -p ${log%/*}
 [ -f $log ] && mv $log $log.old
 exec 1>$log 2>&2
-echo -e "$(date)\n"
 
-echo -e '\n'
 apply_config
 echo -e '\n'
 
 if grep -Eq '^app_data |^int_extf$|^bind_mnt |^obb.*|^from_to |^target ' $config; then
   bind_folders
 else
-  echo -e "\nBIND>\n- Nothing to bind-mount"
+  echo -e "\nFOLDER BONDS>\n- Nothing to bind-mount"
 fi
 
 echo -e '\n'
@@ -40,4 +42,8 @@ else
 fi
 
 sed -i "s:intsd:$intsd:g; s:extsd:$extsd:g; s:obb:$obb:g; s:extobb:$extobb:g" $log
+
+# acknowledge service.sh ran
+touch /dev/fbind/service.sh.ran
+
 exit 0

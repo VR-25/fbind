@@ -31,7 +31,7 @@ PROPFILE=true
 POSTFSDATA=false
 
 # Set to true if you need late_start service script
-LATESTARTSERVICE=false
+LATESTARTSERVICE=true
 
 ##########################################################################################
 # Installation Message
@@ -128,8 +128,8 @@ install_module() {
   config=$modData/config.txt
 
   # magisk.img mount path
-  $BOOTMODE && local MOUNTPATH0=$(sed -n 's/^.*MOUNTPATH=//p' $MAGISKBIN/util_functions.sh | head -n 1) \
-    || local MOUNTPATH0=$MOUNTPATH
+  $BOOTMODE && MOUNTPATH0=$(sed -n 's/^.*MOUNTPATH=//p' $MAGISKBIN/util_functions.sh | head -n 1) \
+    || MOUNTPATH0=$MOUNTPATH
 
   curVer=$(grep_prop versionCode $MOUNTPATH0/$MODID/module.prop || true)
   [ -z "$curVer" ] && curVer=0
@@ -149,7 +149,7 @@ install_module() {
   mv bin/rsync_$binArch $MODPATH/bin/rsync
   mv common/fbind $MODPATH/system/*bin/
   mv common/core.sh $MODPATH/
-  mv -f common/service.sh $MOUNTPATH0/.core/service.d/fbind.sh
+  cp -f common/service.sh $MOUNTPATH0/.core/service.d/fbind.sh
   mv -f common/tutorial* License* README* $modData/info/
 
   # patch config.txt
@@ -194,18 +194,11 @@ i() {
 
 version_info() {
 
-  local c="" whatsNew="- Automatic partition filesystem detection
-- Doubled SDcard wait timeout
-- Enforce the <global> mount namespace by running <mount> under <su -Mc>.
-- Generate basic logs as opposed to verbose.
-- Magisk 15.0-17.3 support
-- Remove modified props from /data/property/ and don't create these again.
-- Removed <setenforce x> and other rather useless features.
-- Save tmp files to </dev/fbind/>.
-- Updated building and debugging tools
-- Updated documentation
-- Use <var=$((var + 1))> instead of <var++>.
-- Use the largest SDcard partition as fallback for bind-mounts."
+  local c="" whatsNew="- Boot script is now in two different locations, but it'll run only once. Hopefully this rogue behavior ensures auto-bind works every time.
+- Corrected wrong version numbers in module.prop.
+- Fixed <fbind.sh permissions not changing due to MOUNTPOINT0 variable being local to install_module()>.
+- Minor cosmetic changes
+- Use </sbin/su -Mc mount -o rw,gid=9997,noatime> as <mount> alias."
 
   set -euxo pipefail
 

@@ -204,24 +204,24 @@ statusf() {
     cat $config | while read line; do
       if echo "$line" | grep -Eq '^from_to |^target '; then
         echo $line | grep -q "$intsd/$(echo "$line" | awk '{print $2}' | sed 's/"//g' | sed "s/'//g")" /proc/mounts \
-          && echo " $line [MOUNTED]" \
-          || echo " $line [UNMOUNTED]"
+          && echo " $line <MOUNTED>" \
+          || echo " $line <UNMOUNTED>"
       elif echo "$line" | grep -q '^obbf '; then
         is_mounted "$obb/$(echo "$line" | awk '{print $2}' | sed 's/"//g' | sed "s/'//g")" \
-          && echo " $line [MOUNTED]" \
-          || echo " $line [UNMOUNTED]"
+          && echo " $line <MOUNTED>" \
+          || echo " $line <UNMOUNTED>"
       elif echo "$line" | grep -q '^obb$'; then
         is_mounted "$obb" \
-          && echo " $line [MOUNTED]" \
-          || echo " $line [UNMOUNTED]"
+          && echo " $line <MOUNTED>" \
+          || echo " $line <UNMOUNTED>"
       elif echo "$line" | grep -Eq '^part |^LOOP |^bind_mnt '; then
         echo $line | grep -q "$(echo "$line" | awk '{print $3}' | sed 's/"//g' | sed "s/'//g")" /proc/mounts \
-          && echo " $line [MOUNTED]" \
-          || echo " $line [UNMOUNTED]"
+          && echo " $line <MOUNTED>" \
+          || echo " $line <UNMOUNTED>"
       elif echo "$line" | grep -q 'app_data '; then
         echo $line | grep -q "$(echo "$line" | awk '{print $2}' | sed 's/"//g' | sed "s/'//g")" /proc/mounts \
-          && echo " $line [MOUNTED]" \
-          || echo " $line [UNMOUNTED]"
+          && echo " $line <MOUNTED>" \
+          || echo " $line <UNMOUNTED>"
       else
         echo " $line"
       fi

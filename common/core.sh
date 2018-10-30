@@ -10,7 +10,7 @@ obb=/data/media/obb
 modData=/data/media/fbind
 config=$modData/config.txt
 [ -z "$interactiveMode" ] && interactiveMode=false
-alias mount="/sbin/su -Mc mount" # enforces the global mount namespace
+alias mount="/sbin/su -Mc mount -o rw,gid=9997,noatime" # enforces the global mount namespace and other options
 
 mkdir -p /dev/fbind
 
@@ -78,12 +78,12 @@ part() {
         # open LUKS volume (manually)
         $modPath/bin/cryptsetup luksOpen $PPath $PARTITION
         [ -n "$3" ] && $3 /dev/mapper/$PARTITION
-        mount -t $($modPath/bin/fstype /dev/mapper/$PARTITION) -o noatime,rw /dev/mapper/$PARTITION "$2"
+        mount -t $($modPath/bin/fstype /dev/mapper/$PARTITION) /dev/mapper/$PARTITION "$2"
 
       else
         # mount regular partition
         [ -n "$3" ] && $3 $PPath
-        mount -t $($modPath/bin/fstype $PPath) -o noatime,rw $PPath "$2"
+        mount -t $($modPath/bin/fstype $PPath) $PPath "$2"
       fi
 
       if ! is_mounted "$2"; then
@@ -145,7 +145,7 @@ LOOP() {
     for Loop in 0 1 2 3 4 5 6 7; do
       loopDevice=/dev/block/loop$Loop
       [ -b "$loopDevice" ] || mknod $loopDevice b 7 $Loop 2>/dev/null
-      losetup $loopDevice "$1" && mount -t ext4 -o loop $loopDevice "$2"
+      losetup $loopDevice "$1" && mount -o loop -t ext4 $loopDevice "$2"
       is_mounted "$2" && break
     done
   fi
@@ -183,7 +183,7 @@ apply_config() {
 
 
 bind_folders() {
-  $interactiveMode && echo "Binding folders..." || echo "BIND FOLDERS"
+  $interactiveMode && echo "Binding folders..." || echo "FOLDER BONDS"
 
   # entire obb folder
   obb() { bind_mnt $extobb $obb "[obb] <--> [extobb]"; }
