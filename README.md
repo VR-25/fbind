@@ -146,7 +146,7 @@ Pro tip: -ad, -b, -m, -mb, restore, -u and -umb, work with PATTERN and PATTERN1|
 #### SUPPORT
 
 - [Facebook page](https://facebook.com/VR25-at-xda-developers-258150974794782/)
-- [Git repository](https://github.com/Magisk-Modules-Repo/Magic-Folder-Binder/)
+- [Git repository](https://github.com/Magisk-Modules-Repo/fbind/)
 - [Telegram profile](https://t.me/vr25xda/)
 - [XDA thread](https://forum.xda-developers.com/apps/magisk/module-magic-folder-binder-t3621814/)
 
@@ -154,6 +154,10 @@ Pro tip: -ad, -b, -m, -mb, restore, -u and -umb, work with PATTERN and PATTERN1|
 
 ---
 #### LATEST CHANGES
+
+**2018.10.30.1 (201810301)**
+- Fixed <unable to bind-mount folders whose names contain space characters>.
+- Updated support links
 
 **2018.10.30 (201810300)**
 - Boot script is now in two different locations, but it'll run only once. Hopefully this rogue behavior ensures auto-bind works every time.

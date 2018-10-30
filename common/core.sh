@@ -46,7 +46,7 @@ bind_mnt() {
     wait
 
     mkdir -p -m 777 "$1" "$2"
-    mount -o bind "$1" "$2"
+    mount -o bind \""$1"\" \""$2"\"
   fi
 }
 

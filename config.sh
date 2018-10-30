@@ -194,11 +194,8 @@ i() {
 
 version_info() {
 
-  local c="" whatsNew="- Boot script is now in two different locations, but it'll run only once. Hopefully this rogue behavior ensures auto-bind works every time.
-- Corrected wrong version numbers in module.prop.
-- Fixed <fbind.sh permissions not changing due to MOUNTPOINT0 variable being local to install_module()>.
-- Minor cosmetic changes
-- Use </sbin/su -Mc mount -o rw,gid=9997,noatime> as <mount> alias."
+  local c="" whatsNew="- Fixed <unable to bind-mount folders whose names contain space characters>.
+- Updated support links"
 
   set -euxo pipefail
 
@@ -220,7 +217,7 @@ version_info() {
 
   ui_print "  SUPPORT"
   ui_print "    - Facebook page: facebook.com/VR25-at-xda-developers-258150974794782/"
-  ui_print "    - Git repository: github.com/Magisk-Modules-Repo/Magic-Folder-Binder/"
+  ui_print "    - Git repository: github.com/Magisk-Modules-Repo/fbind/"
   ui_print "    - Telegram profile: t.me/vr25xda/"
   ui_print "    - XDA thread: forum.xda-developers.com/apps/magisk/module-magic-folder-binder-t3621814/"
   ui_print " "

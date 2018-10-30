@@ -1,7 +1,7 @@
 id=fbind
 name=Magic Folder Binder (fbind)
-version=2018.10.30
-versionCode=201810300
+version=2018.10.30.1
+versionCode=201810301
 author=VR25 @ xda-developers
 description=Redirect select internal storage data to the actual SDcard; open & mount LUKS/LUKS2 volumes; auto-mount regular partitions... and more.
 minMagisk=1500
