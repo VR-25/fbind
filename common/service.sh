@@ -7,7 +7,7 @@
 # if service.sh already ran, exit
 [ -f /dev/fbind/service.sh.ran ] && rm /dev/fbind/service.sh.ran && exit 0
 
-modPath=/sbin/.core/img/fbind
+modPath=$(sed -n 's/^.*MOUNTPATH=//p' /data/adb/magisk/util_functions.sh)/fbind
 log=/data/media/fbind/logs/service.sh.log
 
 if [ -d $modPath ]; then
@@ -17,12 +17,30 @@ else
   exit 0
 fi
 
-source $modPath/core.sh
+# default perms
+umask 000
 
 # log
 mkdir -p ${log%/*}
 [ -f $log ] && mv $log $log.old
 exec 1>$log 2>&2
+
+# exit trap (debugging tool)
+debug_exit() {
+  local e=$?
+  echo -e "\n"
+  echo -e "\n***EXIT $e***\n"
+  set
+  echo
+  echo "SELinux status: $(getenforce 2>/dev/null || sestatus 2>/dev/null)" \
+    | sed 's/En/en/;s/Pe/pe/'
+  mkdir -p /dev/fbind
+  touch /dev/fbind/service.sh.ran
+  exit $e
+}
+trap debug_exit EXIT
+
+source $modPath/core.sh
 
 apply_config
 echo -e '\n'
@@ -42,8 +60,4 @@ else
 fi
 
 sed -i "s:intsd:$intsd:g; s:extsd:$extsd:g; s:obb:$obb:g; s:extobb:$extobb:g" $log
-
-# acknowledge service.sh ran
-touch /dev/fbind/service.sh.ran
-
 exit 0

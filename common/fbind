@@ -4,17 +4,14 @@
 # License: GPL v3+
 
 
-modData=/data/media/fbind
 tmp=/dev/fbind/tmp
-config=$modData/config.txt
 interactiveMode=true
-
+modData=/data/media/fbind
+config=$modData/config.txt
+PATH=/sbin/.core/busybox:$PATH
 
 # default perms
 umask 000
-
-# use Magisk's busybox
-PATH=/sbin/.core/busybox:$PATH
 
 echo
 
@@ -25,9 +22,8 @@ mkdir -p $modData
 touch $modData/config.txt
 
 # find modPath & load core
-modPath=/sbin/.core/img/fbind
-[ -f $modPath/module.prop ] \
-  || { echo -e "\n(!) modPath not found\n"; exit 1; }
+modPath=$(sed -n 's/^.*MOUNTPATH=//p' /data/adb/magisk/util_functions.sh)/fbind
+[ -f $modPath/module.prop ] || { echo -e "\n(!) modPath not found\n"; exit 1; }
 source $modPath/core.sh
 
 # yes/no prompt
@@ -263,7 +259,7 @@ move_data() {
   bind_mnt() {
     if ! is_mounted "$2" && [ -n "$(ls -A "$2" 2>/dev/null)" ] && [ "$3" = "-mv" ]; then
       echo "[$2]"
-            mkdir -p "$1" 2>/dev/null
+            mkdir -p "$1"
       $modPath/bin/rsync -a "$2/" "$1" \
               && rm -rf "$2"/* "$2"/.* 2>/dev/null \
               || { echo "(!) Source and destination data sizes don't match. Source data left intact"; return 1; }
@@ -548,6 +544,15 @@ case $1 in
     ;;
 
   -h|--help|help) usage;;
+
+  -s)
+    if mv $modPath/system.prop $modPath/system.prop.disabled 2>/dev/null; then
+      echo -e "(i) Switched to SDcardFS mode\n- Reboot to apply change\n"
+    else
+      mv $modPath/system.prop.disabled $modPath/system.prop
+      echo -e "(i) Switched to FUSE mode\n- Reboot to apply change\n"
+    fi
+    ;;
 
   *) quick_ref;;
 esac

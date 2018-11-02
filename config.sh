@@ -126,6 +126,7 @@ install_module() {
   local binary=""
   local modData=/data/media/$MODID
   config=$modData/config.txt
+  SDcardFSMode=false
 
   # magisk.img mount path
   $BOOTMODE && MOUNTPATH0=$(sed -n 's/^.*MOUNTPATH=//p' $MAGISKBIN/util_functions.sh | head -n 1) \
@@ -135,6 +136,7 @@ install_module() {
   [ -z "$curVer" ] && curVer=0
 
   # create module paths
+  [ -f $MOUNTPATH0/$MODID/system.prop.disabled ] && SDcardFSMode=true
   rm -rf $MODPATH 2>/dev/null || true
   mkdir -p $MODPATH/bin $modData/info $MOUNTPATH0/.core/service.d
   [ -d /system/xbin ] && mkdir -p $MODPATH/system/xbin \
@@ -152,10 +154,15 @@ install_module() {
   cp -f common/service.sh $MOUNTPATH0/.core/service.d/fbind.sh
   mv -f common/tutorial* License* README* $modData/info/
 
-  # patch config.txt
-  sh common/patch_config.sh
+  # SDcardFS mode
+  $PROPFILE && $SDcardFSMode \
+    && mv common/system.prop $MODPATH/system.prop.disabled \
+    && PROPFILE=false || true
 
-  set +euxo pipefail
+  # patch config.txt
+  source common/patch_config.sh
+
+  set +euo pipefail
 
   # cleanup
   if [ $curVer -lt 201810290 ]; then
@@ -169,7 +176,7 @@ install_module() {
 debug_exit() {
   local e=$?
   echo -e "\n***EXIT $e***\n"
-  set +euxo pipefail
+  set +euo pipefail
   set
   echo
   echo "SELinux status: $(getenforce 2>/dev/null || sestatus 2>/dev/null)" \
@@ -180,6 +187,7 @@ debug_exit() {
     set -u
     rm -rf $TMPDIR
   fi 1>/dev/null 2>&1
+  echo
   exit $e
 } 1>&2
 
@@ -194,10 +202,12 @@ i() {
 
 version_info() {
 
-  local c="" whatsNew="- Fixed <unable to bind-mount folders whose names contain space characters>.
-- Updated support links"
+  local c="" whatsNew="- Advanced <modPath> detection (more future-proof; trashed hard-coding)
+- Always run under <umask 000> to prevent permission issues.
+- Fixed <patch_config.sh not working>.
+- Universal SDcardFS support (experimental, new algorithms), must be enabled manually with <su -c fbind -s> (toggles SDcardFS mode)."
 
-  set -euxo pipefail
+  set -euo pipefail
 
   ui_print " "
   ui_print "  WHAT'S NEW"

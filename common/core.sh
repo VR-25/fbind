@@ -3,6 +3,7 @@
 # License: GPL v3+
 
 
+SDcardFSMode=false
 altExtsd=false
 linuxFS=false
 intsd=/data/media/0
@@ -11,8 +12,6 @@ modData=/data/media/fbind
 config=$modData/config.txt
 [ -z "$interactiveMode" ] && interactiveMode=false
 alias mount="/sbin/su -Mc mount -o rw,gid=9997,noatime" # enforces the global mount namespace and other options
-
-mkdir -p /dev/fbind
 
 ECHO() { $interactiveMode && echo; }
 
@@ -45,8 +44,19 @@ bind_mnt() {
     echo "$1 $2" | grep -q /mnt/media_rw/ && (wait_until_true grep -q /mnt/media_rw/ /proc/mounts) &
     wait
 
-    mkdir -p -m 777 "$1" "$2"
-    mount -o bind \""$1"\" \""$2"\"
+    mkdir -p "$1" "$2"
+
+    if $SDcardFSMode && echo "$1 $2" | grep -q $defaultRuntime; then
+      mount -o rbind \""$1"\" \""$2"\"
+      mount -o remount,mask=6 \""${2/default/read}"\" 2>/dev/null \
+        || mount -o rbind,mask=6 \""${1/default/read}"\" \""${2/default/read}"\" \
+        && mount -o remount,mask=6 \""${2/default/read}"\"
+      mount -o remount,mask=6 \""${2/default/write}"\" 2>/dev/null \
+        || mount -o rbind,mask=6 \""${1/default/write}"\" \""${2/default/write}"\" \
+        && mount -o remount,mask=6 \""${2/default/write}"\"
+    else
+      mount -o rbind \""$1"\" \""$2"\"
+    fi
   fi
 }
 
@@ -71,7 +81,7 @@ part() {
       echo "$1 $2" | grep -Eq '/mnt/media_rw/' && (wait_until_true grep -q '/mnt/media_rw/' /proc/mounts) &
       wait
 
-      mkdir -p -m 777 "$2"
+      mkdir -p "$2"
       wait_until_true [ -b "$PPath" ]
 
       if echo "$1" | grep -q '\-\-L' && $interactiveMode; then
@@ -139,7 +149,7 @@ LOOP() {
   echo "$1 $2" | grep -Eq '/mnt/media_rw/' && (wait_until_true grep -q '/mnt/media_rw/' /proc/mounts) &
   wait
   is_mounted "$2" || { echo && e2fsck -fy "$1"; }
-  mkdir -p -m 777 "$2"
+  mkdir -p "$2"
 
   if ! is_mounted "$2"; then
     for Loop in 0 1 2 3 4 5 6 7; do
@@ -158,9 +168,20 @@ LOOP() {
 
 apply_config() {
   echo "STORAGE INFORMATION"
+  mkdir -p /dev/fbind
   grep -E '^extsd_path |^intsd_path |^part |^LOOP ' $config >/dev/fbind/tmp.3
   . /dev/fbind/tmp.3
   $altExtsd || default_extsd
+
+  if [ ! -f $modPath/system.prop ]; then
+    defaultRuntime=/mnt/runtime/default
+    intsd=$defaultRuntime/emulated/0
+    extsd=$defaultRuntime/${extsd##*/}
+    obb=$defaultRuntime/emulated/obb
+    extobb=$extsd/Android/obb
+    SDcardFSMode=true
+    #setenforce 0
+  fi
 
   grep -E '^part |^LOOP ' $config | \
   while read line; do

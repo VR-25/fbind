@@ -155,6 +155,12 @@ Pro tip: -ad, -b, -m, -mb, restore, -u and -umb, work with PATTERN and PATTERN1|
 ---
 #### LATEST CHANGES
 
+**2018.11.2 (201811020)**
+- Advanced <modPath> detection (more future-proof; trashed hard-coding)
+- Always run under <umask 000> to prevent permission issues.
+- Fixed <patch_config.sh not working>.
+- Universal SDcardFS support (experimental, new algorithms), must be enabled manually with <su -c fbind -s> (toggles SDcardFS mode).
+
 **2018.10.30.1 (201810301)**
 - Fixed <unable to bind-mount folders whose names contain space characters>.
 - Updated support links
@@ -165,21 +171,3 @@ Pro tip: -ad, -b, -m, -mb, restore, -u and -umb, work with PATTERN and PATTERN1|
 - Fixed <fbind.sh permissions not changing due to MOUNTPOINT0 variable being local to install_module()>.
 - Minor cosmetic changes
 - Use </sbin/su -Mc mount -o rw,gid=9997,noatime> as <mount> alias.
-
-**2018.10.29 (201810290)**
-- Automatic partition filesystem detection
-- Doubled SDcard wait timeout
-- Enforce the <global> mount namespace by running <mount> under <su -Mc>.
-- Generate basic logs as opposed to verbose.
-- Magisk 15.0-17.3 support
-- Remove modified props from /data/property/ and don't create these again.
-- Removed <setenforce x> and other rather useless features.
-- Save tmp files to </dev/fbind/>.
-- Updated building and debugging tools
-- Updated documentation
-- Use <var=$((var + 1))> instead of <var++>.
-- Use the largest SDcard partition as fallback for bind-mounts.
-
-**2018.8.15 (201808150)**
-- Auto-revert persistent props if fbind is disabled/removed
-- Misc optimizations

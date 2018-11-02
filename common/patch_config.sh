@@ -2,7 +2,7 @@
 # patch_config.sh (fbind config patcher)
 # Copyright (C) 2018, VR25 @ xda-developers
 
-if [ -f $config ] && [ $curVer -lt 201810290 ] && grep -q 'part ' $config; then
+if [ -f $config ] && [ $curVer -lt 201811020 ] && grep -q 'part ' $config; then
   cp -f $config $config.$(date +%Y%m%d%H%M%S) # backup
 
   # remove filesystem arguments
