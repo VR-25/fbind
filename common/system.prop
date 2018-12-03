@@ -1,8 +1,0 @@
-# FUSE enabler
-# Copyright (C) 2017-2018, VR25 @ xda-developers
-# License: GPL v3+
-
-ro.sys.sdcardfs=false
-persist.fuse_sdcard=true
-persist.esdfs_sdcard=false
-persist.sys.sdcardfs=force_off

@@ -25,7 +25,7 @@
 AUTOMOUNT=true
 
 # Set to true if you need to load system.prop
-PROPFILE=true
+PROPFILE=false
 
 # Set to true if you need post-fs-data script
 POSTFSDATA=false
@@ -88,12 +88,9 @@ set_permissions() {
   set_perm_recursive  $MODPATH  0  0  0755  0644
 
   # Permissions for executables
-  for f in $MODPATH/bin/* $MODPATH/system/bin/* \
-    $MODPATH/system/xbin/* $MODPATH/*.sh
-  do
+  for f in $MODPATH/bin/* $MODPATH/system/*bin/* $MODPATH/*.sh; do
     [ -f "$f" ] && set_perm $f 0 0 0755
   done
-  set_perm $MOUNTPATH0/.core/service.d/fbind.sh 0 0 0755
 }
 
 ##########################################################################################
@@ -109,36 +106,33 @@ set_permissions() {
 
 install_module() {
 
-  # shell behavior
+  umask 000
   set -euxo pipefail
   trap debug_exit EXIT
 
-  # get CPU arch
-  case "$ARCH" in
-    *86*) local binArch=x86;;
-    *ar*) local binArch=arm;;
-    *) ui_print " "
-       ui_print "(!) Unsupported CPU architecture ($ARCH)!"
-       ui_print " "
-       exit 1;;
-  esac
-
-  local binary=""
-  local modData=/data/media/$MODID
-  config=$modData/config.txt
-  SDcardFSMode=false
+  local binArch=$(get_cpu_arch)
+  config=/data/media/$MODID/config.txt
 
   # magisk.img mount path
-  $BOOTMODE && MOUNTPATH0=$(sed -n 's/^.*MOUNTPATH=//p' $MAGISKBIN/util_functions.sh | head -n 1) \
-    || MOUNTPATH0=$MOUNTPATH
+  if $BOOTMODE; then
+    MOUNTPATH0=/sbin/.magisk/img
+    [ -e $MOUNTPATH0 ] || MOUNTPATH0=/sbin/.core/img
+    if [ ! -e $MOUNTPATH0 ]; then
+      ui_print " "
+      ui_print "(!) \$MOUNTPATH0 not found"
+      ui_print " "
+      exit 1
+    fi
+  else
+    MOUNTPATH0=$MOUNTPATH
+  fi
 
-  curVer=$(grep_prop versionCode $MOUNTPATH0/$MODID/module.prop || true)
+  curVer=$(grep_prop versionCode $MOUNTPATH0/$MODID/module.prop || :)
   [ -z "$curVer" ] && curVer=0
 
   # create module paths
-  [ -f $MOUNTPATH0/$MODID/system.prop.disabled ] && SDcardFSMode=true
-  rm -rf $MODPATH 2>/dev/null || true
-  mkdir -p $MODPATH/bin $modData/info $MOUNTPATH0/.core/service.d
+  rm -rf $MODPATH 2>/dev/null || :
+  mkdir -p ${config%/*}/info $MODPATH/bin
   [ -d /system/xbin ] && mkdir -p $MODPATH/system/xbin \
     || mkdir -p $MODPATH/system/bin
 
@@ -148,35 +142,106 @@ install_module() {
   unzip -o "$ZIP" -d ./ >&2
   mv bin/cryptsetup_$binArch $MODPATH/bin/cryptsetup
   mv bin/fstype_$binArch $MODPATH/bin/fstype
-  mv bin/rsync_$binArch $MODPATH/bin/rsync
-  mv common/fbind $MODPATH/system/*bin/
+  mv common/$MODID $MODPATH/system/*bin/
   mv common/core.sh $MODPATH/
-  cp -f common/service.sh $MOUNTPATH0/.core/service.d/fbind.sh
-  mv -f common/tutorial* License* README* $modData/info/
-
-  # SDcardFS mode
-  $PROPFILE && $SDcardFSMode \
-    && mv common/system.prop $MODPATH/system.prop.disabled \
-    && PROPFILE=false || true
-
-  # patch config.txt
-  source common/patch_config.sh
+  mv -f License* README* common/sample* ${config%/*}/info/
 
   set +euo pipefail
+  cleanup
+}
 
-  # cleanup
-  if [ $curVer -lt 201810290 ]; then
-    cd /data/property/ && rm *esdfs_sdcard *fuse_sdcard *sys.sdcardfs
-    rm -rf $modData/logs/ /storage/*/.fbind_bkp/ /external_sd/.fbind_bkp/ \
-      $MOUNTPATH0/.core/post-fs-data.d/fbind.sh $modData/*tmp*
-  fi 2>/dev/null
+
+install_system() {
+
+  umask 000
+  set -euxo pipefail
+
+  local modId=fbind
+  local binArch=$(get_cpu_arch)
+  local modPath=/system/etc/$modId
+  local config=/data/media/$modId/config.txt
+
+  grep_prop() {
+    local REGEX="s/^$1=//p"
+    shift
+    local FILES=$@
+    [ -z "$FILES" ] && FILES='/system/build.prop'
+    sed -n "$REGEX" $FILES 2>/dev/null | head -n 1
+  }
+
+  mount -o rw /system 2>/dev/null || mount -o remount,rw /system
+  curVer=$(grep_prop versionCode $modPath/module.prop || :)
+  [ -z "$curVer" ] && curVer=0
+
+  # set OUTFD
+  if [ -z $OUTFD ] || readlink /proc/$$/fd/$OUTFD | grep -q /tmp; then
+    for FD in `ls /proc/$$/fd`; do
+      if readlink /proc/$$/fd/$FD | grep -q pipe; then
+        if ps | grep -v grep | grep -q " 3 $FD "; then
+          OUTFD=$FD
+          break
+        fi
+      fi
+    done
+  fi
+
+  ui_print() { echo -e "ui_print $1\nui_print" >> /proc/self/fd/$OUTFD; }
+
+  print_modname
+
+  # install/uninstall
+  if [ $curVer -eq $(i versionCode) ]; then
+    ui_print "(i) Uninstalling"
+    rm -rf /system/etc/init.d/$modId \
+           /system/etc/$modId \
+           /system/addon.d/$modId.sh \
+           /system/*bin/$modId 2>/dev/null || :
+    ui_print " "
+
+  else
+    # create paths
+    mkdir -p $modPath/bin
+    mkdir -p ${config%/*}/info
+
+    # place files
+    ui_print "- Installing"
+    cd $INSTALLER
+    unzip -o "$ZIP" -d ./ >&2
+    if [ -d /system/xbin ]; then
+      mv -f common/$modId /system/xbin/
+    else
+      mv -f common/$modId /system/bin/
+    fi
+    mv bin/cryptsetup_$binArch $modPath/bin/cryptsetup
+    mv bin/fstype_$binArch $modPath/bin/fstype
+    mv -f common/core.sh module.prop $modPath/
+    mv -f License* README* common/sample* ${config%/*}/info/
+    chown 0:0 /system/*bin/$modId $modPath/bin/cryptsetup $modPath/bin/fstype
+    chmod 0755 /system/*bin/$modId $modPath/bin/cryptsetup $modPath/bin/fstype
+    if [ -e /system/etc/init.d ]; then
+      $LATESTARTSERVICE && mv -f common/service.sh /system/etc/init.d/$modId || :
+      chown 0:0 /system/etc/init.d/$modId
+      chmod 0755 /system/etc/init.d/$modId
+    fi
+    if [ -e /system/addon.d ]; then
+      mv -f common/addon.d.sh /system/addon.d/$modId.sh
+      chown 0:0 /system/addon.d/$modId.sh
+      chmod 0755 /system/addon.d/$modId.sh
+    fi
+
+    set +euo pipefail
+    cleanup
+    MAGISK_VER=0
+    version_info
+  fi
+  exit 0
 }
 
 
 debug_exit() {
-  local e=$?
-  echo -e "\n***EXIT $e***\n"
-  set +euo pipefail
+  local exitCode=$?
+  echo -e "\n***EXIT $exitCode***\n"
+  set +euxo pipefail
   set
   echo
   echo "SELinux status: $(getenforce 2>/dev/null || sestatus 2>/dev/null)" \
@@ -188,7 +253,7 @@ debug_exit() {
     rm -rf $TMPDIR
   fi 1>/dev/null 2>&1
   echo
-  exit $e
+  exit $exitCode
 } 1>&2
 
 
@@ -200,12 +265,43 @@ i() {
 }
 
 
+get_cpu_arch() {
+  case $(uname -m) in
+    *86*) echo -n x86;;
+    *ar*) echo -n arm;;
+    *) ui_print " "
+       ui_print "(!) Unsupported CPU architecture ($ARCH)"
+       ui_print " "
+       exit 1;;
+  esac
+}
+
+
+cleanup() {
+  if [ $curVer -lt 201812030 ]; then
+    . common/config_patcher.sh
+    cd /data/property/ && rm *esdfs_sdcard *fuse_sdcard *sys.sdcardfs
+    rm -rf ${config%/*}/logs/ /storage/*/.fbind_bkp/ /external_sd/.fbind_bkp/ \
+      $MOUNTPATH0/.core/*/fbind.sh ${config%/*}/*tmp*
+  fi 2>/dev/null
+}
+
+
 version_info() {
 
-  local c="" whatsNew="- Advanced <modPath> detection (more future-proof; trashed hard-coding)
-- Always run under <umask 000> to prevent permission issues.
-- Fixed <patch_config.sh not working>.
-- Universal SDcardFS support (experimental, new algorithms), must be enabled manually with <su -c fbind -s> (toggles SDcardFS mode)."
+  local c="" whatsNew="- Ability to easily bind-mount and unmount folders not listed in config.txt
+- Automatic FUSE/SDcarsFS handling -- users don't have to care about these anymore; fbind will work with whichever is enabled. ESDFS (Motorola's Emulated SDcard Filesystem) will remain unsupported until a user shares their /proc/mounts.
+- Fixed loop devices mounting issues; unmounting these with fbind -u is now supported.
+- Improved filtering feature (fbind <option(s)> <pattern|pattern2|...>)
+- LUKS unmounting and closing (fbind -u <pattern|pattern2|...>)
+- Major cosmetic changes
+- New log format
+- Redesigned fbind utilities -- run <fbind> on terminal or read README.md for details.
+- Removed bloatware
+- SDcard wait timeout set to 5 minutes
+- Support for /system install (legacy/Magisk-unsupported devices) and Magisk bleeding edge builds
+- Updated building and debugging tools
+- Updated documentation -- simplified, more user-friendly, more useful"
 
   set -euo pipefail
 
@@ -228,6 +324,7 @@ version_info() {
   ui_print "  SUPPORT"
   ui_print "    - Facebook page: facebook.com/VR25-at-xda-developers-258150974794782/"
   ui_print "    - Git repository: github.com/Magisk-Modules-Repo/fbind/"
+  ui_print "    - Telegram channel: t.me/vr25_xda/"
   ui_print "    - Telegram profile: t.me/vr25xda/"
   ui_print "    - XDA thread: forum.xda-developers.com/apps/magisk/module-magic-folder-binder-t3621814/"
   ui_print " "

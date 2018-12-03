@@ -1,7 +1,7 @@
 # Magic Folder Binder (fbind)
-## README.md
-### Copyright (C) 2018, VR25 @ xda-developers
-#### License: GPL v3+
+## Copyright (C) 2017-2018, VR25 @ xda-developers
+### License: GPL V3+
+#### README.md
 
 
 
@@ -10,135 +10,121 @@
 
 This software is provided as is, in the hope that it will be useful, but without any warranty. Always read/reread this reference prior to installing/upgrading. While no cats have been harmed, I assume no responsibility under anything which might go wrong due to the use/misuse of it.
 
-A copy of the GNU General Public License, version 3 or newer ships with every build. Please, read it prior to using, modifying and/or sharing any part of this work.
+A copy of the GNU General Public License, version 3 or newer ships with every build. Please, study it prior to using, modifying and/or sharing any part of this work.
 
-To prevent fraud, DO NOT mirror any link associated with this project; DO NOT share ready-to-flash builds (zips) online!
+To prevent fraud, DO NOT mirror any link associated with this project; DO NOT share ready-to-flash-builds (zips) on-line!
 
 
 
 ---
 #### DESCRIPTION
 
-- Redirect select internal storage data to the actual SDcard; open & mount LUKS/LUKS2 volumes; auto-mount regular partitions... and more.
+- Redirect select internal storage data to the actual SDcard; mount loop devices, LUKS/LUKS2 encrypted volumes, regular partitions... and more. Supports Magisk and /system (legacy) installs.
 
 
 
 ---
 #### PRE-REQUISITES
 
-- Magisk 15.0-17.3
-- Terminal emulator app (i.e., Termux)
+- Any root solution, preferably Magisk V15.0+
+- Basic `mount` and terminal usage knowledge
+- Terminal Emulator (i.e., Termux)
+
+- If your system doesn't support init.d, use an app to run `/system/etc/fbind/autorun.sh` on boot.
 
 
 
 ---
-#### SETUP STEPS
+#### SETUP
 
-Assuming you've read the entire documentation,
-1. Install fbind from Magisk Manager or TWRP and reboot.
-2. Create and customize `/data/media/fbind/config.txt`.
-3. Run `fbind -mb` as root to move data & bind-mount corresponding folders.
-4. Go on with your life.
+First time
+1. Install from Magisk Manager or custom recovery.
+2. Configure
+3. Reboot
+
+Upgrade
+1. Install from Magisk Manager or custom recovery.
+2. Reboot
+
+After ROM updates
+- Unless `addon.d` feature is supported by the ROM, follow the upgrade steps above.
+
+Uninstall
+1. Remove through Magisk Manager app or MM for Recovery Mode (another module/tool built and maintained by me). On legacy devices, fashing the same version again removes all traces of fbind from /system.
+2. Reboot
 
 
 
 ---
 #### CONFIG SYNTAX
 
-- part </path/to/block/device or /path/to/block/device--L> </path/to/mount/point> <"fsck -OPTION(s)" (filesystem specific, optional)> -- auto-mount a partition (the --L flag is for LUKS volume, opened manually by running `fbind` on terminal)
+- bind_mount <target> <mount point>   Generic bind-mount, example: `bind_mount $extsd/loop_device/app_data/spotify /data/data/com.spotify.music`
 
-- LOOP </path/to/.img/file> </path/to/mount/point> -- mount an ext4 .img file (loop device) (preceded by e2fsck -fy /path/to/.img/file)
+- extsd_path <path>   Use <path> as extsd. Example: `extsd_path /data/mmcblk1p2`
 
-- app_data <pkgName> </path/to/mount/point (excl. pkgName, optional)> <-u (optional)> -- save data/data/pkgName to $appDataRoot/pkgName (requires a supported Linux filesystem, i.e., ext2-4, f2fs. The default $appDataRoot is $extsd/.app_data. /path/to/mount/point can be a loop device mount point)
+- from_to <source> <dest>   Wrapper for `bind_mount <$extsd/[path]> <$intsd/[path]>`, example: `from_to WhatsApp .WhatsApp`
 
-- bind_mnt </path/to/folder/being/mounted> </path/to/mount/point> -- same as "mount -o bind </path/to/folder/being/mounted> </path/to/mount/point>"
+- int_extf <path>   Bind-mount the entire user (internal) storage to `$extsd/<path>` (includes OBB). If `<path>` is not supplied, `.fbind` is used. Example: `int_extf .external_storage`
 
-- cleanup <file/folder (name only)> -- auto-remove unwanted files/folders from intsd & extsd (including by default, additional "Android" directories)
+- intsd_path <path>   Use <path> as intsd. Example: `intsd_path /storage/emulated/0`
 
-- extsd_path </path/to/alternate/folder> -- set an alternate path to sdcard (default /mnt/media_rw/`theFirstFound`)
+- loop <.img file> <mount point>   Mount an EXT4 .img file (loop device). `e2fsck -fy <.img file>` is executed first. Example: `loop $extsd/loop.img $intsd/loop`
 
-- from_to <intsdFolderName> <extsdFolderName> -- "from SOURCE to DESTINATION" (obvious enough, right? This is great for media folders, as duplicates can be avoided -- i.e., from_to WhatsApp .hiddenFolder/WhatsApp)
+- obb   Wrapper for `bind_mount $extobb $obb`
 
-- target <intsdFolderName> -- bind-mount intsd/folderName to extsd/sameFolderName (this is for standard, non-media folders only -- i.e., Android, TWRP, .hiddenFolder)
+- obbf <package name>   Wrapper for `bind_mount $extobb/<package name> $obb/<package name>`, example: `obbf com.mygame.greatgame`
 
-- int_extf -- bind-mount the entire user (internal) storage to extsd/.fbind (including /data/media/obb)
+- part <[block device] or [block device--L]> <mount point> <"fsck -OPTION(s)" (filesystem specific, optional)>   Auto-mount a partition. The --L flag is for LUKS volume, opened manually by running any `fbind` command. Example: `part /dev/block/mmcblk1p1 /data/_sdcard`
 
-- intsd_path </path/to/alternate/folder> -- set an alternate path to internal (user) storage (default /data/media/0)
+- remove <path>   Auto-remove unwanted file/folder from intsd & extsd. Examples: `remove Android/data/com.facebook.orca`, `remove DCIM/.8be0da06c44688f6.cfg`
 
-- obb -- bind-mount the entire /data/media/obb folder to extsd/Android/obb
-
-- obbf <pkgName> -- bind-mount /data/media/obb/pkgName to extsd/Android/obb/pkgName
-
-- Notes: paths containing spaces must be double-quoted (i.e., `target "folder name with spaces"`). An additional argument (any string) to any of the binding functions above, excludes additional "Android" folders from being auto-removed (except for `app_data`, from which those are always deleted). For bind_mnt, if the additional argument is `-mv`, then `fbind -m` affects that line as well -- which is otherwise ignored by default for safety concerns. For app_data, `-u` allows `fbind -u` to "see" the specified line (also otherwise ignored by default). App data can reside in an ext4 .img file (loop device) -- for that, simply include the required `LOOP` line and add its mount point to app_data as second argument. This is useful, since it works whether or not the sdcard has a Linux filesystem.
+- target <path>   Wrapper for `bind_mount <$extsd/[path]> <$intsd/[same path]>`, example: `target Android/data/com.google.android.youtube`
 
 
 
 ---
-#### TERMINAL COMMANDS
+#### TERMINAL
 
-Magic Folder Binder
+`Usage: fbind <options(s)> <argument(s)>
 
-Usage: fbind <options(s)> <argument(s)>
+-b/--bind_mount <target> <mount point>   Bind-mount folders not listed in config.txt. Additional SDcardFS mounts are handled automatically. Missing paths are created accordingly.
 
--a   Add line(s) to config.txt (interactive)
--b   Bind-mount all folders
--c   Cleanup storage
--f   Disable auto-mount module files (Magisk built-in feature)
--i   Display comprehensive info (config & statuses)
--m   Move data to the sdcard (affects unmounted folders only)
--r   Remove lines(s) from config.txt (interactive)
--u   Unmount all folders
--x   Disable module (Magisk built-in feature)
--mb   Move data & bind corresponding folders
-ref   Display full reference (README.md)
-log   Display latest service.sh.log
+-c/--config <editor [opts]>   Open config.txt w/ <editor [opts]> (default: vim/vi).
 
--ad   Add "app_data" line(s) to config.txt (interactive)
+-C/--cryptsetup <opt(s)> <arg(s)>   Run $modPath/bin/cryptsetup <opt(s)> <arg(s)>.
 
--as   Ask for SOURCE dirs (intsd/SOURCE) & add corresponding "from_to" lines to config.txt (interactive)
+-i/--info   Show debugging info.
 
-restore   Move select data back to original locations (interactive)
+-l/--log  <editor [opts]>   Open fbind-boot-$deviceName.log w/ <editor [opts]> (default: vim/vi).
 
-rollback   Unmount all folders, uninstall fbind & restore data
+-m/--mount <pattern|pattern2|...>   Bind-mount matched or all (no arg).
 
-[no args]   Open quick reference
+-M/--move <pattern|pattern2|...>   Move matched or all (no args) to external storage. Only unmounted folders are affected.
 
-uninstall   Unmount all folders & uninstall fbind
+-Mm <pattern|pattern2|...>   Same as "fbind -M <arg> && fbind -m <arg>"
 
--h/--help/help   See all of this again
+-r/--readme   Open README.md w/ <editor [opts]> (default: vim/vi).
 
-Pro tip: -ad, -b, -m, -mb, restore, -u and -umb, work with PATTERN and PATTERN1|PATTERN2|PATTERN... arguments as well.
-  - Examples:
-    - fbind -b WhatsA|Downl|ADM
-    - fbind -u ^obb$|mmcblk1p3|loop1.img
-    - fbind -m mGit
-    - fbind restore from_to
+-u/--unmount <pattern|pattern2|... or [mount point] >   Unmount matched or all (no arg). This works for regular bind-mounts, SDcardFS bind-mounts, regular partitions, loop devices and LUKS/LUKS2 encrypted volumes. Unmounting all doesn't affect partitions nor loop devices. These must be unmounted with a pattern argument. For unmounting folders bound with the -b/--bind_mount option, <mount point> must be supplied, since these pairs aren't in config.txt.`
 
 
 
 ---
-### THROUBLESHOOTING
-
-- logsDir=/data/media/fbind/logs/
-
-- Set alternate internal storage path (default is /data/media/0): intsd_path /storage/emulated/0
-
-
-
----
-#### NOTES/TIPS
+#### NOTES
 
 - Always enforce Unix line ending (LF) when editing config.txt with other tools. NEVER use Windows Notepad!
-- Busybox installation is unnecessary. The module uses Magisk's built-in.
-- If you're having a hard time understanding all of the above, read a few more times until you've had enough, then check out `tutorial.txt` (located at `$zipFile/common/` or `/data/media/fbind/info/`). If you're still stuck, head to the xda-developers thread for additional/interactive support (link below).
-
-
-
----
-#### DEVICE-SPECIFIC ISSUES
 
 - Available free space in internal storage may be misreported.
-- Duplicate sdcard may show up in file managers.
+
+- Busybox installation is unnecessary, unless fbind is installed into /system (legacy/Magisk-unsupported devices only).
+
+- Duplicate SDcard may show up in file managers.
+
+- [FUSE] Some users may need to set `intsd_path /storage/emulated/0` (default is /data/media/0).
+
+- Logs are stored at `/data/media/fbind/logs/`.
+
+- There is a sample config in `$zipFile/common/` and `/data/media/fbind/info/`.
 
 
 
@@ -147,6 +133,7 @@ Pro tip: -ad, -b, -m, -mb, restore, -u and -umb, work with PATTERN and PATTERN1|
 
 - [Facebook page](https://facebook.com/VR25-at-xda-developers-258150974794782/)
 - [Git repository](https://github.com/Magisk-Modules-Repo/fbind/)
+- [Telegram channel](https://t.me/vr25_xda/)
 - [Telegram profile](https://t.me/vr25xda/)
 - [XDA thread](https://forum.xda-developers.com/apps/magisk/module-magic-folder-binder-t3621814/)
 
@@ -155,19 +142,23 @@ Pro tip: -ad, -b, -m, -mb, restore, -u and -umb, work with PATTERN and PATTERN1|
 ---
 #### LATEST CHANGES
 
+**2018.12.3 (201812030)**
+- Ability to easily bind-mount and unmount folders not listed in config.txt
+- Automatic FUSE/SDcarsFS handling -- users don't have to care about these anymore; fbind will work with whichever is enabled. ESDFS (Motorola's Emulated SDcard Filesystem) will remain unsupported until a user shares their /proc/mounts.
+- Fixed loop devices mounting issues; unmounting these with fbind -u is now supported.
+- Improved filtering feature (fbind <option(s)> <pattern|pattern2|...>)
+- LUKS unmounting and closing (fbind -u <pattern|pattern2|...>)
+- Major cosmetic changes
+- New log format
+- Redesigned fbind utilities -- run <fbind> on terminal or read README.md for details.
+- Removed bloatware
+- SDcard wait timeout set to 5 minutes
+- Support for /system install (legacy/Magisk-unsupported devices) and Magisk bleeding edge builds
+- Updated building and debugging tools
+- Updated documentation -- simplified, more user-friendly, more useful
+
 **2018.11.2 (201811020)**
 - Advanced <modPath> detection (more future-proof; trashed hard-coding)
 - Always run under <umask 000> to prevent permission issues.
 - Fixed <patch_config.sh not working>.
 - Universal SDcardFS support (experimental, new algorithms), must be enabled manually with <su -c fbind -s> (toggles SDcardFS mode).
-
-**2018.10.30.1 (201810301)**
-- Fixed <unable to bind-mount folders whose names contain space characters>.
-- Updated support links
-
-**2018.10.30 (201810300)**
-- Boot script is now in two different locations, but it'll run only once. Hopefully this rogue behavior ensures auto-bind works every time.
-- Corrected wrong version numbers in module.prop.
-- Fixed <fbind.sh permissions not changing due to MOUNTPOINT0 variable being local to install_module()>.
-- Minor cosmetic changes
-- Use </sbin/su -Mc mount -o rw,gid=9997,noatime> as <mount> alias.
