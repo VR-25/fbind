@@ -2,12 +2,9 @@ from_to DCIM .DCIM
 from_to NewPipe .NewPipe
 from_to Pictures .Pictures
 from_to WhatsApp .WhatsApp
-target .aptoide
-target AppProjects
 target data
 target docs
 target Download
-target DraStic
 target Dukto
 target FastHub
 target git
@@ -21,5 +18,5 @@ target Tasker
 target Telegram
 target TitaniumBackup
 from_to Download/Torrents Android/data/intelligems.torrdroid/files
-obb
 from_to ADM Download/ADM
+obb

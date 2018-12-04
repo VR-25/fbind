@@ -1,4 +1,4 @@
-# Magic Folder Binder (fbind)
+# fbind
 ## Copyright (C) 2017-2018, VR25 @ xda-developers
 ### License: GPL V3+
 #### README.md
@@ -19,7 +19,7 @@ To prevent fraud, DO NOT mirror any link associated with this project; DO NOT sh
 ---
 #### DESCRIPTION
 
-- Redirect select internal storage data to the actual SDcard; mount loop devices, LUKS/LUKS2 encrypted volumes, regular partitions... and more. Supports Magisk and /system (legacy) installs.
+- Redirect select internal storage data to the actual SDcard; mount loop devices, LUKS/LUKS2 encrypted volumes, regular partitions... and more.
 
 
 
@@ -142,6 +142,12 @@ Uninstall
 ---
 #### LATEST CHANGES
 
+**2018.12.4 (201812040)**
+- Detach (autorun|service).sh from the parent shell
+- Extended modularization for easier maintenance
+- Improved legacy systems support
+- SDcard mount wait timeout set to 30 minutes to accommodate ROM initial setup and other long operations
+
 **2018.12.3 (201812030)**
 - Ability to easily bind-mount and unmount folders not listed in config.txt
 - Automatic FUSE/SDcarsFS handling -- users don't have to care about these anymore; fbind will work with whichever is enabled. ESDFS (Motorola's Emulated SDcard Filesystem) will remain unsupported until a user shares their /proc/mounts.
@@ -152,7 +158,7 @@ Uninstall
 - New log format
 - Redesigned fbind utilities -- run <fbind> on terminal or read README.md for details.
 - Removed bloatware
-- SDcard wait timeout set to 5 minutes
+- SDcard mount wait timeout set to 10 minutes
 - Support for /system install (legacy/Magisk-unsupported devices) and Magisk bleeding edge builds
 - Updated building and debugging tools
 - Updated documentation -- simplified, more user-friendly, more useful

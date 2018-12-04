@@ -147,7 +147,7 @@ install_module() {
   mv -f License* README* common/sample* ${config%/*}/info/
 
   set +euo pipefail
-  cleanup
+  . common/cleanup.sh
 }
 
 
@@ -167,6 +167,11 @@ install_system() {
     local FILES=$@
     [ -z "$FILES" ] && FILES='/system/build.prop'
     sed -n "$REGEX" $FILES 2>/dev/null | head -n 1
+  }
+
+  set_perm() {
+    chown 0:0 "$@"
+    chmod 0755 "$@"
   }
 
   mount -o rw /system 2>/dev/null || mount -o remount,rw /system
@@ -216,21 +221,17 @@ install_system() {
     mv bin/fstype_$binArch $modPath/bin/fstype
     mv -f common/core.sh module.prop $modPath/
     mv -f License* README* common/sample* ${config%/*}/info/
-    chown 0:0 /system/*bin/$modId $modPath/bin/cryptsetup $modPath/bin/fstype
-    chmod 0755 /system/*bin/$modId $modPath/bin/cryptsetup $modPath/bin/fstype
-    if [ -e /system/etc/init.d ]; then
-      $LATESTARTSERVICE && mv -f common/service.sh /system/etc/init.d/$modId || :
-      chown 0:0 /system/etc/init.d/$modId
-      chmod 0755 /system/etc/init.d/$modId
-    fi
+    set_perm /system/*bin/$modId $modPath/bin/cryptsetup $modPath/bin/fstype
+    mv -f common/service.sh $modPath/autorun.sh
+    set_perm $modPath/autorun.sh
+    [ -e /system/etc/init.d ] && $LATESTARTSERVICE && ln -sf $modPath/autorun.sh /system/etc/init.d/$modId || :
     if [ -e /system/addon.d ]; then
       mv -f common/addon.d.sh /system/addon.d/$modId.sh
-      chown 0:0 /system/addon.d/$modId.sh
-      chmod 0755 /system/addon.d/$modId.sh
+      set_perm /system/addon.d/$modId.sh
     fi
 
     set +euo pipefail
-    cleanup
+    . common/cleanup.sh
     MAGISK_VER=0
     version_info
   fi
@@ -277,31 +278,12 @@ get_cpu_arch() {
 }
 
 
-cleanup() {
-  if [ $curVer -lt 201812030 ]; then
-    . common/config_patcher.sh
-    cd /data/property/ && rm *esdfs_sdcard *fuse_sdcard *sys.sdcardfs
-    rm -rf ${config%/*}/logs/ /storage/*/.fbind_bkp/ /external_sd/.fbind_bkp/ \
-      $MOUNTPATH0/.core/*/fbind.sh ${config%/*}/*tmp*
-  fi 2>/dev/null
-}
-
-
 version_info() {
 
-  local c="" whatsNew="- Ability to easily bind-mount and unmount folders not listed in config.txt
-- Automatic FUSE/SDcarsFS handling -- users don't have to care about these anymore; fbind will work with whichever is enabled. ESDFS (Motorola's Emulated SDcard Filesystem) will remain unsupported until a user shares their /proc/mounts.
-- Fixed loop devices mounting issues; unmounting these with fbind -u is now supported.
-- Improved filtering feature (fbind <option(s)> <pattern|pattern2|...>)
-- LUKS unmounting and closing (fbind -u <pattern|pattern2|...>)
-- Major cosmetic changes
-- New log format
-- Redesigned fbind utilities -- run <fbind> on terminal or read README.md for details.
-- Removed bloatware
-- SDcard wait timeout set to 5 minutes
-- Support for /system install (legacy/Magisk-unsupported devices) and Magisk bleeding edge builds
-- Updated building and debugging tools
-- Updated documentation -- simplified, more user-friendly, more useful"
+  local c="" whatsNew="- Detach (autorun|service).sh from the parent shell
+- Extended modularization for easier maintenance
+- Improved legacy systems support
+- SDcard mount wait timeout set to 30 minutes to accommodate ROM initial setup and other long operations"
 
   set -euo pipefail
 

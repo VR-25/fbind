@@ -1,7 +1,7 @@
 id=fbind
-name=Magic Folder Binder (fbind)
-version=2018.12.3
-versionCode=201812030
+name=fbind
+version=2018.12.4
+versionCode=201812040
 author=VR25 @ xda-developers
-description=Redirect select internal storage data to the actual SDcard; mount loop devices, LUKS/LUKS2 encrypted volumes, regular partitions... and more. Supports Magisk and /system (legacy) installs.
+description=Redirect select internal storage data to the actual SDcard; mount loop devices, LUKS/LUKS2 encrypted volumes, regular partitions... and more.
 minMagisk=1500

@@ -1,10 +1,10 @@
 #!/system/bin/sh
-# fbind Auto-bind Script
+# fbind init
 # Copyright (C) 2017-2018, VR25 @ xda-developers
 # License: GPL V3+
 
 
-umask 000
+(umask 000
 modPath=/system/etc/fbind
 log=/data/media/fbind/logs/fbind-boot-$(getprop ro.product.device | grep . || getprop ro.build.product).log
 [ -e $modPath/module.prop ] || modPath=/sbin/.core/img/fbind
@@ -24,4 +24,4 @@ set -x
 apply_config # and mount partitions & loop devices
 grep -Eq '^int_extf|^bind_mount |^obb.*|^from_to |^target ' $config && bind_mount_wrapper
 grep -q '^remove ' $config && remove_wrapper
-exit 0
+exit 0 &) &

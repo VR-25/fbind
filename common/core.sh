@@ -18,7 +18,7 @@ is_mounted() { mountpoint -q "$1" 2>/dev/null; }
 
 wait_until_true() {
   local count=0
-  until [ $count -ge 600 ]; do
+  until [ $count -ge 1800 ]; do
     count=$((count + 1))
     if [ -n "$1" ]; then
       $@ && break || sleep 1
