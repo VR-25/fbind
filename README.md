@@ -128,6 +128,9 @@ Uninstall
 1. Magisk: use Magisk Manager or other tool; legacy: flashing the same version again removes all traces of fbind from /system.
 2. Reboot
 
+Bootloop (Magisk only)
+- Flash the same version again to disable the module
+
 
 
 ---
@@ -143,6 +146,10 @@ Uninstall
 
 ---
 #### LATEST CHANGES
+
+**2018.12.6.1 (201812061)**
+- Fixed fbind --log
+- [Recovery] flash the same version again to disable the module
 
 **2018.12.6 (201812060)**
 - fbind -f/--fuse toggle force FUSE yes/no (default: no). This is automatically enabled during installation if /data/forcefuse exists or the zip name contains the word "fuse" (case insensitive). When enabled, it is a temporary workaround for multi-user bind-mounts. The setting persists across upgrades.

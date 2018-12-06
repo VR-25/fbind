@@ -52,7 +52,7 @@ main() {
     -C|--cryptsetup) shift; $modPath/bin/cryptsetup $@;;
     -f|--fuse) force_fuse;;
     -i|--info) info;;
-    -l|--log) shift; edit $modData/logs/fbind-boot.log $@;;
+    -l|--log) shift; edit $modData/logs/fbind-boot*.log $@;;
     -m|--mount) bind_mount_wrapper "$2";;
     -M|--move) mv_data_wrapper "$2";;
     -Mm) mv_data_wrapper "$2"; echo; bind_mount_wrapper "$2";;
@@ -118,7 +118,7 @@ Usage: fbind <options(s)> <argument(s)>
 
 -i/--info   Show debugging info.
 
--l/--log  <editor [opts]>   Open fbind-boot.log w/ <editor [opts]> (default: vim/vi).
+-l/--log  <editor [opts]>   Open fbind-boot-\$deviceName.log w/ <editor [opts]> (default: vim/vi).
 
 -m/--mount <pattern|pattern2|...>   Bind-mount matched or all (no arg).
 
@@ -258,11 +258,11 @@ force_fuse() {
   if [ -e $modPath/system.prop ]; then
     mv $modPath/system.prop $modPath/FUSE.prop
     echo "(i) Force FUSE: no"
-    echo "- Reboot to apply change"
+    echo "- Change takes effect after a reboot"
   else
     mv $modPath/FUSE.prop $modPath/system.prop
     echo "(i) Force FUSE: yes"
-    echo "- Reboot to apply change"
+    echo "- Change takes effect after a reboot"
   fi
 }
 

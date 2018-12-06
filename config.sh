@@ -130,6 +130,19 @@ install_module() {
   curVer=$(grep_prop versionCode $MOUNTPATH0/$MODID/module.prop || :)
   [ -z "$curVer" ] && curVer=0
 
+  if [ $curVer -eq $(i versionCode) ] && ! $BOOTMODE; then
+    touch $MODPATH/disable
+    ui_print " "
+    ui_print "(i) Module disabled"
+    ui_print " "
+    set +euo pipefail
+    unmount_magisk_img
+    $BOOTMODE || recovery_cleanup
+    set -u
+    rm -rf $TMPDIR
+    exit 0
+  fi
+
   # create module paths
   rm -rf $MODPATH 2>/dev/null || :
   mkdir -p ${config%/*}/info $MODPATH/bin
@@ -289,8 +302,8 @@ get_cpu_arch() {
 
 version_info() {
 
-  local c="" whatsNew="- fbind -f/--fuse toggle force FUSE yes/no (default: no). This is automatically enabled during installation if /data/forcefuse exists or the zip name contains the word \"fuse\" (case insensitive). When enabled, it is a temporary workaround for multi-user bind-mounts. The setting persists across upgrades.
-- Updated documentation"
+  local c="" whatsNew="- Fixed fbind --log
+- [Recovery] flash the same version again to disable the module"
 
   set -euo pipefail
 
