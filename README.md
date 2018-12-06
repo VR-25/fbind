@@ -19,7 +19,7 @@ To prevent fraud, DO NOT mirror any link associated with this project; DO NOT sh
 ---
 #### DESCRIPTION
 
-- Redirect select internal storage data to the actual SDcard; mount loop devices, LUKS/LUKS2 encrypted volumes, regular partitions... and more.
+- Advanced mounting utility for folders, EXT4 images (loop devices), LUKS/LUKS2 encrypted volumes, regular partitions and more...
 
 
 
@@ -27,31 +27,9 @@ To prevent fraud, DO NOT mirror any link associated with this project; DO NOT sh
 #### PRE-REQUISITES
 
 - Any root solution, preferably Magisk V15.0+
+- App to run `/system/etc/fbind/autorun.sh` on boot if system doesn't support Magisk nor init.d
 - Basic `mount` and terminal usage knowledge
 - Terminal Emulator (i.e., Termux)
-
-- If your system doesn't support init.d, use an app to run `/system/etc/fbind/autorun.sh` on boot.
-
-
-
----
-#### SETUP
-
-First time
-1. Install from Magisk Manager or custom recovery.
-2. Configure
-3. Reboot
-
-Upgrade
-1. Install from Magisk Manager or custom recovery.
-2. Reboot
-
-After ROM updates
-- Unless `addon.d` feature is supported by the ROM, follow the upgrade steps above.
-
-Uninstall
-1. Remove through Magisk Manager app or MM for Recovery Mode (another module/tool built and maintained by me). On legacy devices, fashing the same version again removes all traces of fbind from /system.
-2. Reboot
 
 
 
@@ -93,6 +71,8 @@ Uninstall
 
 -C/--cryptsetup <opt(s)> <arg(s)>   Run $modPath/bin/cryptsetup <opt(s)> <arg(s)>.
 
+-f/--fuse   Toggle force FUSE yes/no (default: no). This is automatically enabled during installation if /data/forcefuse exists or the zip name contains the word "fuse" (case insensitive). When enabled, it is a temporary workaround for multi-user bind-mounts. The setting persists across upgrades.
+
 -i/--info   Show debugging info.
 
 -l/--log  <editor [opts]>   Open fbind-boot-$deviceName.log w/ <editor [opts]> (default: vim/vi).
@@ -129,6 +109,28 @@ Uninstall
 
 
 ---
+#### SETUP
+
+First time
+1. Install from Magisk Manager or custom recovery.
+2. Reboot
+3. Configure (/data/media/fbind/config.txt) -- recall that `fbind --config <editor [opts]>` opens config.txt w/ <editor [opts]> (default: vim/vi).
+4. Move data to the SDcard with a file manager or `fbind --move` then run `fbind --mount`.
+
+Upgrade
+1. Install from Magisk Manager or custom recovery.
+2. Reboot
+
+After ROM updates
+- Unless `addon.d` feature is supported by the ROM, follow the upgrade steps above.
+
+Uninstall
+1. Magisk: use Magisk Manager or other tool; legacy: flashing the same version again removes all traces of fbind from /system.
+2. Reboot
+
+
+
+---
 #### SUPPORT
 
 - [Facebook page](https://facebook.com/VR25-at-xda-developers-258150974794782/)
@@ -141,6 +143,10 @@ Uninstall
 
 ---
 #### LATEST CHANGES
+
+**2018.12.6 (201812060)**
+- fbind -f/--fuse toggle force FUSE yes/no (default: no). This is automatically enabled during installation if /data/forcefuse exists or the zip name contains the word "fuse" (case insensitive). When enabled, it is a temporary workaround for multi-user bind-mounts. The setting persists across upgrades.
+- Updated documentation
 
 **2018.12.4 (201812040)**
 - Detach (autorun|service).sh from the parent shell
@@ -162,9 +168,3 @@ Uninstall
 - Support for /system install (legacy/Magisk-unsupported devices) and Magisk bleeding edge builds
 - Updated building and debugging tools
 - Updated documentation -- simplified, more user-friendly, more useful
-
-**2018.11.2 (201811020)**
-- Advanced <modPath> detection (more future-proof; trashed hard-coding)
-- Always run under <umask 000> to prevent permission issues.
-- Fixed <patch_config.sh not working>.
-- Universal SDcardFS support (experimental, new algorithms), must be enabled manually with <su -c fbind -s> (toggles SDcardFS mode).

@@ -1,7 +1,7 @@
 id=fbind
 name=fbind
-version=2018.12.4
-versionCode=201812040
+version=2018.12.6
+versionCode=201812060
 author=VR25 @ xda-developers
-description=Redirect select internal storage data to the actual SDcard; mount loop devices, LUKS/LUKS2 encrypted volumes, regular partitions... and more.
+description=Advanced mounting utility for folders, EXT4 images, LUKS/LUKS2 encrypted volumes, regular partitions and more...
 minMagisk=1500

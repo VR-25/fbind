@@ -1,22 +1,22 @@
-from_to DCIM .DCIM
-from_to NewPipe .NewPipe
-from_to Pictures .Pictures
-from_to WhatsApp .WhatsApp
+obb
+
+target git
 target data
 target docs
-target Download
-target Dukto
-target FastHub
-target git
-target Hyperionics
-target Lineage_Downloader
-target MagiskManager
+target Tasker
 target markor
 target Notebloc
-target SSLCapture
-target Tasker
 target Telegram
+target SSLCapture
+target Hyperionics
+target MagiskManager
 target TitaniumBackup
-from_to Download/Torrents Android/data/intelligems.torrdroid/files
-from_to ADM Download/ADM
-obb
+target Lineage_Downloader
+
+from_to DCIM .DCIM
+from_to Dukto .Dukto
+from_to Pictures .Pictures
+from_to FastHub .FastHub
+from_to NewPipe .NewPipe
+from_to Download .Download
+from_to WhatsApp .WhatsApp

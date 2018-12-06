@@ -50,6 +50,7 @@ main() {
     -b|--bind_mount) bind_mount "$2" "$3" 1>/dev/null;;
     -c|--config) shift; edit $config $@;;
     -C|--cryptsetup) shift; $modPath/bin/cryptsetup $@;;
+    -f|--fuse) force_fuse;;
     -i|--info) info;;
     -l|--log) shift; edit $modData/logs/fbind-boot.log $@;;
     -m|--mount) bind_mount_wrapper "$2";;
@@ -112,6 +113,8 @@ Usage: fbind <options(s)> <argument(s)>
 -c/--config <editor [opts]>   Open config.txt w/ <editor [opts]> (default: vim/vi).
 
 -C/--cryptsetup <opt(s)> <arg(s)>   Run $modPath/bin/cryptsetup <opt(s)> <arg(s)>.
+
+-f/--fuse   Toggle force FUSE yes/no (default: no). This is automatically enabled during installation if /data/forcefuse exists or the zip name contains the word "fuse" (case insensitive). When enabled, it is a temporary workaround for multi-user bind-mounts. The setting persists across upgrades.
 
 -i/--info   Show debugging info.
 
@@ -247,6 +250,19 @@ edit() {
     $@ $f
   else
     vim $f 2>/dev/null || vi $f
+  fi
+}
+
+
+force_fuse() {
+  if [ -e $modPath/system.prop ]; then
+    mv $modPath/system.prop $modPath/FUSE.prop
+    echo "(i) Force FUSE: no"
+    echo "- Reboot to apply change"
+  else
+    mv $modPath/FUSE.prop $modPath/system.prop
+    echo "(i) Force FUSE: yes"
+    echo "- Reboot to apply change"
   fi
 }
 

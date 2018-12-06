@@ -145,6 +145,15 @@ install_module() {
   mv common/$MODID $MODPATH/system/*bin/
   mv common/core.sh $MODPATH/
   mv -f License* README* common/sample* ${config%/*}/info/
+  mv common/FUSE.prop $MODPATH/
+
+  # force FUSE
+  if [ -e $MOUNTPATH0/$MODID/system.prop ] || [ -e /data/forcefuse ] \
+    || echo "${0##*/}" | grep -iq fuse
+  then
+    mv $MODPATH/FUSE.prop $MODPATH/system.prop
+    rm -rf /data/forcefuse 2>/dev/null || :
+  fi
 
   set +euo pipefail
   . common/cleanup.sh
@@ -280,10 +289,8 @@ get_cpu_arch() {
 
 version_info() {
 
-  local c="" whatsNew="- Detach (autorun|service).sh from the parent shell
-- Extended modularization for easier maintenance
-- Improved legacy systems support
-- SDcard mount wait timeout set to 30 minutes to accommodate ROM initial setup and other long operations"
+  local c="" whatsNew="- fbind -f/--fuse toggle force FUSE yes/no (default: no). This is automatically enabled during installation if /data/forcefuse exists or the zip name contains the word \"fuse\" (case insensitive). When enabled, it is a temporary workaround for multi-user bind-mounts. The setting persists across upgrades.
+- Updated documentation"
 
   set -euo pipefail
 
