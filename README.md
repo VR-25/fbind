@@ -148,6 +148,10 @@ Bootloop (Magisk only)
 #### LATEST CHANGES
 
 **2018.12.6.1 (201812061)**
+- extsd_path is fully compatible with SDcardFS.
+- Note: due to poor internet connectivity, my online availability is currently limited (except on Facebook).
+
+**2018.12.6.1 (201812061)**
 - Fixed fbind --log
 - [Recovery] flash the same version again to disable the module
 
@@ -175,3 +179,4 @@ Bootloop (Magisk only)
 - Support for /system install (legacy/Magisk-unsupported devices) and Magisk bleeding edge builds
 - Updated building and debugging tools
 - Updated documentation -- simplified, more user-friendly, more useful
+ 

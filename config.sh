@@ -302,8 +302,8 @@ get_cpu_arch() {
 
 version_info() {
 
-  local c="" whatsNew="- Fixed fbind --log
-- [Recovery] flash the same version again to disable the module"
+  local c="" whatsNew="- extsd_path is fully compatible with SDcardFS.
+- Note: due to poor internet connectivity, my online availability is currently limited (except on Facebook)."
 
   set -euo pipefail
 

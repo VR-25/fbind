@@ -58,12 +58,25 @@ bind_mount() {
     mkdir -p "$1" "$2"
     if grep -iq sdcardfs /proc/mounts && echo "$@" | grep -q $defaultRuntime; then
       mount -o rbind,gid=9997 \""$1"\" \""$2"\"
-      mount -o remount,gid=9997,mask=6 \""${2/default/read}"\" 2>/dev/null \
-        || { mount -o rbind,gid=9997,mask=6 \""${1/default/read}"\" \""${2/default/read}"\" \
-          && mount -o remount,gid=9997,mask=6 \""${2/default/read}"\"; }
-      mount -o remount,gid=9997,mask=6 \""${2/default/write}"\" 2>/dev/null \
-        || { mount -o rbind,gid=9997,mask=6 \""${1/default/write}"\" \""${2/default/write}"\" \
-          && mount -o remount,gid=9997,mask=6 \""${2/default/write}"\"; }
+      if echo "$extsd" | grep -q $defaultRuntime; then
+        if ! mount -o remount,gid=9997,mask=6 \""${2/default/read}"\" 2>/dev/null; then
+          mount -o rbind,gid=9997,mask=6 \""${1/default/read}"\" \""${2/default/read}"\" \
+            && mount -o remount,gid=9997,mask=6 \""${2/default/read}"\"
+        fi
+        if ! mount -o remount,gid=9997,mask=6 \""${2/default/write}"\" 2>/dev/null; then
+          mount -o rbind,gid=9997,mask=6 \""${1/default/write}"\" \""${2/default/write}"\" \
+            && mount -o remount,gid=9997,mask=6 \""${2/default/write}"\"
+        fi
+      else
+        if ! mount -o remount,gid=9997,mask=6 \""${2/default/read}"\" 2>/dev/null; then
+          mount -o rbind,gid=9997,mask=6 \""$1"\" \""${2/default/read}"\" \
+            && mount -o remount,gid=9997,mask=6 \""${2/default/read}"\"
+        fi
+        if ! mount -o remount,gid=9997,mask=6 \""${2/default/write}"\" 2>/dev/null; then
+          mount -o rbind,gid=9997,mask=6 \""$1"\" \""${2/default/write}"\" \
+            && mount -o remount,gid=9997,mask=6 \""${2/default/write}"\"
+        fi
+      fi
     else
       mount -o rbind \""$1"\" \""$2"\"
     fi
@@ -161,13 +174,16 @@ apply_config() {
   grep -E '^extsd_path |^intsd_path |^part |^loop ' $config >$tmp.3
   . $tmp.3
   $altExtsd || default_extsd
+
   # SDcardFS mode
   if grep -iq sdcardfs /proc/mounts; then
     defaultRuntime=/mnt/runtime/default
     intsd=$defaultRuntime/emulated/0
-    extsd=$defaultRuntime/${extsd##*/}
     obb=$defaultRuntime/emulated/obb
-    extobb=$extsd/Android/obb
+    if echo "$extsd" | grep -q /mnt/media_rw/; then
+      extsd=$defaultRuntime/${extsd##*/}
+      extobb=$extsd/Android/obb
+    fi
   fi
 }
 
@@ -222,3 +238,4 @@ remove_wrapper() {
   grep '^remove ' $config >$tmp.3
   . $tmp.3
 }
+ 
