@@ -111,7 +111,7 @@ install_module() {
   trap debug_exit EXIT
 
   local binArch=$(get_cpu_arch)
-  config=/data/media/$MODID/config.txt
+  config=/data/media/0/$MODID/config.txt
 
   # magisk.img mount path
   if $BOOTMODE; then
@@ -162,7 +162,7 @@ install_module() {
 
   # force FUSE
   if [ -e $MOUNTPATH0/$MODID/system.prop ] || [ -e /data/forcefuse ] \
-    || echo "${0##*/}" | grep -iq fuse
+    || echo "${0##*/}" | grep -iq fuse || $PROPFILE
   then
     mv $MODPATH/FUSE.prop $MODPATH/system.prop
     rm -rf /data/forcefuse 2>/dev/null || :
@@ -177,11 +177,12 @@ install_system() {
 
   umask 000
   set -euxo pipefail
+  trap debug_exit EXIT
 
   local modId=fbind
   local binArch=$(get_cpu_arch)
   local modPath=/system/etc/$modId
-  local config=/data/media/$modId/config.txt
+  local config=/data/media/0/$modId/config.txt
 
   grep_prop() {
     local REGEX="s/^$1=//p"
@@ -302,10 +303,20 @@ get_cpu_arch() {
 
 version_info() {
 
-  local c="" whatsNew="- extsd_path is fully compatible with SDcardFS.
-- Note: due to poor internet connectivity, my online availability is currently limited (except on Facebook)."
+  local c="" whatsNew="- General fixes and optimizations
+- Improved bind-mount algorithm, multi-user and SDcardFS support.
+- Minimum Magisk version supported is now 17.0.
+- \$modData is now /data/media/0/fbind/ (formerly /data/media/fbind/).
+- Updated documentation"
 
   set -euo pipefail
+
+  # a note on untested Magisk versions
+  if [ ${MAGISK_VER/.} -gt 180 ]; then
+    ui_print " "
+    ui_print "  (i) NOTE: this Magisk version hasn't been tested by @VR25!"
+    ui_print "    - If you come across any issue, please report."
+  fi
 
   ui_print " "
   ui_print "  WHAT'S NEW"
@@ -315,15 +326,7 @@ version_info() {
     done
   ui_print " "
 
-  # a note on untested Magisk versions
-  if [ ${MAGISK_VER/.} -gt 173 ]; then
-    ui_print " "
-    ui_print "(i) This Magisk version hasn't been tested by @VR25!"
-    ui_print "- If you come across any issue, please report."
-    ui_print " "
-  fi
-
-  ui_print "  SUPPORT"
+  ui_print "  LINKS"
   ui_print "    - Facebook page: facebook.com/VR25-at-xda-developers-258150974794782/"
   ui_print "    - Git repository: github.com/Magisk-Modules-Repo/fbind/"
   ui_print "    - Telegram channel: t.me/vr25_xda/"
@@ -331,3 +334,7 @@ version_info() {
   ui_print "    - XDA thread: forum.xda-developers.com/apps/magisk/module-magic-folder-binder-t3621814/"
   ui_print " "
 }
+
+
+# migrate modData
+mv /data/media/fbind /data/media/0/ 2>/dev/null

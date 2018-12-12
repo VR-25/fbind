@@ -9,7 +9,7 @@ main() {
   umask 000
   interactiveMode=true
   modPath=/system/etc/fbind
-  modData=/data/media/fbind
+  modData=/data/media/0/fbind
   config=$modData/config.txt
 
   if [ ! -e $modPath/module.prop ]; then
@@ -84,17 +84,14 @@ mv_data() {
 unmount() {
   if is_mounted "$1"; then
     echo "<$1>"
-    umount -f "$1" 2>/dev/null || umount -f "$1"
-    if grep -iq sdcardfs /proc/mounts \
-      && echo "$1" | grep -q $defaultRuntime
-    then
-      is_mounted "${1/default/read}" && { umount -f "${1/default/read}" || umount -f "${1/default/read}"; }
-      is_mounted "${1/default/write}" && { umount -f "${1/default/write}" || umount -f "${1/default/write}"; }
-      is_mounted "$1" && { umount -f "$1" 2>/dev/null || umount -f "$1"; }
-      is_mounted "${1/default/read}" && { umount -f "${1/default/read}" || umount -f "${1/default/read}"; }
-      is_mounted "${1/default/read}" && { umount -f "${1/default/write}" || umount -f "${1/default/write}"; }
+    if grep -iq sdcardfs /proc/mounts && echo "$1" | grep -q $prefix; then
+      echo "<${1/default/read}>"
+      umount -f "${1/default/read}"
+      echo "<${1/default/write}>"
+      umount -f "${1/default/write}"
     fi
-    is_mounted "$1" || rmdir "$1" 2>/dev/null
+    umount -f "$1"
+    rmdir "$1" 2>/dev/null
   fi
 }
 
@@ -108,13 +105,13 @@ $(grep versionCode $modPath/module.prop | sed 's/=/: /')
 
 Usage: fbind <options(s)> <argument(s)>
 
--b/--bind_mount <target> <mount point>   Bind-mount folders not listed in config.txt. Additional SDcardFS mounts are handled automatically. Missing paths are created accordingly.
+-b/--bind_mount <target> <mount point>   Bind-mount folders not listed in config.txt. Extra SDcarsFS paths are handled automatically. Missing directories are created accordingly.
 
 -c/--config <editor [opts]>   Open config.txt w/ <editor [opts]> (default: vim/vi).
 
 -C/--cryptsetup <opt(s)> <arg(s)>   Run $modPath/bin/cryptsetup <opt(s)> <arg(s)>.
 
--f/--fuse   Toggle force FUSE yes/no (default: no). This is automatically enabled during installation if /data/forcefuse exists or the zip name contains the word "fuse" (case insensitive). When enabled, it is a temporary workaround for multi-user bind-mounts. The setting persists across upgrades.
+-f/--fuse   Toggle force FUSE yes/no (default: no). This is automatically enabled during installation if /data/forcefuse exists or the zip name contains the word "fuse" (case insensitive) or PROPFILE=true in config.sh. The setting persists across upgrades.
 
 -i/--info   Show debugging info.
 

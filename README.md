@@ -26,7 +26,7 @@ To prevent fraud, DO NOT mirror any link associated with this project; DO NOT sh
 ---
 #### PRE-REQUISITES
 
-- Any root solution, preferably Magisk V15.0+
+- Any root solution, preferably Magisk 17.0+
 - App to run `/system/etc/fbind/autorun.sh` on boot if system doesn't support Magisk nor init.d
 - Basic `mount` and terminal usage knowledge
 - Terminal Emulator (i.e., Termux)
@@ -38,11 +38,11 @@ To prevent fraud, DO NOT mirror any link associated with this project; DO NOT sh
 
 - bind_mount <target> <mount point>   Generic bind-mount, example: `bind_mount $extsd/loop_device/app_data/spotify /data/data/com.spotify.music`
 
-- extsd_path <path>   Use <path> as extsd. Example: `extsd_path /data/mmcblk1p2`
+- extsd_path <path>   Use <path> as extsd. Example: `extsd_path /mnt/mmcblk1p2`
 
 - from_to <source> <dest>   Wrapper for `bind_mount <$extsd/[path]> <$intsd/[path]>`, example: `from_to WhatsApp .WhatsApp`
 
-- int_extf <path>   Bind-mount the entire user (internal) storage to `$extsd/<path>` (includes OBB). If `<path>` is not supplied, `.fbind` is used. Example: `int_extf .external_storage`
+- int_extf <path>   Bind-mount the entire user 0 (internal) storage to `$extsd/<path>` (implies obb). If `<path>` is not supplied, `.fbind` is used. Example: `int_extf .external_storage`
 
 - intsd_path <path>   Use <path> as intsd. Example: `intsd_path /storage/emulated/0`
 
@@ -52,9 +52,9 @@ To prevent fraud, DO NOT mirror any link associated with this project; DO NOT sh
 
 - obbf <package name>   Wrapper for `bind_mount $extobb/<package name> $obb/<package name>`, example: `obbf com.mygame.greatgame`
 
-- part <[block device] or [block device--L]> <mount point> <"fsck -OPTION(s)" (filesystem specific, optional)>   Auto-mount a partition. The --L flag is for LUKS volume, opened manually by running any `fbind` command. Example: `part /dev/block/mmcblk1p1 /data/_sdcard`
+- part <[block device] or [block device--L]> <mount point> <"fsck -OPTION(s)" (filesystem specific, optional)>   Auto-mount a partition. The --L flag is for LUKS volume, opened manually by running any `fbind` command. Filesystem is automatically detected. Example: `part /dev/block/mmcblk1p1 /mnt/_sdcard`
 
-- remove <path>   Auto-remove unwanted file/folder from intsd & extsd. Examples: `remove Android/data/com.facebook.orca`, `remove DCIM/.8be0da06c44688f6.cfg`
+- remove <path>   Auto-remove stubborn/unwanted file/folder from intsd & extsd. Examples: `remove Android/data/com.facebook.orca`, `remove DCIM/.8be0da06c44688f6.cfg`
 
 - target <path>   Wrapper for `bind_mount <$extsd/[path]> <$intsd/[same path]>`, example: `target Android/data/com.google.android.youtube`
 
@@ -65,13 +65,13 @@ To prevent fraud, DO NOT mirror any link associated with this project; DO NOT sh
 
 `Usage: fbind <options(s)> <argument(s)>
 
--b/--bind_mount <target> <mount point>   Bind-mount folders not listed in config.txt. Additional SDcardFS mounts are handled automatically. Missing paths are created accordingly.
+-b/--bind_mount <target> <mount point>   Bind-mount folders not listed in config.txt. Extra SDcarsFS paths are handled automatically. Missing directories are created accordingly.
 
 -c/--config <editor [opts]>   Open config.txt w/ <editor [opts]> (default: vim/vi).
 
 -C/--cryptsetup <opt(s)> <arg(s)>   Run $modPath/bin/cryptsetup <opt(s)> <arg(s)>.
 
--f/--fuse   Toggle force FUSE yes/no (default: no). This is automatically enabled during installation if /data/forcefuse exists or the zip name contains the word "fuse" (case insensitive). When enabled, it is a temporary workaround for multi-user bind-mounts. The setting persists across upgrades.
+-f/--fuse   Toggle force FUSE yes/no (default: no). This is automatically enabled during installation if /data/forcefuse exists or the zip name contains the word "fuse" (case insensitive) or PROPFILE=true in config.sh. The setting persists across upgrades.
 
 -i/--info   Show debugging info.
 
@@ -102,9 +102,9 @@ To prevent fraud, DO NOT mirror any link associated with this project; DO NOT sh
 
 - [FUSE] Some users may need to set `intsd_path /storage/emulated/0` (default is /data/media/0).
 
-- Logs are stored at `/data/media/fbind/logs/`.
+- Logs are stored at `/data/media/0/fbind/logs/`.
 
-- There is a sample config in `$zipFile/common/` and `/data/media/fbind/info/`.
+- There is a sample config in `$zipFile/common/` and `/data/media/0/fbind/info/`.
 
 
 
@@ -113,23 +113,23 @@ To prevent fraud, DO NOT mirror any link associated with this project; DO NOT sh
 
 First time
 1. Install from Magisk Manager or custom recovery.
-2. Reboot
-3. Configure (/data/media/fbind/config.txt) -- recall that `fbind --config <editor [opts]>` opens config.txt w/ <editor [opts]> (default: vim/vi).
+2. Reboot.
+3. Configure (/data/media/0/fbind/config.txt) -- recall that `fbind --config <editor [opts]>` opens config.txt w/ <editor [opts]> (default: vim/vi).
 4. Move data to the SDcard with a file manager or `fbind --move` then run `fbind --mount`.
 
-Upgrade
+Upgrades
 1. Install from Magisk Manager or custom recovery.
-2. Reboot
+2. Reboot.
 
 After ROM updates
 - Unless `addon.d` feature is supported by the ROM, follow the upgrade steps above.
 
+Bootloop (Magisk only)
+- Flash the same version again to disable the module.
+
 Uninstall
 1. Magisk: use Magisk Manager or other tool; legacy: flashing the same version again removes all traces of fbind from /system.
-2. Reboot
-
-Bootloop (Magisk only)
-- Flash the same version again to disable the module
+2. Reboot.
 
 
 
@@ -147,7 +147,14 @@ Bootloop (Magisk only)
 ---
 #### LATEST CHANGES
 
-**2018.12.6.1 (201812061)**
+**2018.12.12 (201812120)**
+- General fixes and optimizations
+- Improved bind-mount algorithm, multi-user and SDcardFS support.
+- Minimum Magisk version supported is now 17.0.
+- $modData is now /data/media/0/fbind/ (formerly /data/media/fbind/).
+- Updated documentation
+
+**2018.12.7 (201812070)**
 - extsd_path is fully compatible with SDcardFS.
 - Note: due to poor internet connectivity, my online availability is currently limited (except on Facebook).
 
@@ -179,4 +186,3 @@ Bootloop (Magisk only)
 - Support for /system install (legacy/Magisk-unsupported devices) and Magisk bleeding edge builds
 - Updated building and debugging tools
 - Updated documentation -- simplified, more user-friendly, more useful
- 

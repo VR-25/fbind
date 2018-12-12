@@ -7,7 +7,7 @@ altExtsd=false
 tmp=/dev/fbind/tmp
 intsd=/data/media/0
 obb=/data/media/obb
-modData=/data/media/fbind
+modData=/data/media/0/fbind
 config=$modData/config.txt
 alias mount="/sbin/su -Mc mount -o rw,noatime"
 [ -z "$interactiveMode" ] && interactiveMode=false
@@ -56,29 +56,12 @@ bind_mount() {
       [ $? -ne 0 ] && return 1
     fi
     mkdir -p "$1" "$2"
-    if grep -iq sdcardfs /proc/mounts && echo "$@" | grep -q $defaultRuntime; then
-      mount -o rbind,gid=9997 \""$1"\" \""$2"\"
-      if echo "$extsd" | grep -q $defaultRuntime; then
-        if ! mount -o remount,gid=9997,mask=6 \""${2/default/read}"\" 2>/dev/null; then
-          mount -o rbind,gid=9997,mask=6 \""${1/default/read}"\" \""${2/default/read}"\" \
-            && mount -o remount,gid=9997,mask=6 \""${2/default/read}"\"
-        fi
-        if ! mount -o remount,gid=9997,mask=6 \""${2/default/write}"\" 2>/dev/null; then
-          mount -o rbind,gid=9997,mask=6 \""${1/default/write}"\" \""${2/default/write}"\" \
-            && mount -o remount,gid=9997,mask=6 \""${2/default/write}"\"
-        fi
-      else
-        if ! mount -o remount,gid=9997,mask=6 \""${2/default/read}"\" 2>/dev/null; then
-          mount -o rbind,gid=9997,mask=6 \""$1"\" \""${2/default/read}"\" \
-            && mount -o remount,gid=9997,mask=6 \""${2/default/read}"\"
-        fi
-        if ! mount -o remount,gid=9997,mask=6 \""${2/default/write}"\" 2>/dev/null; then
-          mount -o rbind,gid=9997,mask=6 \""$1"\" \""${2/default/write}"\" \
-            && mount -o remount,gid=9997,mask=6 \""${2/default/write}"\"
-        fi
-      fi
-    else
-      mount -o rbind \""$1"\" \""$2"\"
+    mount -o bind \""$1"\" \""$2"\"
+    if grep -iq sdcardfs /proc/mounts && echo "$2" | grep -q $prefix; then
+      $interactiveMode && echo "<$1>" "<${2/default/write}>"
+      mount -o bind \""$1"\" \""${2/default/write}"\"
+      $interactiveMode && echo "<$1>" "<${2/default/read>}"
+      mount -o bind \""$1"\" \""${2/default/read}"\"
     fi
     if is_mounted "$2"; then
       [ -z "$3" ] && rm -rf "$1/Android" 2>/dev/null
@@ -177,13 +160,9 @@ apply_config() {
 
   # SDcardFS mode
   if grep -iq sdcardfs /proc/mounts; then
-    defaultRuntime=/mnt/runtime/default
-    intsd=$defaultRuntime/emulated/0
-    obb=$defaultRuntime/emulated/obb
-    if echo "$extsd" | grep -q /mnt/media_rw/; then
-      extsd=$defaultRuntime/${extsd##*/}
-      extobb=$extsd/Android/obb
-    fi
+    prefix=/mnt/runtime/default/emulated
+    intsd=$prefix/0
+    obb=$prefix/obb
   fi
 }
 
