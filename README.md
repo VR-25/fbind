@@ -28,6 +28,7 @@ To prevent fraud, DO NOT mirror any link associated with this project; DO NOT sh
 
 - Any root solution, preferably Magisk 17.0+
 - App to run `/system/etc/fbind/autorun.sh` on boot if system doesn't support Magisk nor init.d
+- ARM/ARM64 CPU
 - Basic `mount` and terminal usage knowledge
 - Terminal Emulator (i.e., Termux)
 
@@ -134,7 +135,7 @@ Uninstall
 
 
 ---
-#### SUPPORT
+#### LINKS
 
 - [Facebook page](https://facebook.com/VR25-at-xda-developers-258150974794782/)
 - [Git repository](https://github.com/Magisk-Modules-Repo/fbind/)
@@ -146,6 +147,11 @@ Uninstall
 
 ---
 #### LATEST CHANGES
+
+**2018.12.14 (201812140)**
+- [SDcardFS] Do not remount /mnt/runtime/write
+- [SDcardFS] Do not set gid
+- [SDcardFS] obb=$intsd/Android/obb
 
 **2018.12.12 (201812120)**
 - General fixes and optimizations

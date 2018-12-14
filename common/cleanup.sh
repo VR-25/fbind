@@ -2,7 +2,7 @@
 # patch config & remove obsolete data
 
 
-if [ $curVer -lt 201812120 ] && [ -e $config ]; then
+if [ $curVer -lt 201812140 ] && [ -e $config ]; then
   # backup
   cp -f $config ${config/./_backup.}
 fi
@@ -46,4 +46,11 @@ if [ $curVer -lt 201812120 ] && [ -e $config ]; then
   # rename "$defaultRuntime/emulated" to "$prefix"
   grep -q '$defaultRuntime/emulated' $config \
     && sed -i 's|$defaultRuntime/emulated|$prefix|g' $config
+fi
+
+
+if [ $curVer -lt 201812140 ] && [ -e $config ]; then
+  # rename "$prefix" to "$prefix/emulated"
+  grep -q '$prefix' $config \
+    && sed -i 's|$prefix|$prefix/emulated|g' $config
 fi

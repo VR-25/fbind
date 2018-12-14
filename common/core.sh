@@ -57,11 +57,34 @@ bind_mount() {
     fi
     mkdir -p "$1" "$2"
     mount -o bind \""$1"\" \""$2"\"
-    if grep -iq sdcardfs /proc/mounts && echo "$2" | grep -q $prefix; then
-      $interactiveMode && echo "<$1>" "<${2/default/write}>"
-      mount -o bind \""$1"\" \""${2/default/write}"\"
-      $interactiveMode && echo "<$1>" "<${2/default/read>}"
-      mount -o bind \""$1"\" \""${2/default/read}"\"
+    if grep -iq sdcardfs /proc/mounts && echo "$@" | grep -q $prefix; then
+      if echo "$extsd" | grep -q $prefix; then
+        $interactiveMode && echo "<${1/default/read}>" "<${2/default/read}>"
+        if ! mount -o remount,mask=6 \""${2/default/read}"\" 2>/dev/null; then
+          mount -o bind \""${1/default/read}"\" \""${2/default/read}"\" \
+            && mount -o remount,mask=6 \""${2/default/read}"\"
+        fi
+        if ! is_mounted "${2/default/write}"; then # some systems lock and reboot if this is remounted
+          $interactiveMode && echo "<${1/default/write}>" "<${2/default/write}>"
+          if ! mount -o remount,mask=6 \""${2/default/write}"\" 2>/dev/null; then
+            mount -o bind \""${1/default/write}"\" \""${2/default/write}"\" \
+              && mount -o remount,mask=6 \""${2/default/write}"\"
+          fi
+        fi
+      else
+        $interactiveMode && echo "<$1>" "<${2/default/read}>"
+        if ! mount -o remount,mask=6 \""${2/default/read}"\" 2>/dev/null; then
+          mount -o bind \""$1"\" \""${2/default/read}"\" \
+            && mount -o remount,mask=6 \""${2/default/read}"\"
+        fi
+        if ! is_mounted "${2/default/write}"; then # some systems lock and reboot if this is remounted
+          $interactiveMode && echo "<$1>" "<${2/default/write}>"
+          if ! mount -o remount,mask=6 \""${2/default/write}"\" 2>/dev/null; then
+            mount -o bind \""$1"\" \""${2/default/write}"\" \
+              && mount -o remount,mask=6 \""${2/default/write}"\"
+          fi
+        fi
+      fi
     fi
     if is_mounted "$2"; then
       [ -z "$3" ] && rm -rf "$1/Android" 2>/dev/null
@@ -160,9 +183,13 @@ apply_config() {
 
   # SDcardFS mode
   if grep -iq sdcardfs /proc/mounts; then
-    prefix=/mnt/runtime/default/emulated
-    intsd=$prefix/0
-    obb=$prefix/obb
+    prefix=/mnt/runtime/default
+    intsd=$prefix/emulated/0
+    obb=$intsd/Android/obb
+    if echo "$extsd" | grep -q /mnt/media_rw/; then
+      extsd=$prefix/${extsd##*/}
+      extobb=$extsd/Android/obb
+    fi
   fi
 }
 
@@ -217,4 +244,3 @@ remove_wrapper() {
   grep '^remove ' $config >$tmp.3
   . $tmp.3
 }
- 

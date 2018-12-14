@@ -303,11 +303,9 @@ get_cpu_arch() {
 
 version_info() {
 
-  local c="" whatsNew="- General fixes and optimizations
-- Improved bind-mount algorithm, multi-user and SDcardFS support.
-- Minimum Magisk version supported is now 17.0.
-- \$modData is now /data/media/0/fbind/ (formerly /data/media/fbind/).
-- Updated documentation"
+  local c="" whatsNew="- [SDcardFS] Do not remount /mnt/runtime/write
+- [SDcardFS] Do not set gid
+- [SDcardFS] obb=\$intsd/Android/obb"
 
   set -euo pipefail
 

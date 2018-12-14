@@ -84,13 +84,15 @@ mv_data() {
 unmount() {
   if is_mounted "$1"; then
     echo "<$1>"
+    umount -f "$1"
     if grep -iq sdcardfs /proc/mounts && echo "$1" | grep -q $prefix; then
       echo "<${1/default/read}>"
       umount -f "${1/default/read}"
-      echo "<${1/default/write}>"
-      umount -f "${1/default/write}"
+      if is_mounted "${1/default/write}"; then
+        echo "<${1/default/write}>"
+        umount -f "${1/default/write}"
+      fi
     fi
-    umount -f "$1"
     rmdir "$1" 2>/dev/null
   fi
 }
