@@ -303,9 +303,9 @@ get_cpu_arch() {
 
 version_info() {
 
-  local c="" whatsNew="- [SDcardFS] Do not remount /mnt/runtime/write
-- [SDcardFS] Do not set gid
-- [SDcardFS] obb=\$intsd/Android/obb"
+  local c="" whatsNew="- [SDcardFS] Additional variables for config.txt: extsd0=/mnt/media_rw/SDcardName, extobb0=\$extsd0/Android/obb
+- [SDcardFS] Do not remount /mnt/runtime/(read|write)/... if \$extsd doesn't start with /mnt/runtime/.
+- [SDcardFS] Remounting /mnt/runtime/write/... may cause a system reboot. If this happens, go to recovery terminal and run \`echo noWriteRemount >>/sdcard/fbind/config.txt\`."
 
   set -euo pipefail
 

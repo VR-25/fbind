@@ -105,6 +105,8 @@ To prevent fraud, DO NOT mirror any link associated with this project; DO NOT sh
 
 - Logs are stored at `/data/media/0/fbind/logs/`.
 
+- [SDcardFS] Remounting /mnt/runtime/write/... may cause a system reboot. If this happens, go to recovery terminal and run `echo noWriteRemount >>/sdcard/fbind/config.txt`.
+
 - There is a sample config in `$zipFile/common/` and `/data/media/0/fbind/info/`.
 
 
@@ -148,9 +150,14 @@ Uninstall
 ---
 #### LATEST CHANGES
 
+**2018.12.15 (201812150)**
+- [SDcardFS] Additional variables for config.txt: extsd0=/mnt/media_rw/SDcardName, extobb0=$extsd0/Android/obb
+- [SDcardFS] Do not remount /mnt/runtime/(read|write)/... if $extsd doesn't start with /mnt/runtime/.
+- [SDcardFS] Remounting /mnt/runtime/write/... may cause a system reboot. If this happens, go to recovery terminal and run `echo noWriteRemount >>/sdcard/fbind/config.txt`.
+
 **2018.12.14 (201812140)**
-- [SDcardFS] Do not remount /mnt/runtime/write
-- [SDcardFS] Do not set gid
+- [SDcardFS] Do not remount /mnt/runtime/write/....
+- [SDcardFS] Do not set gid.
 - [SDcardFS] obb=$intsd/Android/obb
 
 **2018.12.12 (201812120)**
@@ -159,36 +166,3 @@ Uninstall
 - Minimum Magisk version supported is now 17.0.
 - $modData is now /data/media/0/fbind/ (formerly /data/media/fbind/).
 - Updated documentation
-
-**2018.12.7 (201812070)**
-- extsd_path is fully compatible with SDcardFS.
-- Note: due to poor internet connectivity, my online availability is currently limited (except on Facebook).
-
-**2018.12.6.1 (201812061)**
-- Fixed fbind --log
-- [Recovery] flash the same version again to disable the module
-
-**2018.12.6 (201812060)**
-- fbind -f/--fuse toggle force FUSE yes/no (default: no). This is automatically enabled during installation if /data/forcefuse exists or the zip name contains the word "fuse" (case insensitive). When enabled, it is a temporary workaround for multi-user bind-mounts. The setting persists across upgrades.
-- Updated documentation
-
-**2018.12.4 (201812040)**
-- Detach (autorun|service).sh from the parent shell
-- Extended modularization for easier maintenance
-- Improved legacy systems support
-- SDcard mount wait timeout set to 30 minutes to accommodate ROM initial setup and other long operations
-
-**2018.12.3 (201812030)**
-- Ability to easily bind-mount and unmount folders not listed in config.txt
-- Automatic FUSE/SDcarsFS handling -- users don't have to care about these anymore; fbind will work with whichever is enabled. ESDFS (Motorola's Emulated SDcard Filesystem) will remain unsupported until a user shares their /proc/mounts.
-- Fixed loop devices mounting issues; unmounting these with fbind -u is now supported.
-- Improved filtering feature (fbind <option(s)> <pattern|pattern2|...>)
-- LUKS unmounting and closing (fbind -u <pattern|pattern2|...>)
-- Major cosmetic changes
-- New log format
-- Redesigned fbind utilities -- run <fbind> on terminal or read README.md for details.
-- Removed bloatware
-- SDcard mount wait timeout set to 10 minutes
-- Support for /system install (legacy/Magisk-unsupported devices) and Magisk bleeding edge builds
-- Updated building and debugging tools
-- Updated documentation -- simplified, more user-friendly, more useful

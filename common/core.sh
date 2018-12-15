@@ -56,33 +56,27 @@ bind_mount() {
       [ $? -ne 0 ] && return 1
     fi
     mkdir -p "$1" "$2"
-    mount -o bind \""$1"\" \""$2"\"
+    mount -o rbind \""$1"\" \""$2"\"
     if grep -iq sdcardfs /proc/mounts && echo "$@" | grep -q $prefix; then
       if echo "$extsd" | grep -q $prefix; then
         $interactiveMode && echo "<${1/default/read}>" "<${2/default/read}>"
-        if ! mount -o remount,mask=6 \""${2/default/read}"\" 2>/dev/null; then
-          mount -o bind \""${1/default/read}"\" \""${2/default/read}"\" \
-            && mount -o remount,mask=6 \""${2/default/read}"\"
+        if ! mount -o remount,gid=9997,mask=6 \""${2/default/read}"\" 2>/dev/null; then
+          mount -o rbind,gid=9997,mask=6 \""${1/default/read}"\" \""${2/default/read}"\" \
+            && mount -o remount,gid=9997,mask=6 \""${2/default/read}"\"
         fi
-        if ! is_mounted "${2/default/write}"; then # some systems lock and reboot if this is remounted
+        if ! grep -iq noWriteRemount $config; then # some systems lock and reboot if this is remounted
           $interactiveMode && echo "<${1/default/write}>" "<${2/default/write}>"
-          if ! mount -o remount,mask=6 \""${2/default/write}"\" 2>/dev/null; then
-            mount -o bind \""${1/default/write}"\" \""${2/default/write}"\" \
-              && mount -o remount,mask=6 \""${2/default/write}"\"
+          if ! mount -o remount,gid=9997,mask=6 \""${2/default/write}"\" 2>/dev/null; then
+            mount -o rbind,gid=9997,mask=6 \""${1/default/write}"\" \""${2/default/write}"\" \
+              && mount -o remount,gid=9997,mask=6 \""${2/default/write}"\"
           fi
         fi
       else
         $interactiveMode && echo "<$1>" "<${2/default/read}>"
-        if ! mount -o remount,mask=6 \""${2/default/read}"\" 2>/dev/null; then
-          mount -o bind \""$1"\" \""${2/default/read}"\" \
-            && mount -o remount,mask=6 \""${2/default/read}"\"
-        fi
-        if ! is_mounted "${2/default/write}"; then # some systems lock and reboot if this is remounted
+        mount -o rbind \""$1"\" \""${2/default/read}"\"
+        if ! grep -iq noWriteRemount $config; then # some systems lock and reboot if this is remounted
           $interactiveMode && echo "<$1>" "<${2/default/write}>"
-          if ! mount -o remount,mask=6 \""${2/default/write}"\" 2>/dev/null; then
-            mount -o bind \""$1"\" \""${2/default/write}"\" \
-              && mount -o remount,mask=6 \""${2/default/write}"\"
-          fi
+          mount -o rbind \""$1"\" \""${2/default/write}"\"
         fi
       fi
     fi
@@ -187,6 +181,8 @@ apply_config() {
     intsd=$prefix/emulated/0
     obb=$intsd/Android/obb
     if echo "$extsd" | grep -q /mnt/media_rw/; then
+      extsd0=$extsd
+      extobb0=$extobb
       extsd=$prefix/${extsd##*/}
       extobb=$extsd/Android/obb
     fi
