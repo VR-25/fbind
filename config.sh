@@ -111,7 +111,7 @@ install_module() {
   trap debug_exit EXIT
 
   local binArch=$(get_cpu_arch)
-  config=/data/media/0/$MODID/config.txt
+  config=/data/adb/$MODID/config.txt
 
   # magisk.img mount path
   if $BOOTMODE; then
@@ -182,7 +182,7 @@ install_system() {
   local modId=fbind
   local binArch=$(get_cpu_arch)
   local modPath=/system/etc/$modId
-  local config=/data/media/0/$modId/config.txt
+  local config=/data/adb/$modId/config.txt
 
   grep_prop() {
     local REGEX="s/^$1=//p"
@@ -303,9 +303,11 @@ get_cpu_arch() {
 
 version_info() {
 
-  local c="" whatsNew="- [SDcardFS] Additional variables for config.txt: extsd0=/mnt/media_rw/SDcardName, extobb0=\$extsd0/Android/obb
-- [SDcardFS] Do not remount /mnt/runtime/(read|write)/... if \$extsd doesn't start with /mnt/runtime/.
-- [SDcardFS] Remounting /mnt/runtime/write/... may cause a system reboot. If this happens, go to recovery terminal and run \`echo noWriteRemount >>/sdcard/fbind/config.txt\`."
+  local c="" whatsNew="- [General] Fixes and optimizations
+- [General] modData=/data/adb/fbind to bypass FBE (File Based Encryption). Config survives factory resets if internal storage (data/media/) is not wiped.
+- [General] Updated documentation
+- [part()] Automatic LUKS decryption (\"blockDevice--L,PASSPHRASE\", optional)
+- [part()] Support for extra mount options (part -o <mount opts> <block device> <mount point> <fsck command (e.g., \"e2fsck -fy\"), optional>"
 
   set -euo pipefail
 
@@ -335,4 +337,5 @@ version_info() {
 
 
 # migrate modData
-mv /data/media/fbind /data/media/0/ 2>/dev/null
+mv /data/media/fbind /data/adb/ 2>/dev/null \
+  || mv /data/media/0/fbind /data/adb/ 2>/dev/null

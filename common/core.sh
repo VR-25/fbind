@@ -7,7 +7,7 @@ altExtsd=false
 tmp=/dev/fbind/tmp
 intsd=/data/media/0
 obb=/data/media/obb
-modData=/data/media/0/fbind
+modData=/data/adb/fbind
 config=$modData/config.txt
 alias mount="/sbin/su -Mc mount -o rw,noatime"
 [ -z "$interactiveMode" ] && interactiveMode=false
@@ -95,11 +95,16 @@ intsd_path() {
 }
 
 
-# mount partition
+# partition mounter
 # $1: <block device>, $2: <mount point>, $3: "fsck [OPTION(s)]" (filesystem specific, optional)
 part() {
-  local pPath=${1%--L}
-  local pName=$(echo ${1##*/} | sed 's/--L//')
+  if echo "$1 $2" | grep -q '^\-o '; then # using extra mount options
+    local extraOpts="$1 $2"
+    shift 2
+  fi
+  local pPath=${1%--L*}
+  local luksPass="${1#*--L,}"
+  local pName=$(echo ${1##*/} | sed 's/--L.*//')
 
   if ! is_mounted "$2"; then
     wait_storage $@
@@ -108,16 +113,20 @@ part() {
     wait_until_true [ -b $pPath ]
 
     if echo "$1" | grep -q '\-\-L'; then
-      if $interactiveMode; then
+      if $interactiveMode || [ -n "$luksPass" ]; then
         # open LUKS volume
-        $modPath/bin/cryptsetup luksOpen $pPath $pName
+        if [ -n "$luksPass" ]; then
+          echo -n "$luksPass" | $modPath/bin/cryptsetup luksOpen $pPath $pName
+        else
+          $modPath/bin/cryptsetup luksOpen $pPath $pName
+        fi
         [ -n "$3" ] && $3 /dev/mapper/$pName
-        mount -t $($modPath/bin/fstype /dev/mapper/$pName) /dev/mapper/$pName "$2"
+        mount -t $($modPath/bin/fstype /dev/mapper/$pName) $(echo -n $extraOpts) /dev/mapper/$pName "$2"
       fi
     else
       # mount regular partition
       [ -n "$3" ] && $3 $pPath
-      mount -t $($modPath/bin/fstype $pPath) $pPath "$2"
+      mount -t $($modPath/bin/fstype $pPath) $(echo -n $extraOpts) $pPath "$2"
     fi
 
     is_mounted "$2" || rmdir "$2" 2>/dev/null
@@ -164,12 +173,15 @@ loop() {
   if ! is_mounted "$2"; then
     e2fsck -fy "$1"
     mkdir -p "$2"
-    /sbin/imgtool mount "$1" "$2"
+    /sbin/su -Mc /sbin/imgtool mount "$1" "$2"
   fi
 }
 
 
 apply_config() {
+  grep -iq '^permissive' $config && setenforce 0
+  [ $config -nt /sdcard/fbind_config_backup.txt ] \
+    && cp -af $config /sdcard/fbind_config_backup.txt
   mkdir -p ${tmp%/*}
   grep -E '^extsd_path |^intsd_path |^part |^loop ' $config >$tmp.3
   . $tmp.3

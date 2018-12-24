@@ -53,7 +53,9 @@ To prevent fraud, DO NOT mirror any link associated with this project; DO NOT sh
 
 - obbf <package name>   Wrapper for `bind_mount $extobb/<package name> $obb/<package name>`, example: `obbf com.mygame.greatgame`
 
-- part <[block device] or [block device--L]> <mount point> <"fsck -OPTION(s)" (filesystem specific, optional)>   Auto-mount a partition. The --L flag is for LUKS volume, opened manually by running any `fbind` command. Filesystem is automatically detected. Example: `part /dev/block/mmcblk1p1 /mnt/_sdcard`
+- part <[block device] or [block device--L]> <mount point> <"fsck -OPTION(s)" (filesystem specific, optional)>   Auto-mount a partition. The --L flag is for LUKS volume, opened manually by running any `fbind` command. Filesystem is automatically detected. The first two arguments can be `-o <mount options>`, respectively. In that case, positional parameters are shifted. The defaut mount options are `rw` and `noatime`. Example 1: `part /dev/block/mmcblk1p1 /mnt/_sdcard`, example 2: `part -o nodev,noexec,nosuid /dev/block/mmcblk1p1 /mnt/_sdcard`
+
+- permissive   Set SELinux mode to permissive.
 
 - remove <path>   Auto-remove stubborn/unwanted file/folder from intsd & extsd. Examples: `remove Android/data/com.facebook.orca`, `remove DCIM/.8be0da06c44688f6.cfg`
 
@@ -67,8 +69,10 @@ To prevent fraud, DO NOT mirror any link associated with this project; DO NOT sh
 `Usage: fbind <options(s)> <argument(s)>
 
 -b/--bind_mount <target> <mount point>   Bind-mount folders not listed in config.txt. Extra SDcarsFS paths are handled automatically. Missing directories are created accordingly.
+  e.g., fbind -b /data/someFolder /data/mountHere
 
 -c/--config <editor [opts]>   Open config.txt w/ <editor [opts]> (default: vim/vi).
+  e.g., fbind -c nano -l
 
 -C/--cryptsetup <opt(s)> <arg(s)>   Run $modPath/bin/cryptsetup <opt(s)> <arg(s)>.
 
@@ -76,17 +80,24 @@ To prevent fraud, DO NOT mirror any link associated with this project; DO NOT sh
 
 -i/--info   Show debugging info.
 
--l/--log  <editor [opts]>   Open fbind-boot-$deviceName.log w/ <editor [opts]> (default: vim/vi).
+-l/--log  <editor [opts]>   Open fbind-boot-\$deviceName.log w/ <editor [opts]> (default: vim/vi).
+  e.g., fbind -l
 
 -m/--mount <pattern|pattern2|...>   Bind-mount matched or all (no arg).
+  e.g., fbind -m Whats|Downl|part
 
 -M/--move <pattern|pattern2|...>   Move matched or all (no args) to external storage. Only unmounted folders are affected.
+  e.g., fbind -M Download|obb
 
 -Mm <pattern|pattern2|...>   Same as "fbind -M <arg> && fbind -m <arg>"
+  e.g., fbind -Mm
 
 -r/--readme   Open README.md w/ <editor [opts]> (default: vim/vi).
 
--u/--unmount <pattern|pattern2|... or [mount point] >   Unmount matched or all (no arg). This works for regular bind-mounts, SDcardFS bind-mounts, regular partitions, loop devices and LUKS/LUKS2 encrypted volumes. Unmounting all doesn't affect partitions nor loop devices. These must be unmounted with a pattern argument. For unmounting folders bound with the -b/--bind_mount option, <mount point> must be supplied, since these pairs aren't in config.txt.`
+-u/--unmount <pattern|pattern2|... or [mount point] >   Unmount matched or all (no arg). This works for regular bind-mounts, SDcardFS bind-mounts, regular partitions, loop devices and LUKS/LUKS2 encrypted volumes. Unmounting all doesn't affect partitions nor loop devices. These must be unmounted with a pattern argument. For unmounting folders bound with the -b/--bind_mount option, <mount point> must be supplied, since these pairs aren't in config.txt.
+  e.g., fbind -u loop|part|Downl
+
+Run fbins -r to see the full documentation (enter ":q!" to quit).`
 
 
 
@@ -99,15 +110,17 @@ To prevent fraud, DO NOT mirror any link associated with this project; DO NOT sh
 
 - Busybox installation is unnecessary, unless fbind is installed into /system (legacy/Magisk-unsupported devices only).
 
+- Config survives factory resets if internal storage (data/media/) is not wiped.
+
 - Duplicate SDcard may show up in file managers.
 
 - [FUSE] Some users may need to set `intsd_path /storage/emulated/0` (default is /data/media/0).
 
-- Logs are stored at `/data/media/0/fbind/logs/`.
+- Logs are stored at `/data/adb/fbind/logs/`.
 
 - [SDcardFS] Remounting /mnt/runtime/write/... may cause a system reboot. If this happens, go to recovery terminal and run `echo noWriteRemount >>/sdcard/fbind/config.txt`.
 
-- There is a sample config in `$zipFile/common/` and `/data/media/0/fbind/info/`.
+- There is a sample config in `$zipFile/common/` and `/data/adb/fbind/info/`.
 
 
 
@@ -117,7 +130,7 @@ To prevent fraud, DO NOT mirror any link associated with this project; DO NOT sh
 First time
 1. Install from Magisk Manager or custom recovery.
 2. Reboot.
-3. Configure (/data/media/0/fbind/config.txt) -- recall that `fbind --config <editor [opts]>` opens config.txt w/ <editor [opts]> (default: vim/vi).
+3. Configure (/data/adb/fbind/config.txt) -- recall that `fbind -c <editor [opts]>` opens config.txt w/ <editor [opts]> (default: vim/vi).
 4. Move data to the SDcard with a file manager or `fbind --move` then run `fbind --mount`.
 
 Upgrades
@@ -150,6 +163,13 @@ Uninstall
 ---
 #### LATEST CHANGES
 
+**2018.12.24 (201812240)**
+- [General] Fixes and optimizations
+- [General] modData=/data/adb/fbind to bypass FBE (File Based Encryption). Config survives factory resets if internal storage (data/media/) is not wiped.
+- [General] Updated documentation
+- [part()] Automatic LUKS decryption (`blockDevice--L,PASSPHRASE`, optional)
+- [part()] Support for extra mount options (part -o <mount opts> <block device> <mount point> <fsck command (e.g., "e2fsck -fy"), optional>
+
 **2018.12.15 (201812150)**
 - [SDcardFS] Additional variables for config.txt: extsd0=/mnt/media_rw/SDcardName, extobb0=$extsd0/Android/obb
 - [SDcardFS] Do not remount /mnt/runtime/(read|write)/... if $extsd doesn't start with /mnt/runtime/.
@@ -159,10 +179,3 @@ Uninstall
 - [SDcardFS] Do not remount /mnt/runtime/write/....
 - [SDcardFS] Do not set gid.
 - [SDcardFS] obb=$intsd/Android/obb
-
-**2018.12.12 (201812120)**
-- General fixes and optimizations
-- Improved bind-mount algorithm, multi-user and SDcardFS support.
-- Minimum Magisk version supported is now 17.0.
-- $modData is now /data/media/0/fbind/ (formerly /data/media/fbind/).
-- Updated documentation
