@@ -4,7 +4,7 @@
 
 
 altExtsd=false
-tmp=/dev/fbind/tmp
+tmpf=/dev/fbind/tmpf
 intsd=/data/media/0
 obb=/data/media/obb
 modData=/data/adb/fbind
@@ -19,11 +19,11 @@ is_mounted() { mountpoint -q "$1" 2>/dev/null; }
 wait_until_true() {
   local count=0
   until [ $count -ge 1800 ]; do
-    count=$((count + 1))
+    count=$((count + 2))
     if [ -n "$1" ]; then
-      $@ && break || sleep 1
+      $@ && break || sleep 2
     else
-      is_mounted /storage/emulated && break || sleep 1
+      is_mounted /storage/emulated && break || sleep 2
     fi
   done
   grep -Eiq 'sdcardfs|fuse' /proc/mounts || exit 1
@@ -104,6 +104,7 @@ part() {
   fi
   local pPath=${1%--L*}
   local luksPass="${1#*--L,}"
+  [ "$luksPass" = "$1" ] && luksPass=""
   local pName=$(echo ${1##*/} | sed 's/--L.*//')
 
   if ! is_mounted "$2"; then
@@ -179,12 +180,18 @@ loop() {
 
 
 apply_config() {
+  [ -e $config ] || touch $config
+  ! $interactiveMode && grep -q noAutoMount $config && exit 0
   grep -iq '^permissive' $config && setenforce 0
-  [ $config -nt /sdcard/fbind_config_backup.txt ] \
-    && cp -af $config /sdcard/fbind_config_backup.txt
-  mkdir -p ${tmp%/*}
-  grep -E '^extsd_path |^intsd_path |^part |^loop ' $config >$tmp.3
-  . $tmp.3
+  # wait until data is decrypted
+  set +x
+  until [ -e /data/media/0/Android ]; do sleep 2; done
+  $interactiveMode || set -x
+  [ $config -nt /data/media/0/fbind_config_backup.txt ] \
+    && cp -af $config /data/media/0/fbind_config_backup.txt
+  mkdir -p ${tmpf%/*}
+  grep -E '^extsd_path |^intsd_path |^part |^loop ' $config >$tmpf.3
+  . $tmpf.3
   $altExtsd || default_extsd
 
   # SDcardFS mode
@@ -230,11 +237,11 @@ bind_mount_wrapper() {
   }
 
   if [ -n "$1" ]; then
-    grep -E '^int_extf|^bind_mount |^obb|^from_to |^target ' $config | grep -E "$1" >$tmp.3
+    grep -E '^int_extf|^bind_mount |^obb|^from_to |^target ' $config | grep -E "$1" >$tmpf.3
   else
-    grep -E '^int_extf|^bind_mount |^obb|^from_to |^target ' $config >$tmp.3
+    grep -E '^int_extf|^bind_mount |^obb|^from_to |^target ' $config >$tmpf.3
   fi
-  . $tmp.3
+  . $tmpf.3
   if $interactiveMode; then
     echo
     echo "- End"
@@ -249,6 +256,6 @@ remove_wrapper() {
       rm -rf "$intsd/$1" "$extsd/$1" 2>/dev/null
     fi
   }
-  grep '^remove ' $config >$tmp.3
-  . $tmp.3
+  grep '^remove ' $config >$tmpf.3
+  . $tmpf.3
 }

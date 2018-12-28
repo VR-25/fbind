@@ -8,8 +8,8 @@ main() {
 
   umask 000
   interactiveMode=true
+  modData=/data/adb/fbind
   modPath=/system/etc/fbind
-  modData=/data/media/0/fbind
   config=$modData/config.txt
 
   if [ ! -e $modPath/module.prop ]; then
@@ -42,12 +42,12 @@ main() {
   fi
 
   mkdir -p $modData
-  [ -e $config ] || touch $config
   . $modPath/core.sh
   apply_config # & handle LUKS
 
   case $1 in
-    -b|--bind_mount) bind_mount "$2" "$3" 1>/dev/null;;
+    -a|--auto-mount) toggle_auto_mount;;
+    -b|--bind-mount) bind_mount "$2" "$3" 1>/dev/null;;
     -c|--config) shift; edit $config $@;;
     -C|--cryptsetup) shift; $modPath/bin/cryptsetup $@;;
     -f|--fuse) force_fuse;;
@@ -107,33 +107,35 @@ $(grep versionCode $modPath/module.prop | sed 's/=/: /')
 
 Usage: fbind <options(s)> <argument(s)>
 
--b/--bind_mount <target> <mount point>   Bind-mount folders not listed in config.txt. Extra SDcarsFS paths are handled automatically. Missing directories are created accordingly.
+-a|--auto-mount   Toggle on boot auto-mount.
+
+-b|--bind-mount <target> <mount point>   Bind-mount folders not listed in config.txt. Extra SDcarsFS paths are handled automatically. Missing directories are created accordingly.
   e.g., fbind -b /data/someFolder /data/mountHere
 
--c/--config <editor [opts]>   Open config.txt w/ <editor [opts]> (default: vim/vi).
+-c|--config <editor [opts]>   Open config.txt w/ <editor [opts]> (default: vim/vi).
   e.g., fbind -c nano -l
 
--C/--cryptsetup <opt(s)> <arg(s)>   Run $modPath/bin/cryptsetup <opt(s)> <arg(s)>.
+-C|--cryptsetup <opt(s)> <arg(s)>   Run $modPath/bin/cryptsetup <opt(s)> <arg(s)>.
 
--f/--fuse   Toggle force FUSE yes/no (default: no). This is automatically enabled during installation if /data/forcefuse exists or the zip name contains the word "fuse" (case insensitive) or PROPFILE=true in config.sh. The setting persists across upgrades.
+-f|--fuse   Toggle force FUSE yes/no (default: no). This is automatically enabled during installation if /data/forcefuse exists or the zip name contains the word "fuse" (case insensitive) or PROPFILE=true in config.sh. The setting persists across upgrades.
 
--i/--info   Show debugging info.
+-i|--info   Show debugging info.
 
--l/--log  <editor [opts]>   Open fbind-boot-\$deviceName.log w/ <editor [opts]> (default: vim/vi).
+-l|--log  <editor [opts]>   Open fbind-boot-\$deviceName.log w/ <editor [opts]> (default: vim/vi).
   e.g., fbind -l
 
--m/--mount <pattern|pattern2|...>   Bind-mount matched or all (no arg).
+-m|--mount <pattern|pattern2|...>   Bind-mount matched or all (no arg).
   e.g., fbind -m Whats|Downl|part
 
--M/--move <pattern|pattern2|...>   Move matched or all (no args) to external storage. Only unmounted folders are affected.
+-M|--move <pattern|pattern2|...>   Move matched or all (no args) to external storage. Only unmounted folders are affected.
   e.g., fbind -M Download|obb
 
 -Mm <pattern|pattern2|...>   Same as "fbind -M <arg> && fbind -m <arg>"
   e.g., fbind -Mm
 
--r/--readme   Open README.md w/ <editor [opts]> (default: vim/vi).
+-r|--readme   Open README.md w/ <editor [opts]> (default: vim/vi).
 
--u/--unmount <pattern|pattern2|... or [mount point] >   Unmount matched or all (no arg). This works for regular bind-mounts, SDcardFS bind-mounts, regular partitions, loop devices and LUKS/LUKS2 encrypted volumes. Unmounting all doesn't affect partitions nor loop devices. These must be unmounted with a pattern argument. For unmounting folders bound with the -b/--bind_mount option, <mount point> must be supplied, since these pairs aren't in config.txt.
+-u|--unmount <pattern|pattern2|... or [mount point] >   Unmount matched or all (no arg). This works for regular bind-mounts, SDcardFS bind-mounts, regular partitions, loop devices and LUKS/LUKS2 encrypted volumes. Unmounting all doesn't affect partitions nor loop devices. These must be unmounted with a pattern argument. For unmounting folders bound with the -b|--bind-mount option, <mount point> must be supplied, since these pairs aren't in config.txt.
   e.g., fbind -u loop|part|Downl
 
 Run fbind -r to see the full documentation (enter ":q!" to quit).
@@ -153,7 +155,7 @@ info() {
   else
     cat $config | while read line; do
       if echo "$line" | grep -Eq '^from_to |^target '; then
-        echo $line | grep -q "$intsd/$(echo "$line" | awk '{print $2}' | sed 's/"//g' | sed "s/'//g")" /proc/mounts \
+        is_mounted "$intsd/$(echo "$line" | awk '{print $2}' | sed 's/"//g' | sed "s/'//g")" \
           && echo " $line <MOUNTED>" \
           || echo " $line <UNMOUNTED>"
       elif echo "$line" | grep -q '^obbf '; then
@@ -165,7 +167,7 @@ info() {
           && echo " $line <MOUNTED>" \
           || echo " $line <UNMOUNTED>"
       elif echo "$line" | grep -Eq '^part |^loop |^bind_mount '; then
-        echo $line | grep -q "$(echo "$line" | awk '{print $3}' | sed 's/"//g' | sed "s/'//g")" /proc/mounts \
+        is_mounted "$(eval echo "$line" | awk '{print $3}' | sed 's/"//g' | sed "s/'//g")" \
           && echo " $line <MOUNTED>" \
           || echo " $line <UNMOUNTED>"
       else
@@ -195,12 +197,12 @@ mv_data_wrapper() {
   }
 
   if [ -n "$1" ]; then
-    grep -E '^int_extf|^bind_mount |^obb|^from_to |^target ' $config 2>/dev/null | grep -E "$1" 1>$tmp.3 2>/dev/null
+    grep -E '^int_extf|^bind_mount |^obb|^from_to |^target ' $config 2>/dev/null | grep -E "$1" 1>$tmpf.3 2>/dev/null
   else
-    grep -E '^int_extf|^bind_mount |^obb|^from_to |^target ' $config 1>$tmp.3 2>/dev/null
+    grep -E '^int_extf|^bind_mount |^obb|^from_to |^target ' $config 1>$tmpf.3 2>/dev/null
   fi
 
-  . $tmp.3
+  . $tmpf.3
   echo
   echo "- End"
 }
@@ -237,13 +239,13 @@ unmount_wrapper() {
           && $modPath/bin/cryptsetup luksClose $(echo ${1##*/} | sed 's/--L.*//')
       }
 
-      grep -E '^int_extf|^bind_mount |^obb|^from_to |^target |^loop |^part ' $config | grep -E "$1" 2>/dev/null >$tmp.3
+      grep -E '^int_extf|^bind_mount |^obb|^from_to |^target |^loop |^part ' $config | grep -E "$1" 2>/dev/null >$tmpf.3
 
     else
-      grep -E '^int_extf|^bind_mount |^obb|^from_to |^target ' $config >$tmp.3
+      grep -E '^int_extf|^bind_mount |^obb|^from_to |^target ' $config >$tmpf.3
     fi
 
-    . $tmp.3
+    . $tmpf.3
   fi
   echo
   echo "- End"
@@ -270,6 +272,17 @@ force_fuse() {
     mv $modPath/FUSE.prop $modPath/system.prop
     echo "(i) Force FUSE: yes"
     echo "- Change takes effect after a reboot"
+  fi
+}
+
+
+toggle_auto_mount() {
+  if grep -q noAutoMount $config; then
+    sed -i /noAutoMount/d $config
+    echo "(i) Auto-mount disabled"
+  else
+    echo noAutoMount >>$config
+    echo "(i) Auto-mount enabled"
   fi
 }
 

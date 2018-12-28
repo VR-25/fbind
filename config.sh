@@ -303,11 +303,11 @@ get_cpu_arch() {
 
 version_info() {
 
-  local c="" whatsNew="- [General] Fixes and optimizations
-- [General] modData=/data/adb/fbind to bypass FBE (File Based Encryption). Config survives factory resets if internal storage (data/media/) is not wiped.
-- [General] Updated documentation
-- [part()] Automatic LUKS decryption (\"blockDevice--L,PASSPHRASE\", optional)
-- [part()] Support for extra mount options (part -o <mount opts> <block device> <mount point> <fsck command (e.g., \"e2fsck -fy\"), optional>"
+  local c="" whatsNew="- Fixed LUKS opening|mounting issues
+- General fixes and optimizations
+- Toggle \`noAutoMount\` (fbind -a|--auto-mount)
+- Updated documentation
+- Wait until data is decrypted"
 
   set -euo pipefail
 
@@ -339,3 +339,4 @@ version_info() {
 # migrate modData
 mv /data/media/fbind /data/adb/ 2>/dev/null \
   || mv /data/media/0/fbind /data/adb/ 2>/dev/null
+rm -rf /data/media/0/fbind 2>/dev/null

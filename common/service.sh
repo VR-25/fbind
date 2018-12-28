@@ -6,7 +6,7 @@
 
 (umask 000
 modPath=/system/etc/fbind
-log=/data/media/0/fbind/logs/fbind-boot-$(getprop ro.product.device | grep . || getprop ro.build.product).log
+log=/data/adb/fbind/logs/fbind-boot-$(getprop ro.product.device | grep .. || getprop ro.build.product).log
 [ -e $modPath/module.prop ] || modPath=/sbin/.core/img/fbind
 [ -e $modPath/module.prop ] || modPath=/sbin/.magisk/img/fbind
 
@@ -16,7 +16,7 @@ mkdir -p ${log%/*}
 exec 1>$log 2>&1
 date
 grep versionCode $modPath/module.prop
-echo "Device=$(getprop ro.product.device | grep . || getprop ro.build.product)"
+echo "Device=$(getprop ro.product.device | grep .. || getprop ro.build.product)"
 echo
 set -x
  
