@@ -3,7 +3,7 @@
 
 
 # restore config
-[ -e $config ] || cp -af /sdcard/fbind_config_backup.txt $config 2>/dev/null
+[ -e $config ] || cp -af /data/media/0/.fbind_config_backup.txt $config 2>/dev/null
 
 
 # backup

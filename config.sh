@@ -284,7 +284,7 @@ debug_exit() {
 # module.prop reader
 i() {
   local p=$INSTALLER/module.prop
-  [ -f $p ] || p=$MODPATH/module.prop
+  [ -e $p ] || p=$MODPATH/module.prop
   grep_prop $1 $p
 }
 
@@ -302,14 +302,8 @@ get_cpu_arch() {
 
 
 version_info() {
-
-  local c="" whatsNew="- Fixed LUKS opening|mounting issues
-- General fixes and optimizations
-- Toggle \`noAutoMount\` (fbind -a|--auto-mount)
-- Updated documentation
-- Wait until data is decrypted"
-
-  set -euo pipefail
+  local line=""
+  local println=false
 
   # a note on untested Magisk versions
   if [ ${MAGISK_VER/.} -gt 180 ]; then
@@ -320,10 +314,11 @@ version_info() {
 
   ui_print " "
   ui_print "  WHAT'S NEW"
-  echo "$whatsNew" | \
-    while read c; do
-      ui_print "    $c"
-    done
+  cat ${config%/*}/info/README.md | while read line; do
+    echo "$line" | grep -q '\*\*.*\(.*\)\*\*' && println=true
+    $println && echo "$line" | grep -q '^$' && break
+    $println && echo "    $line" | grep -v '\*\*.*\(.*\)\*\*'
+  done
   ui_print " "
 
   ui_print "  LINKS"
@@ -336,7 +331,11 @@ version_info() {
 }
 
 
-# migrate modData
-mv /data/media/fbind /data/adb/ 2>/dev/null \
-  || mv /data/media/0/fbind /data/adb/ 2>/dev/null
-rm -rf /data/media/0/fbind 2>/dev/null
+# migrate data
+{
+  mv /data/media/fbind /data/adb/ \
+    || mv /data/media/0/fbind /data/adb/
+  rm -rf /data/media/0/fbind
+  mv /data/media/0/fbind_config_backup.txt \
+    /data/media/0/.fbind_config_backup.txt
+} 2>/dev/null

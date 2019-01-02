@@ -1,6 +1,6 @@
 #!/system/bin/sh
 # fbind init
-# Copyright (C) 2017-2018, VR25 @ xda-developers
+# Copyright (C) 2017-2019, VR25 @ xda-developers
 # License: GPL V3+
 
 
@@ -21,6 +21,7 @@ echo
 set -x
  
 . $modPath/core.sh
+grep -q noAutoMount $config && exit 0
 apply_config # and mount partitions & loop devices
 grep -Eq '^int_extf|^bind_mount |^obb.*|^from_to |^target ' $config && bind_mount_wrapper
 grep -q '^remove ' $config && remove_wrapper

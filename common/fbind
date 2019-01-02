@@ -1,6 +1,6 @@
 #!/system/bin/sh
 # fbind Utilities
-# Copyright (C) 2017-2018, VR25 @ xda-developers
+# Copyright (C) 2017-2019, VR25 @ xda-developers
 # License: GPL V3+
 
 
@@ -51,14 +51,16 @@ main() {
     -c|--config) shift; edit $config $@;;
     -C|--cryptsetup) shift; $modPath/bin/cryptsetup $@;;
     -f|--fuse) force_fuse;;
+    -h|--help) usage;;
     -i|--info) info;;
     -l|--log) shift; edit $modData/logs/fbind-boot*.log $@;;
     -m|--mount) bind_mount_wrapper "$2";;
     -M|--move) mv_data_wrapper "$2";;
-    -Mm) mv_data_wrapper "$2"; echo; bind_mount_wrapper "$2";;
+    -Mm) fbind -M "$2"; fbind -m "$2";;
     -r|--readme) shift; edit $modData/info/README.md $@;;
+    -R|--remove) shift; remove_wrapper "$@";;
     -u|--unmount) unmount_wrapper "$2";;
-    *) usage;;
+    *) main_menu;;
   esac
 }
 
@@ -100,12 +102,11 @@ unmount() {
 
 usage() {
   cat <<USAGE
-fbind utilities
-Copyright (C) 2017-2018, VR25 @ xda-developers
-License: GPL V3+
-$(grep versionCode $modPath/module.prop | sed 's/=/: /')
+$([ -n "$1" ] && echo "All commands" || intro)
 
-Usage: fbind <options(s)> <argument(s)>
+Usage: fbind or fbind <options(s)> <argument(s)>
+
+<no options>   Launch the folder mounting wizard.
 
 -a|--auto-mount   Toggle on boot auto-mount.
 
@@ -118,6 +119,8 @@ Usage: fbind <options(s)> <argument(s)>
 -C|--cryptsetup <opt(s)> <arg(s)>   Run $modPath/bin/cryptsetup <opt(s)> <arg(s)>.
 
 -f|--fuse   Toggle force FUSE yes/no (default: no). This is automatically enabled during installation if /data/forcefuse exists or the zip name contains the word "fuse" (case insensitive) or PROPFILE=true in config.sh. The setting persists across upgrades.
+
+-h|--help  List all commands.
 
 -i|--info   Show debugging info.
 
@@ -135,10 +138,11 @@ Usage: fbind <options(s)> <argument(s)>
 
 -r|--readme   Open README.md w/ <editor [opts]> (default: vim/vi).
 
+-R|--remove <target>   Remove stubborn/unwanted file/folder from \$intsd and \$extsd. <target> is optional. By default, all <remove> lines from config are included.
+  e.g., fbind -R Android/data/com.facebook.orca
+
 -u|--unmount <pattern|pattern2|... or [mount point] >   Unmount matched or all (no arg). This works for regular bind-mounts, SDcardFS bind-mounts, regular partitions, loop devices and LUKS/LUKS2 encrypted volumes. Unmounting all doesn't affect partitions nor loop devices. These must be unmounted with a pattern argument. For unmounting folders bound with the -b|--bind-mount option, <mount point> must be supplied, since these pairs aren't in config.txt.
   e.g., fbind -u loop|part|Downl
-
-Run fbind -r to see the full documentation (enter ":q!" to quit).
 USAGE
 }
 
@@ -180,7 +184,6 @@ info() {
 
 mv_data_wrapper() {
   echo "Moving..."
-
   obb() { mv_data $obb $extobb; }
   bind_mount() { mv_data "$2" "$1"; }
   obbf() { mv_data $obb/$1 $extobb/$1; }
@@ -197,12 +200,13 @@ mv_data_wrapper() {
   }
 
   if [ -n "$1" ]; then
-    grep -E '^int_extf|^bind_mount |^obb|^from_to |^target ' $config 2>/dev/null | grep -E "$1" 1>$tmpf.3 2>/dev/null
+    grep -E '^int_extf|^bind_mount |^obb|^from_to |^target ' $config 2>/dev/null | grep -E "$1" 1>$tmpf 2>/dev/null
   else
-    grep -E '^int_extf|^bind_mount |^obb|^from_to |^target ' $config 1>$tmpf.3 2>/dev/null
+    grep -E '^int_extf|^bind_mount |^obb|^from_to |^target ' $config 1>$tmpf 2>/dev/null
   fi
 
-  . $tmpf.3
+  . $tmpf
+  rm $tmpf
   echo
   echo "- End"
 }
@@ -211,7 +215,6 @@ mv_data_wrapper() {
 unmount_wrapper() {
   echo "Unmounting..."
   echo
-
   if is_mounted "$1"; then
     unmount "$1"
 
@@ -239,13 +242,14 @@ unmount_wrapper() {
           && $modPath/bin/cryptsetup luksClose $(echo ${1##*/} | sed 's/--L.*//')
       }
 
-      grep -E '^int_extf|^bind_mount |^obb|^from_to |^target |^loop |^part ' $config | grep -E "$1" 2>/dev/null >$tmpf.3
+      grep -E '^int_extf|^bind_mount |^obb|^from_to |^target |^loop |^part ' $config | grep -E "$1" 2>/dev/null >$tmpf
 
     else
-      grep -E '^int_extf|^bind_mount |^obb|^from_to |^target ' $config >$tmpf.3
+      grep -E '^int_extf|^bind_mount |^obb|^from_to |^target ' $config >$tmpf
     fi
 
-    . $tmpf.3
+    . $tmpf
+    rm $tmpf
   fi
   echo
   echo "- End"
@@ -284,6 +288,172 @@ toggle_auto_mount() {
     echo noAutoMount >>$config
     echo "(i) Auto-mount enabled"
   fi
+}
+
+
+main_menu() {
+  local target=""
+  [ -z "$modified" ] && modified=false
+  [ -z "$alreadyMoved" ] && alreadyMoved=false
+  [ -n "$1" ] && echo || reset
+  echo
+  [ -n "$1" ] && echo "Main Menu" || intro
+  echo
+  PS3="
+--> OPTION <enter>: "
+  cat <<SKIP >$tmpf # ...because non-interactive shells don't like the <select ... do ...; done> construct, but I do. Does that make me an interactive shell?
+  select target in non_media_to_external \
+    media_to_external \
+    obb_to_external \
+    documentation \
+    all_commands \
+    exit_wizard \
+    boot_log
+  do
+    \$target
+    break
+  done
+SKIP
+  . $tmpf
+}
+
+
+media_to_external() {
+  local target="" line="" ans=no
+  reset
+  echo
+  echo "(i) Input targets, one at a time (e.g., $([ -n "$2" ] && echo "$2" || echo "DCIM/Camera") <enter>). Press <enter> again when done."
+  echo
+
+  while read target; do
+    if [ -n "$target" ]; then
+      if [ -n "$line" ]; then
+        if [ -n "$1" ]; then
+          grep -q "$target" $config || line="$line
+$1 \"$target\""
+        else
+          grep -q "$target" $config || line="$line
+from_to \"$target\" \".fbind/$target\""
+        fi
+      else
+        if [ -n "$1" ]; then
+          grep -q "$target" $config || line="$1 \"$target\""
+        else
+          grep -q "$target" $config || line="from_to \"$target\" \".fbind/$target\""
+        fi
+      fi
+    else
+      echo "$line" >$tmpf
+      break
+    fi
+  done
+
+  if grep -q .. $tmpf; then
+    echo "Generated config:"
+    cat $tmpf | tee -a $config
+    modified=true
+    rm $tmpf
+    echo
+    echo -n "(?) Move data & bind folders now (y/N)? "
+    read ans
+    if echo $ans | grep -iq y; then
+      fbind -M
+      fbind -m
+      alreadyMoved=true
+    fi
+  fi
+  main_menu noReset
+}
+
+
+non_media_to_external() {
+  media_to_external target "Android/data <enter>, TitaniumBackup"
+}
+
+
+obb_to_external() {
+  local option=""
+  echo
+  cat <<SKIP >$tmpf
+  select option in all specific; do
+    case \$option in
+      all)
+        if ! grep -Eq '^obb$|^obb ' $config; then
+          echo obb >>$config
+          modified=true
+          echo
+          echo Done
+          echo -n "(?) Move data & bind folders now (y/N)? "
+          read ans
+          if echo $ans | grep -iq y; then
+            fbind -M
+            fbind -m
+            alreadyMoved=true
+          fi
+        fi
+        main_menu noReset
+      ;;
+      *)
+        media_to_external obbf com.madgames.greatgame
+      ;;
+    esac
+    break
+  done
+SKIP
+  . $tmpf
+}
+
+
+exit_wizard() {
+  local ans=no
+  echo
+  if $modified && ! $alreadyMoved; then
+    echo -n "(?) Move data & bind folders now (y/N)? "
+    read ans
+    if echo $ans | grep -iq y; then
+      fbind -M
+      fbind -m
+    fi
+  fi
+  rm $tmpf 2>/dev/null
+  exit 0
+}
+
+
+all_commands() {
+  echo
+  usage noIntro
+  echo
+  main_menu noReset
+}
+
+
+doc_and_log() {
+  echo
+  echo "(i) Type \":q! <enter>\" to return to the main menu."
+  sleep 3
+  edit $modData/$1
+  main_menu noReset
+}
+
+
+documentation() {
+  doc_and_log info/README.md
+}
+
+
+boot_log() {
+  doc_and_log logs/fbind-boot*.log
+}
+
+
+intro() {
+  cat <<INTRO
+fbind
+Copyright (C) 2017-2019, VR25 @ xda-developers
+License: GPL V3+
+$(grep versionCode $modPath/module.prop | sed 's/=/: /')
+INTRO
 }
 
 

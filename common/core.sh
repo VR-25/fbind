@@ -1,5 +1,5 @@
 # fbind core
-# Copyright (C) 2017-2018, VR25 @ xda-developers
+# Copyright (C) 2017-2019, VR25 @ xda-developers
 # License: GPL V3+
 
 
@@ -180,18 +180,24 @@ loop() {
 
 
 apply_config() {
-  [ -e $config ] || touch $config
-  ! $interactiveMode && grep -q noAutoMount $config && exit 0
+  [ -e $config ] || cp -af /data/media/0/.fbind_config_backup.txt $config 2>/dev/null || touch $config
   grep -iq '^permissive' $config && setenforce 0
+  # fsck sdcard
+  if grep -v 'part ' $config | grep -q 'fsck.*mmcblk1' && ! $interactiveMode; then
+    (until [ -b $(grep -v 'part ' $config | grep 'fsck.*mmcblk1' | awk '{print $3}') ]; do sleep 1; done
+    fsck=$(grep -v 'part ' $config | grep 'fsck.*mmcblk1')
+    $fsck) &
+  fi
   # wait until data is decrypted
   set +x
   until [ -e /data/media/0/Android ]; do sleep 2; done
   $interactiveMode || set -x
-  [ $config -nt /data/media/0/fbind_config_backup.txt ] \
-    && cp -af $config /data/media/0/fbind_config_backup.txt
+  [ $config -nt /data/media/0/.fbind_config_backup.txt ] \
+    && cp -af $config /data/media/0/.fbind_config_backup.txt
   mkdir -p ${tmpf%/*}
-  grep -E '^extsd_path |^intsd_path |^part |^loop ' $config >$tmpf.3
-  . $tmpf.3
+  grep -E '^extsd_path |^intsd_path |^part |^loop ' $config >$tmpf
+  . $tmpf
+  rm $tmpf
   $altExtsd || default_extsd
 
   # SDcardFS mode
@@ -237,11 +243,12 @@ bind_mount_wrapper() {
   }
 
   if [ -n "$1" ]; then
-    grep -E '^int_extf|^bind_mount |^obb|^from_to |^target ' $config | grep -E "$1" >$tmpf.3
+    grep -E '^int_extf|^bind_mount |^obb|^from_to |^target ' $config | grep -E "$1" >$tmpf
   else
-    grep -E '^int_extf|^bind_mount |^obb|^from_to |^target ' $config >$tmpf.3
+    grep -E '^int_extf|^bind_mount |^obb|^from_to |^target ' $config >$tmpf
   fi
-  . $tmpf.3
+  . $tmpf
+  rm $tmpf
   if $interactiveMode; then
     echo
     echo "- End"
@@ -253,9 +260,12 @@ bind_mount_wrapper() {
 remove_wrapper() {
   remove() {
     if [ -e "$intsd/$1" ] || [ -e "$extsd/$1" ]; then
+      $interactiveMode && echo "- $1"
       rm -rf "$intsd/$1" "$extsd/$1" 2>/dev/null
     fi
   }
-  grep '^remove ' $config >$tmpf.3
-  . $tmpf.3
+  [ -n "$1" ] && echo "remove \"$1\"" >$tmpf
+  grep '^remove ' $config >>$tmpf
+  . $tmpf
+  rm $tmpf
 }

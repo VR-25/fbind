@@ -1,5 +1,5 @@
 # fbind
-## Copyright (C) 2017-2018, VR25 @ xda-developers
+## Copyright (C) 2017-2019, VR25 @ xda-developers
 ### License: GPL V3+
 #### README.md
 
@@ -19,7 +19,7 @@ To prevent fraud, DO NOT mirror any link associated with this project; DO NOT sh
 ---
 #### DESCRIPTION
 
-- Advanced mounting utility for folders, EXT4 images (loop devices), LUKS/LUKS2 encrypted volumes, regular partitions and more...
+This is an advanced mounting utility for folders, EXT4 images (loop devices), LUKS/LUKS2 encrypted volumes, regular partitions and more.
 
 
 
@@ -37,17 +37,26 @@ To prevent fraud, DO NOT mirror any link associated with this project; DO NOT sh
 ---
 #### CONFIG SYNTAX
 
-- bind_mount <target> <mount point>   Generic bind-mount, example: `bind_mount $extsd/loop_device/app_data/spotify /data/data/com.spotify.music`
+- bind_mount <target> <mount point>   Generic bind-mount
+  - e.g., `bind_mount $extsd/loop_device/app_data/spotify /data/data/com.spotify.music`
 
-- extsd_path <path>   Use <path> as extsd. Example: `extsd_path /mnt/mmcblk1p2`
+- extsd_path <path>   Use <path> as extsd.
+  - e.g., `extsd_path /mnt/mmcblk1p2`
 
-- from_to <source> <dest>   Wrapper for `bind_mount <$extsd/[path]> <$intsd/[path]>`, example: `from_to WhatsApp .WhatsApp`
+- from_to <source> <dest>   Wrapper for `bind_mount <$extsd/[path]> <$intsd/[path]>`
+  - e.g., `from_to WhatsApp .WhatsApp`
 
-- int_extf <path>   Bind-mount the entire user 0 (internal) storage to `$extsd/<path>` (implies obb). If `<path>` is not supplied, `.fbind` is used. Example: `int_extf .external_storage`
+- <fsck> <block device>   Check/fix external partition before system gets a chance to mount it. This is great for EXT[2-4] filesystems (e2fsck -fy is stable and fast) and NOT recommend for F2FS (fsck.f2fs can be extremely slow and cause/worsen corruption).
+  - e.g., `e2fsck -fy /dev/block/mmcblk1p1`
 
-- intsd_path <path>   Use <path> as intsd. Example: `intsd_path /storage/emulated/0`
+- int_extf <path>   Bind-mount the entire user 0 (internal) storage to `$extsd/<path>` (implies obb). If `<path>` is not supplied, `.fbind` is used.
+  - e.g., `int_extf .external_storage`
 
-- loop <.img file> <mount point>   Mount an EXT4 .img file (loop device). `e2fsck -fy <.img file>` is executed first. Example: `loop $extsd/loop.img $intsd/loop`
+- intsd_path <path>   Use <path> as intsd.
+  - e.g., `intsd_path /storage/emulated/0`
+
+- loop <.img file> <mount point>   Mount an EXT4 .img file (loop device). `e2fsck -fy <.img file>` is executed first.
+  - e.g., `loop $extsd/loop.img $intsd/loop`
 
 - noAutoMount   Disable on boot auto-mount.
 
@@ -55,22 +64,29 @@ To prevent fraud, DO NOT mirror any link associated with this project; DO NOT sh
 
 - obb   Wrapper for `bind_mount $extobb $obb`
 
-- obbf <package name>   Wrapper for `bind_mount $extobb/<package name> $obb/<package name>`, example: `obbf com.mygame.greatgame`
+- obbf <package name>   Wrapper for `bind_mount $extobb/<package name> $obb/<package name>`
+  - e.g., `obbf com.mygame.greatgame`
 
-- part <[block device] or [block device--L]> <mount point> <"fsck -OPTION(s)" (filesystem specific, optional)>   Auto-mount a partition. The --L flag is for LUKS volume, opened manually by running any `fbind` command. Filesystem is automatically detected. The first two arguments can be `-o <mount options>`, respectively. In that case, positional parameters are shifted. The defaut mount options are `rw` and `noatime`. Example 1: `part /dev/block/mmcblk1p1 /mnt/_sdcard`, example 2: `part -o nodev,noexec,nosuid /dev/block/mmcblk1p1 /mnt/_sdcard`
+- part <[block device] or [block device--L]> <mount point> <"fsck -OPTION(s)" (filesystem specific, optional)>   Auto-mount a partition. The --L flag is for LUKS volume, opened manually by running any `fbind` command. Filesystem is automatically detected. The first two arguments can be `-o <mount options>`, respectively. In that case, positional parameters are shifted. The defaut mount options are `rw` and `noatime`.
+  - e.g., `part /dev/block/mmcblk1p1 /mnt/_sdcard`
+  - e.g., `part -o nodev,noexec,nosuid /dev/block/mmcblk1p1 /mnt/_sdcard`
 
 - permissive   Set SELinux mode to permissive.
 
-- remove <path>   Auto-remove stubborn/unwanted file/folder from intsd & extsd. Examples: `remove Android/data/com.facebook.orca`, `remove DCIM/.8be0da06c44688f6.cfg`
+- remove <target>   Auto-remove stubborn/unwanted file/folder from $intsd & $extsd.
+  - e.g, `remove Android/data/com.facebook.orca`, `remove DCIM/.8be0da06c44688f6.cfg`
 
-- target <path>   Wrapper for `bind_mount <$extsd/[path]> <$intsd/[same path]>`, example: `target Android/data/com.google.android.youtube`
+- target <path>   Wrapper for `bind_mount <$extsd/[path]> <$intsd/[same path]>`
+  - e.g., `target Android/data/com.google.android.youtube`
 
 
 
 ---
 #### TERMINAL
 
-`Usage: fbind <options(s)> <argument(s)>
+`Usage: fbind or fbind <options(s)> <argument(s)>
+
+<no options>   Launch the folder mounting wizard.
 
 -a|--auto-mount   Toggle on boot auto-mount.
 
@@ -83,6 +99,8 @@ To prevent fraud, DO NOT mirror any link associated with this project; DO NOT sh
 -C|--cryptsetup <opt(s)> <arg(s)>   Run $modPath/bin/cryptsetup <opt(s)> <arg(s)>.
 
 -f|--fuse   Toggle force FUSE yes/no (default: no). This is automatically enabled during installation if /data/forcefuse exists or the zip name contains the word "fuse" (case insensitive) or PROPFILE=true in config.sh. The setting persists across upgrades.
+
+-h|--help  List all commands.
 
 -i|--info   Show debugging info.
 
@@ -100,10 +118,11 @@ To prevent fraud, DO NOT mirror any link associated with this project; DO NOT sh
 
 -r|--readme   Open README.md w/ <editor [opts]> (default: vim/vi).
 
+-R|--remove <target>   Remove stubborn/unwanted file/folder from $intsd and $extsd. <target> is optional. By default, all <remove> lines from config are included.
+  e.g., fbind -R Android/data/com.facebook.orca
+
 -u|--unmount <pattern|pattern2|... or [mount point] >   Unmount matched or all (no arg). This works for regular bind-mounts, SDcardFS bind-mounts, regular partitions, loop devices and LUKS/LUKS2 encrypted volumes. Unmounting all doesn't affect partitions nor loop devices. These must be unmounted with a pattern argument. For unmounting folders bound with the -b|--bind_mount option, <mount point> must be supplied, since these pairs aren't in config.txt.
   e.g., fbind -u loop|part|Downl
-
-Run fbins -r to see the full documentation (enter ":q!" to quit).`
 
 
 
@@ -169,6 +188,12 @@ Uninstall
 ---
 #### LATEST CHANGES
 
+**2019.1.2 (201901020)**
+- fbind -R|--remove <target>: remove stubborn/unwanted file/folder from $intsd and $extsd. <target> is optional. By default, all <remove> lines from config are included.
+- fbind <no options>: launch the folder mounting wizard.
+- fsck SDcard, refer to README.md (fbind -r) for details.
+- Major fixes & optimizations
+
 **2018.12.28 (201812280)**
 - Fixed LUKS opening|mounting issues
 - Fixed wrong modData path
@@ -183,8 +208,3 @@ Uninstall
 - [General] Updated documentation
 - [part()] Automatic LUKS decryption (`blockDevice--L,PASSPHRASE`, optional)
 - [part()] Support for extra mount options (part -o <mount opts> <block device> <mount point> <fsck command (e.g., "e2fsck -fy"), optional>
-
-**2018.12.15 (201812150)**
-- [SDcardFS] Additional variables for config.txt: extsd0=/mnt/media_rw/SDcardName, extobb0=$extsd0/Android/obb
-- [SDcardFS] Do not remount /mnt/runtime/(read|write)/... if $extsd doesn't start with /mnt/runtime/.
-- [SDcardFS] Remounting /mnt/runtime/write/... may cause a system reboot. If this happens, go to recovery terminal and run `echo noWriteRemount >>/sdcard/fbind/config.txt`.
