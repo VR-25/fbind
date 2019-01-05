@@ -88,7 +88,7 @@ This is an advanced mounting utility for folders, EXT4 images (loop devices), LU
 
 <no options>   Launch the folder mounting wizard.
 
--a|--auto-mount   Toggle on boot auto-mount.
+-a|--auto-mount   Toggle on boot auto-mount (default: enabled).
 
 -b|--bind-mount <target> <mount point>   Bind-mount folders not listed in config.txt. Extra SDcarsFS paths are handled automatically. Missing directories are created accordingly.
   e.g., fbind -b /data/someFolder /data/mountHere
@@ -141,9 +141,11 @@ This is an advanced mounting utility for folders, EXT4 images (loop devices), LU
 
 - [FUSE] Some users may need to set `intsd_path /storage/emulated/0` (default is /data/media/0).
 
+- If you stumble upon inaccessible folders or read-only access, try forcing FUSE mode (fbind -f). If your system doesn't support FUSE, it will bootloop, but fbind will notice and automatically revert the change.
+
 - Logs are stored at `/data/adb/fbind/logs/`.
 
-- [SDcardFS] Remounting /mnt/runtime/write/... may cause a system reboot. If this happens, go to recovery terminal and run `echo noWriteRemount >>/data/adb/fbind/config.txt`.
+- [SDcardFS] Remounting /mnt/runtime/write/... may cause a system reboot. If this happens, fbind remembers to skip that next times.
 
 - There is a sample config in `$zipFile/common/` and `/data/adb/fbind/info/`.
 
@@ -188,6 +190,14 @@ Uninstall
 ---
 #### LATEST CHANGES
 
+**2019.1.5 (201901050)**
+- Fixed auto-mount toggle (fbind -a) inverted output.
+- Forcing FUSE mode (fbind -f) causes bootloop if the system doesn't support that. When this happens, changes are automatically reverted.
+- General optimizations
+- Under SDcardFS, remounting /mnt/runtime/write/... may cause a system reboot. If this happens, fbind remembers to skip that next times (noWriteRemount).
+- Updated building tools
+- Wizard has a "troubleshooting" option.
+
 **2019.1.2 (201901020)**
 - fbind -R|--remove <target>: remove stubborn/unwanted file/folder from $intsd and $extsd. <target> is optional. By default, all <remove> lines from config are included.
 - fbind <no options>: launch the folder mounting wizard.
@@ -201,10 +211,3 @@ Uninstall
 - Toggle `noAutoMount` (fbind -a|--auto-mount)
 - Updated documentation
 - Wait until data is decrypted
-
-**2018.12.24 (201812240)**
-- [General] Fixes and optimizations
-- [General] modData=/data/adb/fbind to bypass FBE (File Based Encryption). Config survives factory resets if internal storage (data/media/) is not wiped.
-- [General] Updated documentation
-- [part()] Automatic LUKS decryption (`blockDevice--L,PASSPHRASE`, optional)
-- [part()] Support for extra mount options (part -o <mount opts> <block device> <mount point> <fsck command (e.g., "e2fsck -fy"), optional>

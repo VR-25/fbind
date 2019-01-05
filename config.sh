@@ -41,7 +41,7 @@ LATESTARTSERVICE=true
 
 print_modname() {
   ui_print " "
-  ui_print "$(i name) $(i version)"
+  ui_print "$(i name | sed 's/ (.*//') $(i version)"
   ui_print "$(i author)"
   ui_print " "
 }

@@ -21,8 +21,22 @@ echo
 set -x
  
 . $modPath/core.sh
-grep -q noAutoMount $config && exit 0
+
+# disable force FUSE if that causes bootloop
+if [ -e $modData/.fuse ]; then
+  mv $modPath/system.prop $modPath/FUSE.prop 2>/dev/null
+  rm $modData/.fuse
+else
+  touch $modData/.fuse
+fi
+
+if grep -q noAutoMount $config; then
+  rm $modData/.fuse 2>/dev/null
+  exit 0
+fi
+
 apply_config # and mount partitions & loop devices
 grep -Eq '^int_extf|^bind_mount |^obb.*|^from_to |^target ' $config && bind_mount_wrapper
 grep -q '^remove ' $config && remove_wrapper
+rm $modData/.fuse 2>/dev/null
 exit 0 &) &

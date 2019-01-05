@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# basic syntax check
 
 echo
 cd ${0%/*} 2>/dev/null

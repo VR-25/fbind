@@ -1,7 +1,7 @@
 id=fbind
 name=fbind (versatile FolderMount alternative)
-version=2019.1.2
-versionCode=201901020
+version=2019.1.5
+versionCode=201901050
 author=VR25 @ xda-developers
 description=This is an advanced mounting utility for folders, EXT4 images, LUKS/LUKS2 encrypted volumes, regular partitions and more. It works with any root solution. Magisk 17.0+ is preferred. Versions below that are not supported. Refer to README.md for details.
 minMagisk=17000

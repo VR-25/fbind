@@ -108,7 +108,7 @@ Usage: fbind or fbind <options(s)> <argument(s)>
 
 <no options>   Launch the folder mounting wizard.
 
--a|--auto-mount   Toggle on boot auto-mount.
+-a|--auto-mount   Toggle on boot auto-mount (default: enabled).
 
 -b|--bind-mount <target> <mount point>   Bind-mount folders not listed in config.txt. Extra SDcarsFS paths are handled automatically. Missing directories are created accordingly.
   e.g., fbind -b /data/someFolder /data/mountHere
@@ -271,11 +271,11 @@ force_fuse() {
   if [ -e $modPath/system.prop ]; then
     mv $modPath/system.prop $modPath/FUSE.prop
     echo "(i) Force FUSE: no"
-    echo "- Change takes effect after a reboot"
+    echo "- Change takes effect after a reboot."
   else
     mv $modPath/FUSE.prop $modPath/system.prop
     echo "(i) Force FUSE: yes"
-    echo "- Change takes effect after a reboot"
+    echo "- Change takes effect after a reboot."
   fi
 }
 
@@ -283,10 +283,10 @@ force_fuse() {
 toggle_auto_mount() {
   if grep -q noAutoMount $config; then
     sed -i /noAutoMount/d $config
-    echo "(i) Auto-mount disabled"
+    echo "(i) Auto-mount enabled"
   else
     echo noAutoMount >>$config
-    echo "(i) Auto-mount enabled"
+    echo "(i) Auto-mount disabled"
   fi
 }
 
@@ -305,6 +305,7 @@ main_menu() {
   select target in non_media_to_external \
     media_to_external \
     obb_to_external \
+    troubleshooting \
     documentation \
     all_commands \
     exit_wizard \
@@ -315,6 +316,7 @@ main_menu() {
   done
 SKIP
   . $tmpf
+  main_menu noReset
 }
 
 
@@ -362,7 +364,6 @@ from_to \"$target\" \".fbind/$target\""
       alreadyMoved=true
     fi
   fi
-  main_menu noReset
 }
 
 
@@ -391,7 +392,6 @@ obb_to_external() {
             alreadyMoved=true
           fi
         fi
-        main_menu noReset
       ;;
       *)
         media_to_external obbf com.madgames.greatgame
@@ -424,16 +424,15 @@ all_commands() {
   echo
   usage noIntro
   echo
-  main_menu noReset
 }
 
 
 doc_and_log() {
   echo
-  echo "(i) Type \":q! <enter>\" to return to the main menu."
-  sleep 3
+  echo "(i) Once in the editor, type \":q! <enter>\" to return to the main menu."
+  echo -n "- Press <enter> to continue.."
+  read
   edit $modData/$1
-  main_menu noReset
 }
 
 
@@ -454,6 +453,21 @@ Copyright (C) 2017-2019, VR25 @ xda-developers
 License: GPL V3+
 $(grep versionCode $modPath/module.prop | sed 's/=/: /')
 INTRO
+}
+
+
+troubleshooting() {
+  local line=""
+  local println=false
+  echo
+  cat ${config%/*}/info/README.md | while read line; do
+    echo "$line" | grep -q '\(LF\)' && println=true
+    $println && echo "$line" | grep -q '\-\-\-' && break
+    $println && echo "$line"
+  done
+  echo
+  echo -n "(i) Press <enter> to return to the main menu.."
+read
 }
 
 

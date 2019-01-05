@@ -26,7 +26,7 @@ wait_until_true() {
       is_mounted /storage/emulated && break || sleep 2
     fi
   done
-  grep -Eiq 'sdcardfs|fuse' /proc/mounts || exit 1
+  grep -Eiq ' sdcardfs | fuse ' /proc/mounts || exit 1
   if [ -n "$1" ]; then
     $@ || return 1
   else
@@ -64,20 +64,28 @@ bind_mount() {
           mount -o rbind,gid=9997,mask=6 \""${1/default/read}"\" \""${2/default/read}"\" \
             && mount -o remount,gid=9997,mask=6 \""${2/default/read}"\"
         fi
-        if ! grep -iq noWriteRemount $config; then # some systems lock and reboot if this is remounted
+        if ! grep -iq noWriteRemount $config && ! [ -e $modData/.noWriteRemount ]; then # some systems lock and reboot if this is remounted
+          touch $modData/.noWriteRemount
           $interactiveMode && echo "<${1/default/write}>" "<${2/default/write}>"
           if ! mount -o remount,gid=9997,mask=6 \""${2/default/write}"\" 2>/dev/null; then
             mount -o rbind,gid=9997,mask=6 \""${1/default/write}"\" \""${2/default/write}"\" \
               && mount -o remount,gid=9997,mask=6 \""${2/default/write}"\"
           fi
+          rm $modData/.noWriteRemount
         fi
       else
         $interactiveMode && echo "<$1>" "<${2/default/read}>"
         mount -o rbind \""$1"\" \""${2/default/read}"\"
-        if ! grep -iq noWriteRemount $config; then # some systems lock and reboot if this is remounted
+        if ! grep -iq noWriteRemount $config && ! [ -e $modData/.noWriteRemount ]; then # some systems lock and reboot if this is remounted
+          touch $modData/.noWriteRemount
           $interactiveMode && echo "<$1>" "<${2/default/write}>"
           mount -o rbind \""$1"\" \""${2/default/write}"\"
+          rm $modData/.noWriteRemount
         fi
+      fi
+      if [ -e $modData/.noWriteRemount ]; then
+        grep -q noWriteRemount $config || echo noWriteRemount >>$config
+        rm $modData/.noWriteRemount
       fi
     fi
     if is_mounted "$2"; then
