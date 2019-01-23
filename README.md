@@ -124,12 +124,15 @@ This is an advanced mounting utility for folders, EXT4 images (loop devices), LU
 -u|--unmount <pattern|pattern2|... or [mount point] >   Unmount matched or all (no arg). This works for regular bind-mounts, SDcardFS bind-mounts, regular partitions, loop devices and LUKS/LUKS2 encrypted volumes. Unmounting all doesn't affect partitions nor loop devices. These must be unmounted with a pattern argument. For unmounting folders bound with the -b|--bind_mount option, <mount point> must be supplied, since these pairs aren't in config.txt.
   e.g., fbind -u loop|part|Downl
 
+-um|--remount <pattern|pattern2|...>   Remount matched or all (no arg).
+  e.g., fbind -um Download|obb`
+
 
 
 ---
 #### NOTES
 
-- Always enforce Unix line ending (LF) when editing config.txt with other tools. NEVER use Windows Notepad!
+- Always enforce Unix line endings (LF) when editing config.txt with other tools. NEVER use Windows Notepad!
 
 - Available free space in internal storage may be misreported.
 
@@ -145,7 +148,7 @@ This is an advanced mounting utility for folders, EXT4 images (loop devices), LU
 
 - Logs are stored at `/data/adb/fbind/logs/`.
 
-- [SDcardFS] Remounting /mnt/runtime/write/... may cause a system reboot. If this happens, fbind remembers to skip that next times.
+- [SDcardFS] Remounting /mnt/runtime/write/... may cause a system reboot. If this happens, fbind remembers to skip that next times. There's a catch, though! If your system reboots for a reason other than this, fbind will mistakenly add `noWriteRemount` to config. If you stumble across broken bind mounts, remove that line and remount all folders (fbind --remount).
 
 - There is a sample config in `$zipFile/common/` and `/data/adb/fbind/info/`.
 
@@ -190,6 +193,12 @@ Uninstall
 ---
 #### LATEST CHANGES
 
+**2019.1.23 (201901230)**
+- General optimizations
+- More accurate SDcardFS and encrypted data detection
+- New command: fbind --remount
+- Note on SDcardFS: remounting /mnt/runtime/write/... may cause a system reboot. If this happens, fbind remembers to skip that next times. There's a catch, though! If your system reboots for a reason other than this, fbind will mistakenly add `noWriteRemount` to config. If you stumble across broken bind mounts, remove that line and remount all folders (fbind -um).
+
 **2019.1.5 (201901050)**
 - Fixed auto-mount toggle (fbind -a) inverted output.
 - Forcing FUSE mode (fbind -f) causes bootloop if the system doesn't support that. When this happens, changes are automatically reverted.
@@ -203,11 +212,3 @@ Uninstall
 - fbind <no options>: launch the folder mounting wizard.
 - fsck SDcard, refer to README.md (fbind -r) for details.
 - Major fixes & optimizations
-
-**2018.12.28 (201812280)**
-- Fixed LUKS opening|mounting issues
-- Fixed wrong modData path
-- General fixes and optimizations
-- Toggle `noAutoMount` (fbind -a|--auto-mount)
-- Updated documentation
-- Wait until data is decrypted

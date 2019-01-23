@@ -6,7 +6,7 @@
 
 main() {
 
-  umask 000
+  umask 0
   interactiveMode=true
   modData=/data/adb/fbind
   modPath=/system/etc/fbind
@@ -60,6 +60,7 @@ main() {
     -r|--readme) shift; edit $modData/info/README.md $@;;
     -R|--remove) shift; remove_wrapper "$@";;
     -u|--unmount) unmount_wrapper "$2";;
+    -um|--remount) fbind -u "$2"; fbind -m "$2";;
     *) main_menu;;
   esac
 }
@@ -87,7 +88,7 @@ unmount() {
   if is_mounted "$1"; then
     echo "<$1>"
     umount -f "$1"
-    if grep -iq sdcardfs /proc/mounts && echo "$1" | grep -q $prefix; then
+    if grep -iq '/storage/emulated sdcardfs' /proc/mounts && echo "$1" | grep -q $prefix; then
       echo "<${1/default/read}>"
       umount -f "${1/default/read}"
       if is_mounted "${1/default/write}"; then
@@ -141,8 +142,11 @@ Usage: fbind or fbind <options(s)> <argument(s)>
 -R|--remove <target>   Remove stubborn/unwanted file/folder from \$intsd and \$extsd. <target> is optional. By default, all <remove> lines from config are included.
   e.g., fbind -R Android/data/com.facebook.orca
 
--u|--unmount <pattern|pattern2|... or [mount point] >   Unmount matched or all (no arg). This works for regular bind-mounts, SDcardFS bind-mounts, regular partitions, loop devices and LUKS/LUKS2 encrypted volumes. Unmounting all doesn't affect partitions nor loop devices. These must be unmounted with a pattern argument. For unmounting folders bound with the -b|--bind-mount option, <mount point> must be supplied, since these pairs aren't in config.txt.
+-u|--unmount <pattern|pattern2|... or [mount point]>   Unmount matched or all (no arg). This works for regular bind-mounts, SDcardFS bind-mounts, regular partitions, loop devices and LUKS/LUKS2 encrypted volumes. Unmounting all doesn't affect partitions nor loop devices. These must be unmounted with a pattern argument. For unmounting folders bound with the -b|--bind-mount option, <mount point> must be supplied, since these pairs aren't in config.txt.
   e.g., fbind -u loop|part|Downl
+
+-um|--remount <pattern|pattern2|...>   Remount matched or all (no arg).
+  e.g., fbind -um Download|obb
 USAGE
 }
 

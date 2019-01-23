@@ -4,7 +4,7 @@
 # License: GPL V3+
 
 
-(umask 000
+(umask 0
 modPath=/system/etc/fbind
 log=/data/adb/fbind/logs/fbind-boot-$(getprop ro.product.device | grep .. || getprop ro.build.product).log
 [ -e $modPath/module.prop ] || modPath=/sbin/.core/img/fbind
@@ -22,7 +22,7 @@ set -x
  
 . $modPath/core.sh
 
-# disable force FUSE if that causes bootloop
+# disable "force FUSE" if that causes bootloop
 if [ -e $modData/.fuse ]; then
   mv $modPath/system.prop $modPath/FUSE.prop 2>/dev/null
   rm $modData/.fuse

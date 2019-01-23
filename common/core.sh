@@ -26,7 +26,7 @@ wait_until_true() {
       is_mounted /storage/emulated && break || sleep 2
     fi
   done
-  grep -Eiq ' sdcardfs | fuse ' /proc/mounts || exit 1
+  grep /storage/emulated /proc/mounts | grep -Eiq ' sdcardfs | fuse ' || exit 1
   if [ -n "$1" ]; then
     $@ || return 1
   else
@@ -57,7 +57,7 @@ bind_mount() {
     fi
     mkdir -p "$1" "$2"
     mount -o rbind \""$1"\" \""$2"\"
-    if grep -iq sdcardfs /proc/mounts && echo "$@" | grep -q $prefix; then
+    if grep -iq '/storage/emulated sdcardfs' /proc/mounts && echo "$@" | grep -q $prefix; then
       if echo "$extsd" | grep -q $prefix; then
         $interactiveMode && echo "<${1/default/read}>" "<${2/default/read}>"
         if ! mount -o remount,gid=9997,mask=6 \""${2/default/read}"\" 2>/dev/null; then
@@ -119,7 +119,7 @@ part() {
     wait_storage $@
     [ $? -ne 0 ] && return 1
     mkdir -p "$2"
-    wait_until_true [ -b $pPath ]
+    wait_until_true [ -e $pPath ]
 
     if echo "$1" | grep -q '\-\-L'; then
       if $interactiveMode || [ -n "$luksPass" ]; then
@@ -192,13 +192,13 @@ apply_config() {
   grep -iq '^permissive' $config && setenforce 0
   # fsck sdcard
   if grep -v 'part ' $config | grep -q 'fsck.*mmcblk1' && ! $interactiveMode; then
-    (until [ -b $(grep -v 'part ' $config | grep 'fsck.*mmcblk1' | awk '{print $3}') ]; do sleep 1; done
+    (until [ -e $(grep -v 'part ' $config | grep 'fsck.*mmcblk1' | awk '{print $3}') ]; do sleep 1; done
     fsck=$(grep -v 'part ' $config | grep 'fsck.*mmcblk1')
     $fsck) &
   fi
   # wait until data is decrypted
   set +x
-  until [ -e /data/media/0/Android ]; do sleep 2; done
+  until [ -e /data/media/0/?ndroid ]; do sleep 2; done
   $interactiveMode || set -x
   [ $config -nt /data/media/0/.fbind_config_backup.txt ] \
     && cp -af $config /data/media/0/.fbind_config_backup.txt
@@ -209,7 +209,7 @@ apply_config() {
   $altExtsd || default_extsd
 
   # SDcardFS mode
-  if grep -iq sdcardfs /proc/mounts; then
+  if grep -iq '/storage/emulated sdcardfs' /proc/mounts; then
     prefix=/mnt/runtime/default
     intsd=$prefix/emulated/0
     obb=$intsd/Android/obb
