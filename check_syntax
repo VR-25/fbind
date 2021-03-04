@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-# basic syntax check
-
-echo
-cd ${0%/*} 2>/dev/null
-for f in $(find ./ -type f -name '*.sh') ./common/fbind; do
-  bash -n $f
-done
-echo

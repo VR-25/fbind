@@ -1,6 +1,4 @@
-# Force-enable FUSE
-# Copyright (C) 2017-2018, VR25 @ xda-developers
-# License: GPL V3+
+# Force FUSE usage for emulated storage
 
 ro.sys.sdcardfs=false
 persist.fuse_sdcard=true

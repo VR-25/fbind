@@ -1,2 +1,3 @@
-.releases
-.rsc
+_builds
+_misc
+*.zip

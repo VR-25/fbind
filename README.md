@@ -1,214 +1,321 @@
 # fbind
-## Copyright (C) 2017-2019, VR25 @ xda-developers
-### License: GPL V3+
-#### README.md
-
 
 
 ---
-#### DISCLAIMER
+## DESCRIPTION
 
-This software is provided as is, in the hope that it will be useful, but without any warranty. Always read/reread this reference prior to installing/upgrading. While no cats have been harmed, I assume no responsibility under anything which might go wrong due to the use/misuse of it.
-
-A copy of the GNU General Public License, version 3 or newer ships with every build. Please, study it prior to using, modifying and/or sharing any part of this work.
-
-To prevent fraud, DO NOT mirror any link associated with this project; DO NOT share ready-to-flash-builds (zips) on-line!
-
+fbind is a versatile mounting utility for folders, disk images, LUKS/LUKS2 encrypted volumes, regular partitions and more.
 
 
 ---
-#### DESCRIPTION
+## LICENSE
 
-This is an advanced mounting utility for folders, EXT4 images (loop devices), LUKS/LUKS2 encrypted volumes, regular partitions and more.
+Copyright 2017-present, VR25 @ xda-developers
 
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
----
-#### PRE-REQUISITES
-
-- Any root solution, preferably Magisk 17.0+
-- App to run `/system/etc/fbind/autorun.sh` on boot if system doesn't support Magisk nor init.d
-- ARM/ARM64 CPU
-- Basic `mount` and terminal usage knowledge
-- Terminal Emulator (i.e., Termux)
-
-
-
----
-#### CONFIG SYNTAX
-
-- bind_mount <target> <mount point>   Generic bind-mount
-  - e.g., `bind_mount $extsd/loop_device/app_data/spotify /data/data/com.spotify.music`
-
-- extsd_path <path>   Use <path> as extsd.
-  - e.g., `extsd_path /mnt/mmcblk1p2`
-
-- from_to <source> <dest>   Wrapper for `bind_mount <$extsd/[path]> <$intsd/[path]>`
-  - e.g., `from_to WhatsApp .WhatsApp`
-
-- <fsck> <block device>   Check/fix external partition before system gets a chance to mount it. This is great for EXT[2-4] filesystems (e2fsck -fy is stable and fast) and NOT recommend for F2FS (fsck.f2fs can be extremely slow and cause/worsen corruption).
-  - e.g., `e2fsck -fy /dev/block/mmcblk1p1`
-
-- int_extf <path>   Bind-mount the entire user 0 (internal) storage to `$extsd/<path>` (implies obb). If `<path>` is not supplied, `.fbind` is used.
-  - e.g., `int_extf .external_storage`
-
-- intsd_path <path>   Use <path> as intsd.
-  - e.g., `intsd_path /storage/emulated/0`
-
-- loop <.img file> <mount point>   Mount an EXT4 .img file (loop device). `e2fsck -fy <.img file>` is executed first.
-  - e.g., `loop $extsd/loop.img $intsd/loop`
-
-- noAutoMount   Disable on boot auto-mount.
-
-- noWriteRemount   Read the SDcardFS note below.
-
-- obb   Wrapper for `bind_mount $extobb $obb`
-
-- obbf <package name>   Wrapper for `bind_mount $extobb/<package name> $obb/<package name>`
-  - e.g., `obbf com.mygame.greatgame`
-
-- part <[block device] or [block device--L]> <mount point> <"fsck -OPTION(s)" (filesystem specific, optional)>   Auto-mount a partition. The --L flag is for LUKS volume, opened manually by running any `fbind` command. Filesystem is automatically detected. The first two arguments can be `-o <mount options>`, respectively. In that case, positional parameters are shifted. The defaut mount options are `rw` and `noatime`.
-  - e.g., `part /dev/block/mmcblk1p1 /mnt/_sdcard`
-  - e.g., `part -o nodev,noexec,nosuid /dev/block/mmcblk1p1 /mnt/_sdcard`
-
-- permissive   Set SELinux mode to permissive.
-
-- remove <target>   Auto-remove stubborn/unwanted file/folder from $intsd & $extsd.
-  - e.g, `remove Android/data/com.facebook.orca`, `remove DCIM/.8be0da06c44688f6.cfg`
-
-- target <path>   Wrapper for `bind_mount <$extsd/[path]> <$intsd/[same path]>`
-  - e.g., `target Android/data/com.google.android.youtube`
-
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 
 ---
-#### TERMINAL
+## DISCLAIMER
 
-`Usage: fbind or fbind <options(s)> <argument(s)>
+Always read/reread this reference prior to installing/upgrading this software.
 
-<no options>   Launch the folder mounting wizard.
+While no cats have been harmed, the author assumes no responsibility for anything that might break due to the use/misuse of it.
 
--a|--auto-mount   Toggle on boot auto-mount (default: enabled).
-
--b|--bind-mount <target> <mount point>   Bind-mount folders not listed in config.txt. Extra SDcarsFS paths are handled automatically. Missing directories are created accordingly.
-  e.g., fbind -b /data/someFolder /data/mountHere
-
--c|--config <editor [opts]>   Open config.txt w/ <editor [opts]> (default: vim/vi).
-  e.g., fbind -c nano -l
-
--C|--cryptsetup <opt(s)> <arg(s)>   Run $modPath/bin/cryptsetup <opt(s)> <arg(s)>.
-
--f|--fuse   Toggle force FUSE yes/no (default: no). This is automatically enabled during installation if /data/forcefuse exists or the zip name contains the word "fuse" (case insensitive) or PROPFILE=true in config.sh. The setting persists across upgrades.
-
--h|--help  List all commands.
-
--i|--info   Show debugging info.
-
--l|--log  <editor [opts]>   Open fbind-boot-\$deviceName.log w/ <editor [opts]> (default: vim/vi).
-  e.g., fbind -l
-
--m|--mount <pattern|pattern2|...>   Bind-mount matched or all (no arg).
-  e.g., fbind -m Whats|Downl|part
-
--M|--move <pattern|pattern2|...>   Move matched or all (no args) to external storage. Only unmounted folders are affected.
-  e.g., fbind -M Download|obb
-
--Mm <pattern|pattern2|...>   Same as "fbind -M <arg> && fbind -m <arg>"
-  e.g., fbind -Mm
-
--r|--readme   Open README.md w/ <editor [opts]> (default: vim/vi).
-
--R|--remove <target>   Remove stubborn/unwanted file/folder from $intsd and $extsd. <target> is optional. By default, all <remove> lines from config are included.
-  e.g., fbind -R Android/data/com.facebook.orca
-
--u|--unmount <pattern|pattern2|... or [mount point] >   Unmount matched or all (no arg). This works for regular bind-mounts, SDcardFS bind-mounts, regular partitions, loop devices and LUKS/LUKS2 encrypted volumes. Unmounting all doesn't affect partitions nor loop devices. These must be unmounted with a pattern argument. For unmounting folders bound with the -b|--bind_mount option, <mount point> must be supplied, since these pairs aren't in config.txt.
-  e.g., fbind -u loop|part|Downl
-
--um|--remount <pattern|pattern2|...>   Remount matched or all (no arg).
-  e.g., fbind -um Download|obb`
-
+To prevent fraud, do NOT mirror any link associated with this project; do NOT share flashabe zips! Share official links instead.
 
 
 ---
-#### NOTES
+## WARNING
 
-- Always enforce Unix line endings (LF) when editing config.txt with other tools. NEVER use Windows Notepad!
+fbind uses `fsck`, `mount`, `umount` and other low level programs that may cause data corruption/loss.
+The author assumes no responsibility under anything that might break due to the use/misuse of this software.
+By choosing to use/misuse it, you agree to do so at your own risk!
+
+
+---
+## PRE-REQUISITES
+
+- Android or Android-based OS rooted with [Magisk](https://github.com/topjohnwu/Magisk/)
+- [cryptsetup](https://forum.xda-developers.com/showpost.php?p=82561353&postcount=207/) (for encryption, optional)
+- Terminal emulator (or adb shell) and/or text editor
+
+Note: executables such as `cryptsetup` can be placed in `/data/adb/bin/` (with proper permissions) instead of being installed system-wide.
+
+
+---
+## CONFIG SYNTAX
+
+`bind_mount <target> <mount point>` Generic Bind-mount
+
+  e.g., bind_mount $extsd/loop_device/app_data/spotify /data/data/com.spotify.music
+
+---
+`extsd_path <path>` Use `path` as extsd.
+
+  e.g., extsd_path /mnt/mmcblk1p2
+
+---
+`from_to <source> <dest>` Wrapper for `bind_mount <$extsd/[path]> <$intsd/[path]>`
+
+  e.g., from_to WhatsApp .WhatsApp
+
+---
+`int_extf <path>` Bind-mount the entire user 0 (internal) storage to `$extsd/<path>` (implies obb). If `<path>` is not supplied, `.fbind` is used.
+
+  e.g., int_extf .external_storage
+
+---
+`intsd_path <path>` Use `path` as `intsd`.
+
+  e.g., intsd_path /storage/emulated/0
+
+---
+`loop <disk image> <mount point>` Mount a disk image, a.k.a., loop device.
+`fsck -fy` (adaptive) is implied.
+
+  e.g., loop $extsd/loop.img $intsd/loop
+
+---
+`noAutoMount` Disable on boot auto-mount.
+
+`obb` Wrapper for `bind_mount $extobb $obb`
+
+---
+`obbf <package name>` Wrapper for `bind_mount $extobb/<package name> $obb/<package name>`
+
+  e.g., obbf com.mygame.greatgame
+
+---
+`part [-o <mount option...>] <[block device[--L[,password]]]> <mount point> ["fsck <option...>"]` Auto-mount a partition.
+The `--L` flag is for LUKS/2 volume, opened manually by running any `fbind` command.
+The filesystem is automatically detected.
+The defaut mount options are `rw` and `noatime`.
+`e2fsck -fy` is always used for supported filesystems.
+
+  e.g.,
+
+    part /dev/block/mmcblk1p1 /mnt/_sdcard
+
+    part -o nodev,noexec,nosuid /dev/block/mmcblk1p1 /mnt/_sdcard
+
+---
+`permissive` Set SELinux mode to permissive.
+
+---
+`remove <target>`>Auto-remove stubborn/unwanted file/folder from $intsd & $extsd.
+
+  e.g, remove Android/data/com.facebook.orca
+
+---
+`target <path>` Wrapper for `bind_mount <$extsd/[path]> <$intsd/[same path]>`
+
+  e.g., target Android/data/com.google.android.youtube
+
+
+---
+## CONFIG EXAMPLES
+```
+# All OBBs to $extsd/Android/obb/
+obb
+
+# Select OBBs to $extsd/Android/obb/
+obbf com.somegame.greatgame
+
+# $intsd/target/ to $extsd/sameTarget/
+#  For non-media folders only
+target TitaniumBackup
+
+# $intsd/someFolder/ to $extsd/.someFolder/
+#  Prevents duplicate media
+from_to DCIM .fbind/DCIM
+from_to Pictures .fbind/Pictures
+from_to WhatsApp .fbind/WhatsApp
+
+# Multiuser -- user11/someFolder/ to $extsd/someFolder/
+bind_mount $extsd/someFolder ${intsd/%0/11}/someFolder
+
+# Mount a partition and use it as $extsd
+part /dev/block/mmcblk1p2 /mnt/p2
+extsd_path=/mnt/p2
+```
+
+
+## TERMINAL COMMANDS
+```
+Usage:
+  fbind (wizard)
+  fbind [option...] [argument...]
+
+-a|--auto-mount
+Toggle auto-mount on boot (default: enabled).
+
+-b|--bind-mount <target> <mount point>
+Bind-mount folders not listed in config.txt.
+SDcarsFS read and write runtime paths are handled automatically.
+Missing directories are created accordingly.
+e.g., fbind -b /data/someFolder /data/mountHere
+
+-c|--config [editor] [option...]
+Open config.txt w/ [editor] [option...] (default: vim|vi|nano).
+e.g., fbind -c nano -l
+
+-C|--cryptsetup [option...] [argument...]
+Run cryptsetup [option...] [argument...].
+
+-f|--fuse
+Toggle FUSE usage for emulated storage (default: off).
+
+-h|--help
+List all commands.
+
+-i|--info
+Print debugging info.
+
+-l|--log [editor] [option...]
+Open service.log w/ [editor] [option...] (default: more|vim|vi|nano).
+e.g., fbind -l
+
+-m|--mount [egrep regex]
+Bind-mount matched or all (no arg).
+e.g., fbind -m "Whats|Downl|part"
+
+-M|--move [ext. regex]
+Move matched or all (no args) to external storage.
+Only unmounted folders are affected.
+e.g., fbind -M "Download|obb"
+
+-Mm [egrep regex]
+Same as "fbind -M [arg] && fbind -m [arg]"
+e.g., fbind -Mm
+
+-r|--readme
+Open README.md w/ [editor] [option...] (default: more|vim|vi|nano).
+
+-R|--remove [target]
+Remove stubborn/unwanted file/folder from \$intsd and \$extsd.
+By default, all "remove" lines from config are included.
+e.g., fbind -R Android/data/com.facebook.orca
+
+-u|--unmount [mount point or egrep regex]
+Unmount matched or all (no arg).
+This works for regular bind-mounts, SDcardFS bind-mounts, regular partitions, loop devices and LUKS/LUKS2 encrypted volumes.
+Unmounting "all at once" (no arg) does not affect partitions nor loop devices.
+These must be unmounted with a regex argument.
+For unmounting folders bound with the --bind-mount option, the mount points must be supplied, since those are not in config.txt.
+e.g., fbind -u "loop|part|Downl"
+
+-um|--remount [egrep regex]
+Remount matched or all (no arg).
+e.g., fbind -um "Download|obb"
+```
+
+---
+## NOTES
+
+- Recent Magisk versions disable all modules when the system boots in safe mode.
+Keep this in mind, just in case you face a bootloop - although, in most cases, fbind will automatically revert problematic changes.
+
+- If you find terminal overwhelming, just run `fbind` and follow the wizard.
+
+- Always enforce Unix line endings (LF) when editing config.txt.
+NEVER use Windows Notepad for that!
 
 - Available free space in internal storage may be misreported.
 
-- Busybox installation is unnecessary, unless fbind is installed into /system (legacy/Magisk-unsupported devices only).
-
-- Config survives factory resets if internal storage (data/media/) is not wiped.
-
-- Duplicate SDcard may show up in file managers.
+- [Some] file managers may show multiple SDcard/storage locations.
 
 - [FUSE] Some users may need to set `intsd_path /storage/emulated/0` (default is /data/media/0).
 
-- If you stumble upon inaccessible folders or read-only access, try forcing FUSE mode (fbind -f). If your system doesn't support FUSE, it will bootloop, but fbind will notice and automatically revert the change.
+- If you stumble upon inaccessible folders or read-only access, try forcing FUSE (fbind -f) usage for emulated storage.
+If your system does not support FUSE, it may get into a bootloop.
+If that happens, fbind will revert the change automatically on the next boot attempt.
+To revert it manually, either run `fbind -f` again or remove `/data/adb/modules/fbind/system.prop` to `FUSE.prop` and remove `/data/adb/vr25/fbind/.FUSE`.
 
-- Logs are stored at `/data/adb/fbind/logs/`.
+- Logs are stored at `/data/adb/vr25/fbind/logs/`.
 
-- [SDcardFS] Remounting /mnt/runtime/write/... may cause a system reboot. If this happens, fbind remembers to skip that next times. There's a catch, though! If your system reboots for a reason other than this, fbind will mistakenly add `noWriteRemount` to config. If you stumble across broken bind mounts, remove that line and remount all folders (fbind --remount).
+- [SDcardFS] Remounting /mnt/runtime/write/... may cause a system reboot.
+When this happens, fbind learns to skip it.
+However, if the system reboots for a reason other than this, fbind will mistakenly create `/data/adb/vr25/fbind/.noWriteRemount`.
+If you stumble across broken bind mounts, remove that file and remount all folders.
+To do that in one shot, run `rm /data/adb/vr25/fbind/.noWriteRemount; fbind -um`.
 
-- There is a sample config in `$zipFile/common/` and `/data/adb/fbind/info/`.
-
-
-
----
-#### SETUP
-
-First time
-1. Install from Magisk Manager or custom recovery.
-2. Reboot.
-3. Configure (/data/adb/fbind/config.txt) -- recall that `fbind -c <editor [opts]>` opens config.txt w/ <editor [opts]> (default: vim/vi).
-4. Move data to the SDcard with a file manager or `fbind --move` then run `fbind --mount`.
-
-Upgrades
-1. Install from Magisk Manager or custom recovery.
-2. Reboot.
-
-After ROM updates
-- Unless `addon.d` feature is supported by the ROM, follow the upgrade steps above.
-
-Bootloop (Magisk only)
-- Flash the same version again to disable the module.
-
-Uninstall
-1. Magisk: use Magisk Manager or other tool; legacy: flashing the same version again removes all traces of fbind from /system.
-2. Reboot.
-
+- Rebooting is not required after installing/upgrading.
+If`/sbin` is missing (many Android 11 based systems lack it), use the `/dev/.vr25/fbind/fbind` executable until you reboot - e.g., `/dev/.vr25/fbind/fbind -m`.
 
 
 ---
-#### LINKS
+## LINKS
 
-- [Facebook page](https://facebook.com/VR25-at-xda-developers-258150974794782/)
-- [Git repository](https://github.com/Magisk-Modules-Repo/fbind/)
+- [Facebook page](https://fb.me/vr25xda/)
+- [Git repository](https://github.com/vr-25/fbind/)
+- [Liberapay](https://liberapay.com/vr25/)
+- [Patreon](https://patreon.com/vr25/)
+- [PayPal](https://paypal.me/vr25xda/)
 - [Telegram channel](https://t.me/vr25_xda/)
 - [Telegram profile](https://t.me/vr25xda/)
+- [Telegram group](https://t.me/fbind_group/)
 - [XDA thread](https://forum.xda-developers.com/apps/magisk/module-magic-folder-binder-t3621814/)
 
 
-
 ---
-#### LATEST CHANGES
+## LATEST CHANGES
 
-**2019.1.23 (201901230)**
+
+**v2019.1.23 (201901230)**
+
 - General optimizations
 - More accurate SDcardFS and encrypted data detection
 - New command: fbind --remount
 - Note on SDcardFS: remounting /mnt/runtime/write/... may cause a system reboot. If this happens, fbind remembers to skip that next times. There's a catch, though! If your system reboots for a reason other than this, fbind will mistakenly add `noWriteRemount` to config. If you stumble across broken bind mounts, remove that line and remount all folders (fbind -um).
 
-**2019.1.5 (201901050)**
-- Fixed auto-mount toggle (fbind -a) inverted output.
-- Forcing FUSE mode (fbind -f) causes bootloop if the system doesn't support that. When this happens, changes are automatically reverted.
-- General optimizations
-- Under SDcardFS, remounting /mnt/runtime/write/... may cause a system reboot. If this happens, fbind remembers to skip that next times (noWriteRemount).
-- Updated building tools
-- Wizard has a "troubleshooting" option.
 
-**2019.1.2 (201901020)**
-- fbind -R|--remove <target>: remove stubborn/unwanted file/folder from $intsd and $extsd. <target> is optional. By default, all <remove> lines from config are included.
-- fbind <no options>: launch the folder mounting wizard.
-- fsck SDcard, refer to README.md (fbind -r) for details.
-- Major fixes & optimizations
+**v2020.8.5 (202008050)**
+
+- Better compatibility with different root solutions and init methods
+- Built upon fbind's framework and Hooin Kyoma's fixes
+- Enhanced `mount` wrapper
+- Flashable uninstaller
+- Major cleanup and optimizations
+- Removed fstype (toybox) binaries
+- Updated readme
+- Upgrader (fbind -U)
+- Uninstaller (fbind -x)
+
+
+**v2021.3.4 (202103040)**
+
+- Better logs
+
+- Cryptsetup is no longer bundled, but it's still supported.
+Download link and very simple installation instructions are provided.
+
+- Enhanced wizard.
+- fbind --move shows progress.
+
+- Fixed auto-mount
+- Fixed unmount issues
+
+- For now, Magisk is a strict requirement.
+
+- Other major fixes & optimizations
+
+- Rebooting is not required after installing/upgrading.
+If`/sbin` is missing (many Android 11 based systems lack it), use the `/dev/.vr25/fbind/fbind` executable until you reboot - e.g., `/dev/.vr25/fbind/fbind -m`.
+
+- Simplified down to the core to minimize overheard, compatibility and ease maintenance.
+
+- The order of default text editors is now vim|vi|nano.
+
+- Updated documentation
