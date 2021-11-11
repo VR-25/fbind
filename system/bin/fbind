@@ -1,6 +1,6 @@
 #!/system/bin/sh
 # fbind, a versatile mounting utility for Android
-# Copyright 2017-present, VR25 @ xda-developers
+# Copyright (C) 2017-2021, VR25 @ xda-developers
 # License: GPLv3+
 
 
@@ -28,6 +28,7 @@ apply_config() {
     extobb0=$extobb
     extsd=$prefix/${extsd##*/}
     extobb=$extsd/Android/obb
+    mount -o remount,mask=0 $extsd
   fi
 }
 
@@ -38,42 +39,10 @@ bind_mount() {
       echo
       echo "<$1> <$2>"
     else
-      wait_storage $@
-      [ $? -ne 0 ] && return 1
+      wait_storage "$@" || return 1
     fi
     mkdir -p "$1" "$2"
-    mount -o rbind \""$1"\" \""$2"\"
-    if grep -iq '/storage/emulated sdcardfs' /proc/mounts && echo "$@" | grep -q $prefix; then
-      if echo "$1" | grep -q $prefix; then
-        $interactiveMode && echo "<${1/default/read}>" "<${2/default/read}>"
-        if ! mount -o remount,gid=9997,mask=6 \""${2/default/read}"\" 2>/dev/null; then
-          mount -o rbind,gid=9997,mask=6 \""${1/default/read}"\" \""${2/default/read}"\" \
-            && mount -o remount,gid=9997,mask=6 \""${2/default/read}"\"
-        fi
-        if [ ! -f $dataDir/.noWriteRemount ] && [ ! -f $dataDir/.noWriteRemount.tmp ]; then # some systems lock and reboot if this is remounted
-          touch $dataDir/.noWriteRemount.tmp
-          $interactiveMode && echo "<${1/default/write}>" "<${2/default/write}>"
-          if ! mount -o remount,gid=9997,mask=6 \""${2/default/write}"\" 2>/dev/null; then
-            mount -o rbind,gid=9997,mask=6 \""${1/default/write}"\" \""${2/default/write}"\" \
-              && mount -o remount,gid=9997,mask=6 \""${2/default/write}"\"
-          fi
-          rm $dataDir/.noWriteRemount.tmp
-        fi
-      else
-        $interactiveMode && echo "<$1>" "<${2/default/read}>"
-        is_mounted "${2/default/read}" || mount -o rbind \""$1"\" \""${2/default/read}"\"
-        if [ ! -f $dataDir/.noWriteRemount ] && [ ! -f $dataDir/.noWriteRemount.tmp ]; then # some systems lock and reboot if this is remounted
-          touch $dataDir/.noWriteRemount.tmp
-          $interactiveMode && echo "<$1>" "<${2/default/write}>"
-          is_mounted "${2/default/write}" || mount -o rbind \""$1"\" \""${2/default/write}"\"
-          rm $dataDir/.noWriteRemount.tmp
-        fi
-      fi
-      if [ -f $dataDir/.noWriteRemount.tmp ]; then
-        [ -f $dataDir/.noWriteRemount ] || touch $dataDir/.noWriteRemount
-        rm $dataDir/.noWriteRemount.tmp
-      fi
-    fi
+    mount -o bind \""$1"\" \""$2"\"
     if is_mounted "$2"; then
       [ -z "$3" ] && rm -rf "$1/Android" 2>/dev/null
     else
@@ -124,25 +93,21 @@ bind_mount_wrapper() {
 }
 
 
-cp_R() {
-  echo
-  if which rsync > /dev/null; then
-    rsync -r --progress "$1" "${2%/*}/"
-  else
-    cp -Rv "$1" "${2%/*}/"
-  fi
-  echo
-}
-
-
 # fallback sdcard path
 default_extsd() {
-  local dir="" size=0 newSize=0
+  local df=
+  local dir=
+  local size=0
+  local newSize=0
   $interactiveMode || wait_until_true grep -q /mnt/media_rw /proc/mounts
   if grep -q /mnt/media_rw /proc/mounts; then
     for dir in /mnt/media_rw/* /mnt/media_rw/.*; do
-      if [ -d "$dir" ]; then
-        newSize=$(df $dir | tail -n1 | awk '{print $2}')
+      if is_mounted $dir; then
+        df="$(df $dir | tail -n1)"
+        case "$df" in
+          /*) newSize=$(echo "$df" | awk '{print $2}');;
+          *) newSize=$(echo "$df" | awk '{print $1}');;
+        esac
         if [ $newSize -gt $size ]; then
           size=$newSize
           extsd=$dir
@@ -158,7 +123,7 @@ edit() {
   local f=$1
   shift
   if [ -n "$1" ]; then
-    $@ $f
+    $* $f
   else
     vim $f 2>/dev/null || vi $f 2>/dev/null || nano $f
   fi
@@ -217,45 +182,7 @@ force_fuse() {
     touch $dataDir/.FUSE
     echo "(i) Force FUSE: yes"
   fi
-  echo "- Change takes effect on reboot."
-}
-
-
-info() {
-  printf "PROPS\n"
-  getprop | grep -E 'product|version|esdfs|fuse|sdcardfs' | sed 's/^/ /'
-  printf "\n\nVARS\n"
-  set | sed 's/^/ /'
-  printf '\n'
-  printf "CONFIG\n"
-  if ! grep -q '[a-z]' $config; then
-    echo "-- NULL --"
-  else
-    cat $config | while read line; do
-      if echo "$line" | grep -Eq '^from_to |^target '; then
-        is_mounted "$intsd/$(echo "$line" | awk '{print $2}' \
-          | sed 's/"//g' | sed "s/'//g")" \
-          && echo " $line <MOUNTED>" \
-          || echo " $line <UNMOUNTED>"
-      elif echo "$line" | grep -q '^obbf '; then
-        is_mounted "$obb/$(echo "$line" | awk '{print $2}' \
-          | sed 's/"//g' | sed "s/'//g")" \
-          && echo " $line <MOUNTED>" \
-          || echo " $line <UNMOUNTED>"
-      elif echo "$line" | grep -q '^obb$'; then
-        is_mounted "$obb" \
-          && echo " $line <MOUNTED>" \
-          || echo " $line <UNMOUNTED>"
-      elif echo "$line" | grep -Eq '^part |^loop |^bind_mount '; then
-        is_mounted "$(eval echo "$line" | awk '{print $3}' \
-          | sed 's/"//g' | sed "s/'//g")" \
-          && echo " $line <MOUNTED>" \
-          || echo " $line <UNMOUNTED>"
-      else
-        echo " $line"
-      fi
-    done
-  fi
+  echo "- Change takes effect after rebooting."
 }
 
 
@@ -276,16 +203,16 @@ loop() {
   fi
   local fPath=${1%--L*}
   local luksPass="${1#*--L,}"
-  [ "$luksPass" = "$1" ] && luksPass=""
+  [ "$luksPass" = "$1" ] && luksPass=
   local pName=$(echo ${1##*/} | sed 's/--L.*//')
   [ -z "$2" ] && return 1
 
   if ! is_mounted "$2"; then
-    wait_storage $@
+    wait_storage "$@"
     [ $? -ne 0 ] && return 1
     wait_until_true [ -e $fPath ] || return 1
-    if [ -x /system/*bin/losetup ]; then # magisk version of losetup seems not working, trying to use ROM's version
-      local pPath=$(/system/*bin/losetup -fs "$fPath")
+    if ls /system/*bin/losetup >/dev/null 2>&1; then # magisk version of losetup seems not working, trying to use ROM's version
+      local pPath=$(/system/bin/losetup -fs "$fPath")
       [ -e "$pPath" ] || return 1
       if echo "$1" | grep -q '\-\-L'; then
         if $interactiveMode || [ -n "$luksPass" ]; then
@@ -300,7 +227,7 @@ loop() {
       fi
       [ -e "$pPath" ] && mount_dev "$pPath" "$2" "$extraOpts"
     else
-      $interactiveMode && echo "(!) Can't find program losetup to mount loop device."
+      $interactiveMode && echo "(!) Can't find program \"losetup\" to mount loop device."
       return 1
     fi
   fi
@@ -315,21 +242,22 @@ mount() {
 mount_dev() {
 
   local extraOpts="$3"
-  local context="u:object_r:fuse:s0"
+  local context="u:object_r:sdcardfs:s0"
 
-  grep -iq '/storage/emulated sdcardfs' /proc/mounts && context="u:object_r:sdcardfs:s0"
+  grep -iq '/storage/emulated fuse' /proc/mounts && context="u:object_r:fuse:s0"
   extraOpts="$extraOpts -o nosuid,nodev,noexec,context=$context"
   mkdir -p "$2"
 
   # detecting file system
-  fsType=$(blkid "$1" | sed -e 's/.*TYPE=\"\(.*\)\".*/\1/')
+  fsType=$(blkid "$1" | sed 's/.*TYPE=\"\(.*\)\".*/\1/')
 
   # user permissions of FAT
-  echo "$fsType" | grep -q "fat$" && extraOpts="$extraOpts -o uid=0,gid=9997,umask=0007"
+  #echo "$fsType" | grep -q "fat$" && extraOpts="$extraOpts -o uid=0,gid=9997,umask=0007"
+  echo "$fsType" | grep -q "fat$" && extraOpts="$extraOpts -o uid=0,gid=9997,fmask=0117,dmask=0006"
   test -n "$fsType" && extraOpts="-t $fsType $extraOpts"
 
   # checking ext partition
-  echo "$fsType" | grep -q "^ext" && e2fsck -fy "$1"
+  echo "$fsType" | grep -q "^ext[2-4]" && e2fsck -fy "$1"
 
   # mounting:
   if echo "$2" | grep -qE "^$intsd"; then
@@ -341,8 +269,8 @@ mount_dev() {
     mount $extraOpts "$1" "$2"
   fi
 
-  # user permissions for extfs
-  echo "$fsType" | grep -q "^ext" && chown 0:9997 "$2" && chmod 0775 "$2"
+  # user permissions for ext[2-4]
+  echo "$fsType" | grep -q "^ext[2-4]" && chown 0:9997 "$2" && chmod 0775 "$2"
 
   is_mounted "$2" || rmdir "$2" 2>/dev/null
 }
@@ -354,7 +282,7 @@ mv_data() {
     echo
     echo "$1 --> $2"
     rm -rf "$2" 2>/dev/null
-    if cp_R "$@"; then
+    if cp -R "$@"; then
       rm -rf "$1" 2>/dev/null
       return 0
     else
@@ -399,7 +327,7 @@ mv_data_wrapper() {
 
 
 obb_to_external() {
-  local option=""
+  local option=
   echo
   printf "a) all\ns)specific\n\n#? "
   read -n 1 option
@@ -434,14 +362,12 @@ part() {
   fi
   local pPath=${1%--L*}
   local luksPass="${1#*--L,}"
-  [ "$luksPass" = "$1" ] && luksPass=""
+  [ "$luksPass" = "$1" ] && luksPass=
   local pName=$(echo ${1##*/} | sed 's/--L.*//')
   [ -z "$2" ] && return 1
 
   if ! is_mounted "$2"; then
-    wait_storage $@
-    [ $? -ne 0 ] && return 1
-    wait_until_true [ -e $pPath ] || return 1
+    wait_storage "$@" && wait_until_true [ -e $pPath ] || return 1
     if echo "$1" | grep -q '\-\-L'; then
       if $interactiveMode || [ -n "$luksPass" ]; then
         # open LUKS volume
@@ -463,7 +389,7 @@ part() {
 
 print_header() {
   echo "fbind $(sed -n 's/^version=//p' $modDir/module.prop)
-Copyright 2017-present, VR25 @ xda-developers
+Copyright (C) 2017-2021, VR25 @ xda-developers
 License: GPLv3+"
 }
 
@@ -483,40 +409,15 @@ remove_wrapper() {
 }
 
 
-# An alternate "select"
-
-select_() {
-
-  local item=""
-  local list=""
-  local n=""
-  local _var_="$1"
-
-  shift
-  [ $# -gt 9 ] || n="-n 1"
-
-  for item in "$@"; do
-    list="$(printf "$list\n$item")"
-  done
-
-  list="$(echo "$list" | grep -v '^$' | nl -s ") " -w 1)"
-  printf "$list\n\n${PS3:-#? }"
-  read $n item
-  list="$(echo "$list" | sed -n "s|^${item}. ||p")"
-  list="$_var_=\"$list\""
-  eval "$list"
-}
-
-
 to_external() {
 
-  local target=""
-  local line=""
   local ans=no
+  local line=
+  local target=
 
   reset
   echo
-  echo "(i) Input targets, one at a time (e.g., $([ -n "$2" ] \
+  echo "(i) Type targets, one at a time (e.g., $([ -n "$2" ] \
     && echo "$2" || echo "DCIM/Camera") <enter>). Press <enter> again when done."
   echo
 
@@ -524,15 +425,15 @@ to_external() {
     if [ -n "$target" ]; then
       if [ -n "$line" ]; then
         if [ -n "$1" ]; then
-          grep -q "$target" $config || line="$(printf "$line\n$1 \"$target\"")"
+          cat $config | tr -d \" | tr -d \' | grep "$1 $target" >/dev/null || line="$(printf "$line\n$1 \"$target\"")"
         else
-          grep -q "$target" $config || line="$(printf "$line\nfrom_to \"$target\" \".fbind/$target\"")"
+          cat $config | tr -d \" | tr -d \' | grep "from_to $target" >/dev/null || line="$(printf "$line\nfrom_to \"$target\" \".fbind/$target\"")"
         fi
       else
         if [ -n "$1" ]; then
-          grep -q "$target" $config || line="$1 \"$target\""
+          cat $config | tr -d \" | tr -d \' | grep "$1 $target" >/dev/null || line="$1 \"$target\""
         else
-          grep -q "$target" $config || line="from_to \"$target\" \".fbind/$target\""
+          cat $config | tr -d \" | tr -d \' | grep "from_to $target" >/dev/null || line="from_to \"$target\" \".fbind/$target\""
         fi
       fi
     else
@@ -547,7 +448,7 @@ to_external() {
     modified=true
     rm $tmpf
     echo
-    printf "(?) Move data & bind folders now (y/N)? "
+    printf "(?) Move data & bind-mount now (y/N)? "
     read ans
     if echo $ans | grep -iq y; then
       fbind -Mm
@@ -577,67 +478,55 @@ troubleshooting() {
 
 
 unmount() {
-  if is_mounted "$1"; then
-    echo "<$1>"
-    umount -f "$1"
-    if grep -iq '/storage/emulated sdcardfs' \
-      /proc/mounts && echo "$1" | grep -q $prefix
-    then
-      if is_mounted "${1/default/read}"; then
-        echo "<${1/default/read}>"
-        umount -f "${1/default/read}"
-      fi
-      if is_mounted "${1/default/write}"; then
-        echo "<${1/default/write}>"
-        umount -f "${1/default/write}"
-      fi
-    fi
-    is_mounted "/storage/emulated/0/${1#$intsd/}" \
-      && umount -f "/storage/emulated/0/${1#$intsd/}"
+  local line=
+  local pattern="$(echo "$1" | sed -e "s|$prefix||" -e "s|$intsd||")"
+  grep -q "$pattern " /proc/mounts && {
+    echo "<${pattern#/}>"
+    tac /proc/mounts | grep "$pattern " | awk '{print $2}' | \
+      while IFS= read line; do
+        umount -f "$line" 2>/dev/null
+      done
     rmdir "$1" 2>/dev/null
-  fi
+  }
 }
 
 
 unmount_wrapper() {
-  echo "Unmounting..."
-  echo
-  if is_mounted "$1"; then
-    unmount "$1"
-  else
-    obb() { unmount $obb; }
-    bind_mount() { unmount "$2"; }
-    obbf() { unmount $obb/$1; }
-    target() { unmount "$intsd/$1"; }
-    from_to() { unmount "$intsd/$1"; }
 
-    int_extf() {
-      unmount $obb
-      unmount $intsd/Android
-      unmount $intsd/data
-      unmount $intsd
+  obb() { unmount $obb; }
+  bind_mount() { unmount "$2"; }
+  obbf() { unmount $obb/$1; }
+  target() { unmount "$intsd/$1"; }
+  from_to() { unmount "$intsd/$1"; }
+
+  int_extf() {
+    unmount $obb
+    unmount $intsd/Android
+    unmount $intsd/data
+    unmount $intsd
+  }
+
+  if [ -n "$1" ]; then
+    loop() { unmount "$2"; }
+
+    part() {
+      echo "$1 $2" | grep -q '^\-o ' && shift 2
+      unmount "$2"
+      echo "$1" | grep -q '\-\-L' \
+        && cryptsetup luksClose $(echo ${1##*/} | sed 's/--L.*//')
     }
 
-    if [ -n "$1" ]; then
-      loop() { unmount "$2"; }
+    grep -E '^int_extf|^bind_mount |^obb|^from_to |^target |^loop |^part ' $config \
+      | grep -E "$1" 2>/dev/null > $tmpf
 
-      part() {
-        echo "$1 $2" | grep -q '^\-o ' && shift 2
-        unmount "$2"
-        echo "$1" | grep -q '\-\-L' \
-          && cryptsetup luksClose $(echo ${1##*/} | sed 's/--L.*//')
-      }
-
-      grep -E '^int_extf|^bind_mount |^obb|^from_to |^target |^loop |^part ' \
-        $config | grep -E "$1" 2>/dev/null > $tmpf
-
-    else
-      grep -E '^int_extf|^bind_mount |^obb|^from_to |^target ' $config > $tmpf
-    fi
-
-    . $tmpf
-    rm $tmpf
+  else
+    grep -E '^int_extf|^bind_mount |^obb|^from_to |^target ' $config > $tmpf
   fi
+
+  echo "Unmounting..."
+  echo
+  . $tmpf
+  rm $tmpf
   echo
   echo "- End"
 }
@@ -673,9 +562,6 @@ Toggle FUSE usage for emulated storage (default: off).
 
 -h|--help
 List all commands.
-
--i|--info
-Print debugging info.
 
 -l|--log [editor] [option...]
 Open service.log w/ [editor] [option...] (default: more|vim|vi|nano).
@@ -736,7 +622,7 @@ wait_until_true() {
 
   if [ -n "$1" ]; then
     while :; do
-      $@ && break || sleep 3
+      $* && break || sleep 3
     done
   fi)
 }
@@ -744,7 +630,7 @@ wait_until_true() {
 
 wizard() {
 
-  local target=""
+  local target=
   [ -z "$modified" ] && modified=false
   [ -z "$alreadyMoved" ] && alreadyMoved=false
   [ -n "$1" ] && echo || reset
@@ -800,8 +686,8 @@ if [ ! -x $busyboxDir/ls ]; then
 fi
 
 case $PATH in
-  /data/adb/bin:*) :;;
-  *) export PATH=/data/adb/bin:$busyboxDir:$PATH;;
+  /data/adb/vr25/bin:*) :;;
+  *) export PATH=/data/adb/vr25/bin:$busyboxDir:$PATH;;
 esac
 
 service=false
@@ -810,10 +696,10 @@ TMPDIR=/dev/.vr25/fbind
 tmpf=$TMPDIR/tmpf
 interactiveMode=true
 intsd=/data/media/0
-prefix=/mnt/runtime/default
+prefix=/mnt/runtime/write
 obb=/data/media/0/Android/obb
 modDir=/data/adb/modules/vr25.fbind
-dataDir=/data/adb/vr25/fbind
+dataDir=/data/adb/vr25/fbind-data
 config=$dataDir/config.txt
 
 case "$1" in
@@ -852,16 +738,15 @@ case $1 in
 
   -a|--auto-mount) toggle_auto_mount;;
   -b|--bind-mount) bind_mount "$2" "$3" > /dev/null;;
-  -c|--config) shift; edit $config $@;;
+  -c|--config) shift; edit $config "$@";;
   -C|--cryptsetup) shift; cryptsetup "$@";;
   -f|--fuse) force_fuse;;
   -h|--help) usage;;
-  -i|--info) info | less;;
-  -l|--log) shift; edit $dataDir/logs/service.log ${@:-more};;
+  -l|--log) shift; edit $dataDir/logs/service.log "${@:-more}";;
   -m|--mount) bind_mount_wrapper "$2";;
   -M|--move) mv_data_wrapper "$2";;
   -Mm) fbind -M "$2"; fbind -m "$2";;
-  -r|--readme) shift; edit $dataDir/README.md ${@:-more};;
+  -r|--readme) shift; edit $dataDir/README.md "${@:-more}";;
   -R|--remove) shift; remove_wrapper "$@";;
 
 
@@ -870,7 +755,7 @@ case $1 in
     # wait until data is decrypted
     (set +x
     while :; do
-      [ -d /sdcard/Android ] && break || sleep 3
+      [ -d /sdcard/Documents ] && break || sleep 3
     done)
 
     wait_until_true

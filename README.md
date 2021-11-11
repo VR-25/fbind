@@ -10,7 +10,7 @@ fbind is a versatile mounting utility for folders, disk images, LUKS/LUKS2 encry
 ---
 ## LICENSE
 
-Copyright 2017-present, VR25 @ xda-developers
+Copyright (C) 2017-2021, VR25 @ xda-developers
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -51,7 +51,7 @@ By choosing to use/misuse it, you agree to do so at your own risk!
 - [cryptsetup](https://forum.xda-developers.com/showpost.php?p=82561353&postcount=207/) (for encryption, optional)
 - Terminal emulator (or adb shell) and/or text editor
 
-Note: executables such as `cryptsetup` can be placed in `/data/adb/bin/` (with proper permissions) instead of being installed system-wide.
+Note: executables such as `cryptsetup` can be placed in `/data/adb/vr25/bin/` (with proper permissions) instead of being installed system-wide.
 
 
 ---
@@ -180,9 +180,6 @@ Toggle FUSE usage for emulated storage (default: off).
 -h|--help
 List all commands.
 
--i|--info
-Print debugging info.
-
 -l|--log [editor] [option...]
 Open service.log w/ [editor] [option...] (default: more|vim|vi|nano).
 e.g., fbind -l
@@ -241,15 +238,15 @@ NEVER use Windows Notepad for that!
 - If you stumble upon inaccessible folders or read-only access, try forcing FUSE (fbind -f) usage for emulated storage.
 If your system does not support FUSE, it may get into a bootloop.
 If that happens, fbind will revert the change automatically on the next boot attempt.
-To revert it manually, either run `fbind -f` again or remove `/data/adb/modules/fbind/system.prop` to `FUSE.prop` and remove `/data/adb/vr25/fbind/.FUSE`.
+To revert it manually, either run `fbind -f` again or remove `/data/adb/modules/fbind/system.prop` to `FUSE.prop` and remove `/data/adb/vr25/fbind-data/.FUSE`.
 
-- Logs are stored at `/data/adb/vr25/fbind/logs/`.
+- Logs are stored at `/data/adb/vr25/fbind-data/logs/`.
 
 - [SDcardFS] Remounting /mnt/runtime/write/... may cause a system reboot.
 When this happens, fbind learns to skip it.
-However, if the system reboots for a reason other than this, fbind will mistakenly create `/data/adb/vr25/fbind/.noWriteRemount`.
+However, if the system reboots for a reason other than this, fbind will mistakenly create `/data/adb/vr25/fbind-data/.noWriteRemount`.
 If you stumble across broken bind mounts, remove that file and remount all folders.
-To do that in one shot, run `rm /data/adb/vr25/fbind/.noWriteRemount; fbind -um`.
+To do that in one shot, run `rm /data/adb/vr25/fbind-data/.noWriteRemount; fbind -um`.
 
 - Rebooting is not required after installing/upgrading.
 If`/sbin` is missing (many Android 11 based systems lack it), use the `/dev/.vr25/fbind/fbind` executable until you reboot - e.g., `/dev/.vr25/fbind/fbind -m`.
@@ -272,17 +269,7 @@ If`/sbin` is missing (many Android 11 based systems lack it), use the `/dev/.vr2
 ---
 ## LATEST CHANGES
 
-
-**v2019.1.23 (201901230)**
-
-- General optimizations
-- More accurate SDcardFS and encrypted data detection
-- New command: fbind --remount
-- Note on SDcardFS: remounting /mnt/runtime/write/... may cause a system reboot. If this happens, fbind remembers to skip that next times. There's a catch, though! If your system reboots for a reason other than this, fbind will mistakenly add `noWriteRemount` to config. If you stumble across broken bind mounts, remove that line and remount all folders (fbind -um).
-
-
 **v2020.8.5 (202008050)**
-
 - Better compatibility with different root solutions and init methods
 - Built upon fbind's framework and Hooin Kyoma's fixes
 - Enhanced `mount` wrapper
@@ -293,29 +280,22 @@ If`/sbin` is missing (many Android 11 based systems lack it), use the `/dev/.vr2
 - Upgrader (fbind -U)
 - Uninstaller (fbind -x)
 
-
 **v2021.3.4 (202103040)**
-
 - Better logs
-
-- Cryptsetup is no longer bundled, but it's still supported.
-Download link and very simple installation instructions are provided.
-
+- Cryptsetup is no longer bundled, but it's still supported. Download link and very simple installation instructions are provided.
 - Enhanced wizard.
 - fbind --move shows progress.
-
 - Fixed auto-mount
 - Fixed unmount issues
-
 - For now, Magisk is a strict requirement.
-
 - Other major fixes & optimizations
-
 - Rebooting is not required after installing/upgrading.
 If`/sbin` is missing (many Android 11 based systems lack it), use the `/dev/.vr25/fbind/fbind` executable until you reboot - e.g., `/dev/.vr25/fbind/fbind -m`.
-
 - Simplified down to the core to minimize overheard, compatibility and ease maintenance.
-
 - The order of default text editors is now vim|vi|nano.
-
 - Updated documentation
+
+**v2021.11.11-beta (202111110)**
+- Experimental support for recent Android versions
+- General fixes
+- Major optimizations
