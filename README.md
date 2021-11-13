@@ -114,9 +114,16 @@ The defaut mount options are `rw` and `noatime`.
 `permissive` Set SELinux mode to permissive.
 
 ---
+`prefix=<path>` Sets emulated storage path prefix (excluding emulated/*).
+
+  e.g., prefix=/mnt/runtime/full
+
+  An alternative to modifying the config is running `prefix=/mnt/runtime/full fbind --remount`
+
+---
 `remove <target>`>Auto-remove stubborn/unwanted file/folder from $intsd & $extsd.
 
-  e.g, remove Android/data/com.facebook.orca
+  e.g., remove Android/data/com.facebook.orca
 
 ---
 `target <path>` Wrapper for `bind_mount <$extsd/[path]> <$intsd/[same path]>`
@@ -269,17 +276,6 @@ If`/sbin` is missing (many Android 11 based systems lack it), use the `/dev/.vr2
 ---
 ## LATEST CHANGES
 
-**v2020.8.5 (202008050)**
-- Better compatibility with different root solutions and init methods
-- Built upon fbind's framework and Hooin Kyoma's fixes
-- Enhanced `mount` wrapper
-- Flashable uninstaller
-- Major cleanup and optimizations
-- Removed fstype (toybox) binaries
-- Updated readme
-- Upgrader (fbind -U)
-- Uninstaller (fbind -x)
-
 **v2021.3.4 (202103040)**
 - Better logs
 - Cryptsetup is no longer bundled, but it's still supported. Download link and very simple installation instructions are provided.
@@ -299,3 +295,8 @@ If`/sbin` is missing (many Android 11 based systems lack it), use the `/dev/.vr2
 - Experimental support for recent Android versions
 - General fixes
 - Major optimizations
+
+**v2021.11.13-beta (202111130)**
+- Ability to specify the emulated storage path prefix to use (details in readme > config syntax)
+- Android 11 testing kit in the flashable zip
+- General enhancements

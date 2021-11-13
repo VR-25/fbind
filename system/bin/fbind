@@ -9,9 +9,9 @@ apply_config() {
   [ -f $config ] || touch $config
   grep -iq '^permissive' $config && setenforce 0
 
-  # intsd in SDcardFS mode?
-  if grep -iq '/storage/emulated sdcardfs' /proc/mounts; then
-    intsd=$prefix/emulated/0
+  # intsd in FUSE mode?
+  if grep -q '/storage/emulated fuse' /proc/mounts; then
+    intsd=/data/media/0
     obb=$intsd/Android/obb
   fi
 
@@ -22,13 +22,12 @@ apply_config() {
   . $tmpf
   rm $tmpf
 
-  # extsd in SDcardFS mode?
-  if grep -iq '/storage/emulated sdcardfs' /proc/mounts && is_mounted "$prefix/${extsd##*/}"; then
+  # extsd in FUSE mode?
+  if grep -q "/mnt/media_rw/${extsd##*/} fuse" /proc/mounts; then
     extsd0=$extsd
     extobb0=$extobb
-    extsd=$prefix/${extsd##*/}
+    extsd=/mnt/media_rw/${extsd##*/}
     extobb=$extsd/Android/obb
-    mount -o remount,mask=0 $extsd
   fi
 }
 
@@ -88,7 +87,7 @@ bind_mount_wrapper() {
   rm $tmpf
   if $interactiveMode; then
     echo
-    echo "- End"
+    echo "- Done"
   fi
 }
 
@@ -115,7 +114,11 @@ default_extsd() {
       fi
     done
   fi
-  is_mounted $extsd && extobb=$extsd/Android/obb || exit 1
+  ! is_mounted $extsd && exit 1 || {
+    extsd=$prefix/${extsd##*/}
+    extobb=$extsd/Android/obb
+    mount -o remount,mask=0 $extsd 2>/dev/null
+  }
 }
 
 
@@ -322,7 +325,7 @@ mv_data_wrapper() {
   . $tmpf
   rm $tmpf
   echo
-  echo "- End"
+  echo "- Done"
 }
 
 
@@ -528,7 +531,7 @@ unmount_wrapper() {
   . $tmpf
   rm $tmpf
   echo
-  echo "- End"
+  echo "- Done"
 }
 
 
@@ -695,12 +698,13 @@ altExtsd=false
 TMPDIR=/dev/.vr25/fbind
 tmpf=$TMPDIR/tmpf
 interactiveMode=true
-intsd=/data/media/0
-prefix=/mnt/runtime/write
-obb=/data/media/0/Android/obb
-modDir=/data/adb/modules/vr25.fbind
 dataDir=/data/adb/vr25/fbind-data
 config=$dataDir/config.txt
+: ${prefix:=$(sed -n 's/^prefix=//p' $config 2>/dev/null)}
+: ${prefix:=/mnt/runtime/write}
+intsd=$prefix/emulated/0
+obb=$intsd/Android/obb
+modDir=/data/adb/modules/vr25.fbind
 
 case "$1" in
   -s|--service) service=true;;
