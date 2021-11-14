@@ -1,4 +1,4 @@
-Daemon to remount folders periodically
+Daemon to remount folders periodically?
 Android 11 storage isolation support
 
 ~# bindfs -u $(stat -c %u /sdcard/Android/data/com.termux) -g 9997 -p a-rwx,ug+rw,ug+X /mnt/media_rw/[UUID]/Android/data/com.termux /mnt/runtime/write/emulated/0/Android/data/com.termux
@@ -20,46 +20,3 @@ sdcardfs approach
 ~# mv /sdcard/WhatsApp/* /mnt/expand/[UUID]/media/0/WhatsApp/
 ~# restorecon -rv /mnt/expand/[UUID]/media/
 ~# mount -t sdcardfs -o nosuid,nodev,noexec,noatime,mask=7,gid=9997 /mnt/expand/[UUID]/media/0/WhatsApp /mnt/runtime/write/emulated/0/Whatsapp
-
-
-#!/data/data/com.termux/files/usr/bin/bash -e
-
-# must be run with root privileges
-[ $(id -u) -eq 0 ] || exec su --mount-master -c "LD_LIBRARY_PATH=$LD_LIBRARY_PATH HOME=$HOME PATH=$PATH:$HOME/bin $0"
-
-# make sure to be in root mount namespace
-[ $(readlink /proc/1/ns/mnt) = $(readlink /proc/self/ns/mnt) ] || nsenter -t 1 -m -- "$0"
-
-Unmount() {
-    fusermount -u /mnt/runtime/write/emulated/0/GDrive 2>/dev/null || :
-}
-
-# make sure it's not already mounted
-Unmount
-
-# make sure it's unmounted after rclone is killed
-trap 'sleep 1; Unmount' EXIT
-
-# mount remote in /sdcard/
-rclone -v mount GDrive: /mnt/runtime/write/emulated/0/GDrive --gid 9997 --dir-perms 0771 --file-perms 0660 --umask=0 --allow-other
-
-
-
-
-
-
-
-for i in /mnt/runtime/*/emulated/0/testdir; do umount $i; done 2>/dev/null; rm -rf /mnt/media_rw/72CA-0EF5/testdir /sdcard/testdir 2>/dev/null; mkdir -p /mnt/media_rw/72CA-0EF5/testdir /sdcard/testdir; touch /mnt/media_rw/72CA-0EF5/testdir/testfile; su -Mc /data/bindfs -o nonempty,nosuid,nodev,noexec,noatime,context=u:object_r:sdcardfs:s0 -u 0 -g 9997 -p a-rwx,ug+rw,ugo+X --create-with-perms=a-rwx,ug+rw,ugo+X --xattr-none --chown-ignore --chgrp-ignore --chmod-ignore /mnt/media_rw/72CA-0EF5/testdir /mnt/runtime/write/emulated/0/testdir; ls /sdcard/testdir/testfile
-
-su -Mc /data/bindfs -o nonempty,nosuid,nodev,noexec,noatime,context=u:object_r:sdcardfs:s0 -u 0 -g 9997 -p a-rwx,ug+rw,ugo+X --create-with-perms=a-rwx,ug+rw,ugo+X --xattr-none --chown-ignore --chgrp-ignore --chmod-ignore /mnt/media_rw/72CA-0EF5/testdir /mnt/runtime/default/emulated/0/testdir; su -Mc /data/bindfs -o nonempty,nosuid,nodev,noexec,noatime,context=u:object_r:sdcardfs:s0 -u 0 -g 9997 -p a-rwx,ug+rw,ugo+X --create-with-perms=a-rwx,ug+rw,ugo+X --xattr-none --chown-ignore --chgrp-ignore --chmod-ignore /mnt/media_rw/72CA-0EF5/testdir /mnt/runtime/read/emulated/0/testdir
-
-
-for i in /mnt/runtime/*/emulated/0/testdir; do umount $i; done 2>/dev/null; rm -rf /mnt/media_rw/72CA-0EF5/testdir /sdcard/testdir 2>/dev/null; mkdir -p /mnt/media_rw/72CA-0EF5/testdir /sdcard/testdir; touch /mnt/media_rw/72CA-0EF5/testdir/testfile; su -Mc /system/bin/mount -t sdcardfs -o rw,nosuid,nodev,noexec,noatime,fsuid=1023,fsgid=1023,gid=9997,multiuser,mask=7,derive_gid /mnt/media_rw/72CA-0EF5/testdir /mnt/runtime/write/emulated/0/testdir; ls /sdcard/testdir/testfile
-
-su -Mc /system/bin/mount -t sdcardfs -o rw,nosuid,nodev,noexec,noatime,fsuid=1023,fsgid=1023,gid=9997,multiuser,mask=7,derive_gid /mnt/media_rw/72CA-0EF5/testdir /mnt/runtime/default/emulated/0/testdir; su -Mc /system/bin/mount -t sdcardfs -o rw,nosuid,nodev,noexec,noatime,fsuid=1023,fsgid=1023,gid=9997,multiuser,mask=7,derive_gid /mnt/media_rw/72CA-0EF5/testdir /mnt/runtime/read/emulated/0/testdir
-
-
-#!/system/bin/sh
-while [ ! -b /dev/block/mmcblk1p1 ]; do sleep 2; done
-mkdir -p mnt/extsd
-su -Mc /system/bin/mount -t vfat -o nosuid,nodev,noexec,noatime,context=u:object_r:sdcardfs:s0,uid=0,gid=9997,fmask=0117,dmask=0006 /dev/block/mmcblk1p1 /mnt/extsd

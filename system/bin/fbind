@@ -41,7 +41,16 @@ bind_mount() {
       wait_storage "$@" || return 1
     fi
     mkdir -p "$1" "$2"
-    mount -o bind \""$1"\" \""$2"\"
+    if [ -x $modDir/bin/bindfs ]; then
+      su -Mc $modDir/bin/bindfs -o nosuid,nodev,noexec,noatime -u 0 -g 9997 -p a-rwx,ug+rw,ugo+X \
+        --create-with-perms=a-rwx,ug+rw,ugo+X --xattr-none --chown-ignore \
+        --chgrp-ignore --chmod-ignore \""$1"\" \""$2"\" || {
+          echo "(i) Trying \"mount -o bind\"..."
+          mount -o bind \""$1"\" \""$2"\"
+        }
+    else
+      mount -o bind \""$1"\" \""$2"\"
+    fi
     if is_mounted "$2"; then
       [ -z "$3" ] && rm -rf "$1/Android" 2>/dev/null
     else
@@ -117,7 +126,7 @@ default_extsd() {
   ! is_mounted $extsd && exit 1 || {
     extsd=$prefix/${extsd##*/}
     extobb=$extsd/Android/obb
-    mount -o remount,mask=0 $extsd 2>/dev/null
+    mount -o remount,mask=0 $extsd 2>/dev/null ###
   }
 }
 
@@ -483,9 +492,9 @@ troubleshooting() {
 unmount() {
   local line=
   local pattern="$(echo "$1" | sed -e "s|$prefix||" -e "s|$intsd||")"
-  grep -q "$pattern " /proc/mounts && {
+  /system/bin/mount | grep "$pattern type " >/dev/null 2>&1 && {
     echo "<${pattern#/}>"
-    tac /proc/mounts | grep "$pattern " | awk '{print $2}' | \
+    /system/bin/mount | grep "$pattern type " | tac | sed -E -e 's|^.* on /|/|' -e "s|($pattern) type .*|\1|" | \
       while IFS= read line; do
         umount -f "$line" 2>/dev/null
       done
@@ -672,6 +681,13 @@ e) Exit wizard
 
 # Prepare environment
 
+modDir=/data/adb/modules/vr25.fbind
+[ -f $modDir/update ] && {
+  modDir=${modDir%/*}_update/vr25.fbind
+  exec=$modDir/system/bin/fbind
+  [ $0 = $exec ] || exec $exec "$@"
+}
+
 echo
 
 if : > /dev/.root_test 2>/dev/null; then
@@ -704,7 +720,6 @@ config=$dataDir/config.txt
 : ${prefix:=/mnt/runtime/write}
 intsd=$prefix/emulated/0
 obb=$intsd/Android/obb
-modDir=/data/adb/modules/vr25.fbind
 
 case "$1" in
   -s|--service) service=true;;

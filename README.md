@@ -262,6 +262,7 @@ If`/sbin` is missing (many Android 11 based systems lack it), use the `/dev/.vr2
 ---
 ## LINKS
 
+- [Airtm, username: ivandro863auzqg](https://app.airtm.com/send-or-request/send)
 - [Facebook page](https://fb.me/vr25xda/)
 - [Git repository](https://github.com/vr-25/fbind/)
 - [Liberapay](https://liberapay.com/vr25/)
@@ -300,3 +301,9 @@ If`/sbin` is missing (many Android 11 based systems lack it), use the `/dev/.vr2
 - Ability to specify the emulated storage path prefix to use (details in readme > config syntax)
 - Android 11 testing kit in the flashable zip
 - General enhancements
+
+**v2021.11.14-beta (202111140)**
+- `bindfs` binaries (ARM, ARM64, X86 and X86_64) are included and prioritized over `mount -o bind`
+- Fixed `umount` issues
+- General enhancements
+- Updated flashable zip generator

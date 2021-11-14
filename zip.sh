@@ -8,5 +8,5 @@ sh -n system/bin/fbind && {
   filename=fbind-$(date +%Y.%m.%d.%H.%M.%S).zip
   echo $filename
   mkdir -p _builds
-  zip -r9 _builds/$filename * .git* -x \*.zip -x .git/\* -x _misc/\*
+  zip -r9 _builds/$filename * .git* -x \*.zip -x .git/\* -x '_*/*'
 }

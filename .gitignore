@@ -1,3 +1,2 @@
-_builds
-_misc
+_*
 *.zip
