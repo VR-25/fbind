@@ -307,3 +307,11 @@ If`/sbin` is missing (many Android 11 based systems lack it), use the `/dev/.vr2
 - Fixed `umount` issues
 - General enhancements
 - Updated flashable zip generator
+
+**v2021.11.15-beta (202111150)**
+- Added several fallback paths for intsd and extsd for greater out of the box experience
+- Enhanced unmount function
+- Fixed: fbind hangs when sdcard is unavailable
+- General fixes & optimizations
+- More Android 11+ specific changes; already working at least on a handful of Android 11 devices
+- [Wizard] Rename existing destination directories instead of removing them

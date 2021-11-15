@@ -1,22 +1,4 @@
 Daemon to remount folders periodically?
+
 Android 11 storage isolation support
-
-~# bindfs -u $(stat -c %u /sdcard/Android/data/com.termux) -g 9997 -p a-rwx,ug+rw,ug+X /mnt/media_rw/[UUID]/Android/data/com.termux /mnt/runtime/write/emulated/0/Android/data/com.termux
-
-bindfs approach
-~# DIR=/mnt/media_rw/[UUID]    # for Portable Storage
-~# DIR=/mnt/expand/[UUID]      # for Adoptable Storage
-~# mkdir $DIR/WhatsApp
-~# mv /sdcard/WhatsApp/* $DIR/WhatsApp/
-~# bindfs -o nosuid,nodev,noexec,noatime,context=u:object_r:sdcardfs:s0 -u 0 -g 9997 -p a-rwx,ug+rw,ugo+X --create-with-perms=a-rwx,ug+rw,ugo+X --xattr-none --chown-ignore --chgrp-ignore --chmod-ignore $DIR/WhatsApp /mnt/runtime/write/emulated/0/WhatsApp
-
-mount sdcard manually
-~# mount -t exfat -o nosuid,nodev,noexec,noatime,context=u:object_r:sdcardfs:s0,uid=0,gid=9997,fmask=0117,dmask=0006 /dev/block/sda1 /mnt/runtime/write/emulated/0/WhatsApp
-~# mv /data/media/0/WhatsApp/* /sdcard/WhatsApp/
-~# mount -o bind /mnt/my_sdcard/WhatsApp /mnt/runtime/write/emulated/0/WhatsApp
-
-sdcardfs approach
-~# mkdir /mnt/expand/[UUID]/media/0/WhatsApp
-~# mv /sdcard/WhatsApp/* /mnt/expand/[UUID]/media/0/WhatsApp/
-~# restorecon -rv /mnt/expand/[UUID]/media/
-~# mount -t sdcardfs -o nosuid,nodev,noexec,noatime,mask=7,gid=9997 /mnt/expand/[UUID]/media/0/WhatsApp /mnt/runtime/write/emulated/0/Whatsapp
+  # bindfs -o nosuid,nodev,noexec,noatime,context=u:object_r:sdcardfs:s0 -u $(stat -c %u /sdcard/Android/data/com.termux) -g 9997 -p a-rwx,ug+rw,ugo+X --create-with-perms=a-rwx,ug+rw,ugo+X --xattr-none --chown-ignore --chgrp-ignore --chmod-ignore /mnt/media_rw/[UUID]/Android/data/com.termux /mnt/runtime/write/emulated/0/Android/data/com.termux
