@@ -1,4 +1,1 @@
-Daemon to remount folders periodically?
-
-Android 11 storage isolation support
-  # bindfs -o nosuid,nodev,noexec,noatime,context=u:object_r:sdcardfs:s0 -u $(stat -c %u /sdcard/Android/data/com.termux) -g 9997 -p a-rwx,ug+rw,ugo+X --create-with-perms=a-rwx,ug+rw,ugo+X --xattr-none --chown-ignore --chgrp-ignore --chmod-ignore /mnt/media_rw/[UUID]/Android/data/com.termux /mnt/runtime/write/emulated/0/Android/data/com.termux
+App data 2 sd wizard

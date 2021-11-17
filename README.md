@@ -223,6 +223,9 @@ e.g., fbind -u "loop|part|Downl"
 -um|--remount [egrep regex]
 Remount matched or all (no arg).
 e.g., fbind -um "Download|obb"
+
+-v|--version
+Print version code (integer)
 ```
 
 ---
@@ -256,51 +259,26 @@ If you stumble across broken bind mounts, remove that file and remount all folde
 To do that in one shot, run `rm /data/adb/vr25/fbind-data/.noWriteRemount; fbind -um`.
 
 - Rebooting is not required after installing/upgrading.
-If`/sbin` is missing (many Android 11 based systems lack it), use the `/dev/.vr25/fbind/fbind` executable until you reboot - e.g., `/dev/.vr25/fbind/fbind -m`.
+If `/sbin` is missing (many Android 11 based systems lack it), use the `/dev/.vr25/fbind/fbind` executable until you reboot - e.g., `/dev/.vr25/fbind/fbind -m`.
 
 
 ---
 ## LINKS
 
-- [Airtm, username: ivandro863auzqg](https://app.airtm.com/send-or-request/send)
+- [Donate - Airtm, username: ivandro863auzqg](https://app.airtm.com/send-or-request/send)
+- [Donate - Liberapay](https://liberapay.com/vr25/)
+- [Donate - Patreon](https://patreon.com/vr25/)
+- [Donate - PayPal or Credit/Debit Card](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=iprj25@gmail.com&lc=US&item_name=VR25+is+creating+free+and+open+source+software.+Donate+to+suppport+their+work.&no_note=0&cn=&currency_code=USD&bn=PP-DonationsBF:btn_donateCC_LG.gif:NonHosted)
 - [Facebook page](https://fb.me/vr25xda/)
 - [Git repository](https://github.com/vr-25/fbind/)
-- [Liberapay](https://liberapay.com/vr25/)
-- [Patreon](https://patreon.com/vr25/)
-- [PayPal](https://paypal.me/vr25xda/)
 - [Telegram channel](https://t.me/vr25_xda/)
-- [Telegram profile](https://t.me/vr25xda/)
 - [Telegram group](https://t.me/fbind_group/)
+- [Telegram profile](https://t.me/vr25xda/)
 - [XDA thread](https://forum.xda-developers.com/apps/magisk/module-magic-folder-binder-t3621814/)
 
 
 ---
 ## LATEST CHANGES
-
-**v2021.3.4 (202103040)**
-- Better logs
-- Cryptsetup is no longer bundled, but it's still supported. Download link and very simple installation instructions are provided.
-- Enhanced wizard.
-- fbind --move shows progress.
-- Fixed auto-mount
-- Fixed unmount issues
-- For now, Magisk is a strict requirement.
-- Other major fixes & optimizations
-- Rebooting is not required after installing/upgrading.
-If`/sbin` is missing (many Android 11 based systems lack it), use the `/dev/.vr25/fbind/fbind` executable until you reboot - e.g., `/dev/.vr25/fbind/fbind -m`.
-- Simplified down to the core to minimize overheard, compatibility and ease maintenance.
-- The order of default text editors is now vim|vi|nano.
-- Updated documentation
-
-**v2021.11.11-beta (202111110)**
-- Experimental support for recent Android versions
-- General fixes
-- Major optimizations
-
-**v2021.11.13-beta (202111130)**
-- Ability to specify the emulated storage path prefix to use (details in readme > config syntax)
-- Android 11 testing kit in the flashable zip
-- General enhancements
 
 **v2021.11.14-beta (202111140)**
 - `bindfs` binaries (ARM, ARM64, X86 and X86_64) are included and prioritized over `mount -o bind`
@@ -315,3 +293,12 @@ If`/sbin` is missing (many Android 11 based systems lack it), use the `/dev/.vr2
 - General fixes & optimizations
 - More Android 11+ specific changes; already working at least on a handful of Android 11 devices
 - [Wizard] Rename existing destination directories instead of removing them
+
+**v2021.11.17-beta (202111170)**
+- Enhanced storage paths fallbacks logic
+- `fbind -v|--version` prints version code (integer)
+- Fixed auto-mount
+- Full Android 11 support (XDA Recognized Contributor, @jimbo77 tirelessly tested fbind on Android 11, kernel 5.4. Worship this man and get him drunk!)
+- General fixes & optimizations
+- Increased loop timeout to 5 minutes to accommodate long boot times
+- Updated documentation

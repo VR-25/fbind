@@ -6,30 +6,22 @@
 
 apply_config() {
 
+  local i=
+
   [ -f $config ] || touch $config
   grep -iq '^permissive' $config && setenforce 0
-
-  if ! is_mounted ${intsd%/*} && ! is_mounted $intsd; then
-    intsd=/mnt/pass_through/0/emulated/0
-    if ! is_mounted ${intsd%/*} && ! is_mounted $intsd; then
-      intsd=/data/media/0
-    fi
-    obb=$intsd/Android/obb
-  fi
 
   # set default extsd if not defined in config so loop/part can use it
   grep -q '^extsd_path ' $config || default_extsd
 
-  if ! is_mounted ${extsd%/*} && ! is_mounted $extsd; then
-    extsd=/mnt/media_rw/${extsd##*/}
-    if ! is_mounted ${extsd%/*} && ! is_mounted $extsd; then
-      extsd=/mnt/pass_through/0/${extsd##*/}
-      if ! is_mounted ${extsd%/*} && ! is_mounted $extsd; then
-        extsd=$intsd
-      fi
-    fi
-    extobb=$extsd/Android/obb
-  fi
+# storage paths fallbacks
+  for i in $prefix /mnt/runtime/write /mnt/pass_through/0; do
+    is_mounted $i/emulated && prefix=$i && break || prefix=
+  done
+  [ -n "$prefix" ] && intsd=$prefix/emulated/0 || intsd=/data/media/0
+  ! is_mounted $extsd && extsd=$intsd || mount -o remount,mask=0 $extsd 2>/dev/null
+  obb=$intsd/Android/obb
+  extobb=$extsd/Android/obb
 
   grep -E '^extsd_path |^intsd_path |^part |^loop ' $config > $tmpf
   . $tmpf
@@ -112,8 +104,8 @@ default_extsd() {
   local dir=
   local size=0
   local newSize=0
-  $interactiveMode || wait_until_true grep -q /mnt/media_rw /proc/mounts
-  if grep -q /mnt/media_rw /proc/mounts; then
+  $interactiveMode || wait_until_true grep -q /mnt/media_rw/ /proc/mounts
+  if grep -q /mnt/media_rw/ /proc/mounts; then
     for dir in /mnt/media_rw/* /mnt/media_rw/.*; do
       if is_mounted $dir; then
         df="$(df $dir | tail -n1)"
@@ -128,11 +120,6 @@ default_extsd() {
       fi
     done
   fi
-  is_mounted $extsd && {
-    extsd=$prefix/${extsd##*/}
-    extobb=$extsd/Android/obb
-    mount -o remount,mask=0 $extsd 2>/dev/null ###
-  }
 }
 
 
@@ -140,7 +127,7 @@ edit() {
   local f=$1
   shift
   if [ -n "$1" ]; then
-    $* $f
+    "$@" $f
   else
     vim $f 2>/dev/null || vi $f 2>/dev/null || nano $f
   fi
@@ -164,7 +151,6 @@ exit_wizard() {
 
 # alternate extsd path
 extsd_path() {
-  altExtsd=true
   extsd="$1"
   extobb="$extsd/Android/obb"
   wait_until_true is_mounted "$1"
@@ -493,7 +479,7 @@ troubleshooting() {
 
 unmount() {
   local line=
-  local pattern="$(echo "$1" | sed -e "s|$prefix||" -e "s|$intsd||")"
+  local pattern="$(echo "$1" | sed "s|$prefix||")"
   /system/bin/mount | grep "$pattern type " >/dev/null 2>&1 && {
     echo "<${pattern#/}>"
     /system/bin/mount | grep "$pattern type " | sed -E -e 's|^.* on /|/|' -e "s|($pattern) type .*|\1|" | \
@@ -618,6 +604,9 @@ e.g., fbind -u "loop|part|Downl"
 -um|--remount [egrep regex]
 Remount matched or all (no arg).
 e.g., fbind -um "Download|obb"
+
+-v|--version
+Print version code (integer)
 EOF
 }
 
@@ -635,16 +624,16 @@ wait_storage() {
 wait_until_true() {
   (set +x
 
-  for _ in $(seq 30); do
-    grep -Eq ' /storage/emulated type (fuse|sdcardfs) ' /proc/mounts && break || {
+  for _ in $(seq 100); do
+    grep -Eq ' /storage/emulated (fuse|sdcardfs) ' /proc/mounts && break || {
       $interactiveMode && return 1
       sleep 3
     }
   done
 
   if [ -n "$1" ]; then
-    for _ in $(seq 30); do
-      $* && break || {
+    for _ in $(seq 100); do
+      "$@" && break || {
         $interactiveMode && return 1
         sleep 3
       }
@@ -723,7 +712,6 @@ case $PATH in
 esac
 
 service=false
-altExtsd=false
 TMPDIR=/dev/.vr25/fbind
 tmpf=$TMPDIR/tmpf
 interactiveMode=true
@@ -786,7 +774,7 @@ case $1 in
 
     # wait until data is decrypted
     (set +x
-    for _ in $(seq 30); do
+    for _ in $(seq 100); do
       [ -d /storage/emulated/0/Documents ] && break || sleep 3
     done)
 
@@ -811,6 +799,7 @@ case $1 in
 
   -u|--unmount) unmount_wrapper "$2";;
   -um|--remount) fbind -u "$2"; fbind -m "$2";;
+  -v|--version) sed -n 's/versionCode=//p' $modDir/module.prop;;
   *) wizard;;
 esac
 
