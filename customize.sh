@@ -30,13 +30,16 @@ cd $MODPATH/bin/bindfs-* && {
   esac
   chmod +x ../bindfs
   rm -rf $MODPATH/bin/bindfs-*
+
   # workaround for bindfs < 1.14.2
-  for i in /system/etc/group /system/etc/passwd; do
-    [ -f $i ] || {
-      mkdir -p $MODPATH${i%/*}
-      touch $MODPATH$i
-    }
-  done
+  if [ $ARCH != arm64 ] && echo "$PWD" | grep -q '\-v1\.14\.1$'; then
+    for i in /system/etc/group /system/etc/passwd; do
+      [ -f $i ] || {
+        mkdir -p $MODPATH${i%/*}
+        touch $MODPATH$i
+      }
+    done
+  fi
 }
 
 cd $MODPATH

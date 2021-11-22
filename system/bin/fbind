@@ -15,7 +15,7 @@ apply_config() {
   grep -q '^extsd_path ' $config || default_extsd
 
 # storage paths fallbacks
-  for i in $prefix /mnt/runtime/write /mnt/pass_through/0; do
+  for i in $prefix /mnt/user/0 /mnt/runtime/write; do
     is_mounted $i/emulated && prefix=$i && break || prefix=
   done
   [ -n "$prefix" ] && intsd=$prefix/emulated/0 || intsd=/data/media/0
@@ -409,6 +409,43 @@ remove_wrapper() {
 }
 
 
+test_prefixes() {
+
+  local a=
+  local i=
+
+  set -- $(/system/bin/mount | grep '/emulated type' | awk '{print $3}' \
+    | sed 's/\/emulated.*//' | grep -Ev '/mnt/androidwritable/0|/mnt/runtime/default')
+
+  _exxit() {
+    { unmount $intsd/test-dir-i
+    rm -rf $extsd/test-dir-e; } >/dev/null 2>&1
+    exxit
+  }
+
+  trap _exxit EXIT
+
+  for i in $@; do
+    echo "(i) Testing $i"
+    unmount $intsd/test-dir-i >/dev/null 2>&1
+    intsd=$i/emulated/0
+    bind_mount $extsd/test-dir-e $intsd/test-dir-i >/dev/null 2>&1 || continue
+    sleep 2
+    is_mounted /storage/emulated/0/test-dir-i || continue
+    echo "(?) Can you write to /storage/emulated/0/test-dir-i/ WITHOUT root? (y/N)"
+    read a
+    case ".$a" in
+      .[yY]*) :;;
+      *) continue;;
+    esac
+    sed -i '/^prefix=/d' $config
+    sed -i "1iprefix=$i" $config
+    echo "(i) Added to config: prefix=$i"
+    break
+  done
+}
+
+
 to_external() {
 
   local ans=no
@@ -481,7 +518,7 @@ unmount() {
   local line=
   local pattern="$(echo "$1" | sed "s|$prefix||")"
   /system/bin/mount | grep "$pattern type " >/dev/null 2>&1 && {
-    echo "<${pattern#/}>"
+    echo "<...${pattern#/}>"
     /system/bin/mount | grep "$pattern type " | sed -E -e 's|^.* on /|/|' -e "s|($pattern) type .*|\1|" | \
       while IFS= read line; do
         umount -f "$line" 2>/dev/null
@@ -593,6 +630,9 @@ Remove stubborn/unwanted file/folder from \$intsd and \$extsd.
 By default, all "remove" lines from config are included.
 e.g., fbind -R Android/data/com.facebook.orca
 
+-t|--test-prefixes
+Test internal storage prefixes (views) and automatically update the config.
+
 -u|--unmount [mount point or egrep regex]
 Unmount matched or all (no arg).
 This works for regular bind-mounts, SDcardFS bind-mounts, regular partitions, loop devices and LUKS/LUKS2 encrypted volumes.
@@ -683,21 +723,21 @@ e) Exit wizard
 
 # Prepare environment
 
+echo
+
+if touch /dev/.root_test 2>/dev/null; then
+  rm /dev/.root_test
+else
+  echo "(!) Must run as root (su)"
+  exit 1
+fi
+
 modDir=/data/adb/modules/vr25.fbind
 [ -f $modDir/update ] && {
   modDir=${modDir%/*}_update/vr25.fbind
   exec=$modDir/system/bin/fbind
   [ $0 = $exec ] || exec $exec "$@"
 }
-
-echo
-
-if : > /dev/.root_test 2>/dev/null; then
-  rm /dev/.root_test
-else
-  echo "(!) Must run as root (su)"
-  exit 1
-fi
 
 busyboxDir=/dev/.vr25/busybox
 
@@ -718,7 +758,7 @@ interactiveMode=true
 dataDir=/data/adb/vr25/fbind-data
 config=$dataDir/config.txt
 : ${prefix:=$(sed -n 's/^prefix=//p' $config 2>/dev/null)}
-: ${prefix:=/mnt/runtime/write}
+: ${prefix:=/mnt/user/0}
 intsd=$prefix/emulated/0
 obb=$intsd/Android/obb
 
@@ -769,7 +809,6 @@ case $1 in
   -r|--readme) shift; edit $dataDir/README.md "${@:-more}";;
   -R|--remove) shift; remove_wrapper "$@";;
 
-
   -s|--service)
 
     # wait until data is decrypted
@@ -796,7 +835,7 @@ case $1 in
     done
   ;;
 
-
+  -t|--test-prefixes) test_prefixes;;
   -u|--unmount) unmount_wrapper "$2";;
   -um|--remount) fbind -u "$2"; fbind -m "$2";;
   -v|--version) sed -n 's/versionCode=//p' $modDir/module.prop;;

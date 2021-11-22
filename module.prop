@@ -1,6 +1,6 @@
 id=vr25.fbind
 name=fbind
-version=v2021.11.17-beta
-versionCode=202111170
+version=v2021.11.22-beta
+versionCode=202111220
 author=VR25 @ xda-developers
 description=fbind is a versatile mounting utility for folders, disk images, LUKS/LUKS2 encrypted volumes, regular partitions and more.

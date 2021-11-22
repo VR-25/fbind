@@ -212,6 +212,9 @@ Remove stubborn/unwanted file/folder from \$intsd and \$extsd.
 By default, all "remove" lines from config are included.
 e.g., fbind -R Android/data/com.facebook.orca
 
+-t|--test-prefixes
+Test internal storage prefixes (views) and automatically update the config.
+
 -u|--unmount [mount point or egrep regex]
 Unmount matched or all (no arg).
 This works for regular bind-mounts, SDcardFS bind-mounts, regular partitions, loop devices and LUKS/LUKS2 encrypted volumes.
@@ -280,12 +283,6 @@ If `/sbin` is missing (many Android 11 based systems lack it), use the `/dev/.vr
 ---
 ## LATEST CHANGES
 
-**v2021.11.14-beta (202111140)**
-- `bindfs` binaries (ARM, ARM64, X86 and X86_64) are included and prioritized over `mount -o bind`
-- Fixed `umount` issues
-- General enhancements
-- Updated flashable zip generator
-
 **v2021.11.15-beta (202111150)**
 - Added several fallback paths for intsd and extsd for greater out of the box experience
 - Enhanced unmount function
@@ -302,3 +299,8 @@ If `/sbin` is missing (many Android 11 based systems lack it), use the `/dev/.vr
 - General fixes & optimizations
 - Increased loop timeout to 5 minutes to accommodate long boot times
 - Updated documentation
+
+**v2021.11.22-beta (202111220)**
+- `-t|--test-prefixes`: test internal storage prefixes (views) and automatically update the config.
+- Changed the priorities of emulated storage views to better accommodate Android 11+.
+- General optimizations
