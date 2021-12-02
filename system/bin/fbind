@@ -680,7 +680,7 @@ wait_storage() {
 
 wait_until_true() {
   local _=
-  ([ -n "$1" ] || set -- grep -Eq ' /storage/emulated (fuse|sdcardfs) ' /proc/mounts
+  ([ -n "$1" ] || set -- grep -Eq "' /storage/emulated (fuse|sdcardfs) '" /proc/mounts
   for _ in $(seq 100); do
     eval "$@" && break || {
       $interactiveMode && return 1

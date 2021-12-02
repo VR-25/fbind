@@ -283,15 +283,6 @@ If `/sbin` is missing (many Android 11 based systems lack it), use the `/dev/.vr
 ---
 ## LATEST CHANGES
 
-v2021.11.17-beta (202111170)
-- Enhanced storage paths fallbacks logic
-- `fbind -v|--version` prints version code (integer)
-- Fixed auto-mount
-- Full Android 11 support (XDA Recognized Contributor, @jimbo77 tirelessly tested fbind on Android 11, kernel 5.4. Worship this man and get him drunk!)
-- General fixes & optimizations
-- Increased loop timeout to 5 minutes to accommodate long boot times
-- Updated documentation
-
 v2021.11.22-beta (202111220)
 - `-t|--test-prefixes`: test internal storage prefixes (views) and automatically update the config.
 - Changed the priorities of emulated storage views to better accommodate Android 11+.
@@ -303,3 +294,6 @@ v2021.12.2 (202112020)
 - Improved partition and image file mount logics;
 - Preliminary work on the _appdata_ binding wizard;
 - Reordered emulated storage prefix fallbacks to cover another Android 11+ quirk.
+
+v2021.12.2.1 (202112021)
+- Auto-mount hotfix
