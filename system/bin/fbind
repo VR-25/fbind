@@ -4,6 +4,20 @@
 # License: GPLv3+
 
 
+appdata() {
+  # appdata com.example.someapp
+  mkfs_ext2() {
+    local i=
+    for i in /*/*bin/mkfs.ext2 /sbin/mkfs.ext2 mkfs.ext2; do
+      if [ -x $i ] || which $i >/dev/null; then
+        eval $i "$@" && break || echo "(i) Trying alternative: $i..."
+      fi
+    done
+  }
+  #dd if=/dev/zero of="$extsd/.fbind/appdata/${1}.img" bs=1024 count=
+}
+
+
 apply_config() {
 
   local i=
@@ -15,7 +29,7 @@ apply_config() {
   grep -q '^extsd_path ' $config || default_extsd
 
 # storage paths fallbacks
-  for i in $prefix /mnt/user/0 /mnt/runtime/write; do
+  for i in $prefix /mnt/runtime/write /mnt/user/0; do
     is_mounted $i/emulated && prefix=$i && break || prefix=
   done
   [ -n "$prefix" ] && intsd=$prefix/emulated/0 || intsd=/data/media/0
@@ -194,8 +208,16 @@ intsd_path() {
 is_mounted() { mountpoint -q "$1" 2>/dev/null; }
 
 
-# mount loop device (loop <.img file> <mount point>)
+# mount loop device (loop [-o mount_opts] <.img file> <mount point>)
 loop() {
+  _losetup() {
+    local i=
+    for i in /*/*bin/losetup /sbin/losetup losetup; do
+      if [ -x $i ] || which $i >/dev/null; then
+        eval $i "$@" && break || echo "(i) Trying alternative: $i..."
+      fi
+    done
+  }
   if echo "$1 $2" | grep -q '^\-o '; then # using extra mount options
     local extraOpts="$1 $2"
     shift 2
@@ -209,26 +231,21 @@ loop() {
   if ! is_mounted "$2"; then
     wait_storage "$@"
     [ $? -ne 0 ] && return 1
-    wait_until_true [ -e $fPath ] || return 1
-    if ls /system/*bin/losetup >/dev/null 2>&1; then # magisk version of losetup seems not working, trying to use ROM's version
-      local pPath=$(/system/bin/losetup -fs "$fPath")
-      [ -e "$pPath" ] || return 1
-      if echo "$1" | grep -q '\-\-L'; then
-        if $interactiveMode || [ -n "$luksPass" ]; then
-          # open LUKS volume
-          if [ -n "$luksPass" ]; then
-            printf "$luksPass" | cryptsetup luksOpen $pPath $pName
-          else
-            cryptsetup luksOpen $pPath $pName
-          fi
-          pPath="/dev/mapper/$pName"
+    wait_until_true test -e $fPath || return 1
+    local pPath=$(_losetup -fs "$fPath")
+    [ -e "$pPath" ] || return 1
+    if echo "$1" | grep -q '\-\-L'; then
+      if $interactiveMode || [ -n "$luksPass" ]; then
+        # open LUKS volume
+        if [ -n "$luksPass" ]; then
+          printf "$luksPass" | cryptsetup luksOpen $pPath $pName
+        else
+          cryptsetup luksOpen $pPath $pName
         fi
+        pPath="/dev/mapper/$pName"
       fi
-      [ -e "$pPath" ] && mount_dev "$pPath" "$2" "$extraOpts"
-    else
-      $interactiveMode && echo "(!) Can't find program \"losetup\" to mount loop device."
-      return 1
     fi
+    [ -e "$pPath" ] && mount_dev "$pPath" "$2" "$extraOpts"
   fi
 }
 
@@ -367,7 +384,7 @@ part() {
   [ -z "$2" ] && return 1
 
   if ! is_mounted "$2"; then
-    wait_storage "$@" && wait_until_true [ -e $pPath ] || return 1
+    wait_storage "$@" && wait_until_true test -e $pPath || return 1
     if echo "$1" | grep -q '\-\-L'; then
       if $interactiveMode || [ -n "$luksPass" ]; then
         # open LUKS volume
@@ -662,23 +679,15 @@ wait_storage() {
 
 
 wait_until_true() {
-  (set +x
-
+  local _=
+  ([ -n "$1" ] || set -- grep -Eq ' /storage/emulated (fuse|sdcardfs) ' /proc/mounts
   for _ in $(seq 100); do
-    grep -Eq ' /storage/emulated (fuse|sdcardfs) ' /proc/mounts && break || {
+    eval "$@" && break || {
       $interactiveMode && return 1
       sleep 3
     }
-  done
-
-  if [ -n "$1" ]; then
-    for _ in $(seq 100); do
-      "$@" && break || {
-        $interactiveMode && return 1
-        sleep 3
-      }
-    done
-  fi)
+    set +x
+  done)
 }
 
 
@@ -758,7 +767,7 @@ interactiveMode=true
 dataDir=/data/adb/vr25/fbind-data
 config=$dataDir/config.txt
 : ${prefix:=$(sed -n 's/^prefix=//p' $config 2>/dev/null)}
-: ${prefix:=/mnt/user/0}
+: ${prefix:=/mnt/runtime/write}
 intsd=$prefix/emulated/0
 obb=$intsd/Android/obb
 

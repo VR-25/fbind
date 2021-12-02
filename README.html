@@ -66,8 +66,8 @@ By choosing to use/misuse it, you agree to do so at your own risk!</p>
 <hr>
 <h2 id="pre-requisites">PRE-REQUISITES</h2>
 <ul>
-<li>Android or Android-based OS rooted with <a href="https://github.com/topjohnwu/Magisk/">Magisk</a></li>
-<li><a href="https://forum.xda-developers.com/showpost.php?p=82561353&amp;postcount=207/">cryptsetup</a> (for encryption, optional)</li>
+<li>Android or Android-based OS rooted with <a href="https://github.com/topjohnwu/Magisk">Magisk</a></li>
+<li><a href="https://forum.xda-developers.com/showpost.php?p=82561353&amp;postcount=207">cryptsetup</a> (for encryption, optional)</li>
 <li>Terminal emulator (or adb shell) and/or text editor</li>
 </ul>
 <p>Note: executables such as <code>cryptsetup</code> can be placed in <code>/data/adb/vr25/bin/</code> (with proper permissions) instead of being installed system-wide.</p>
@@ -263,28 +263,19 @@ If <code>/sbin</code> is missing (many Android 11 based systems lack it), use th
 <h2 id="links">LINKS</h2>
 <ul>
 <li><a href="https://app.airtm.com/send-or-request/send">Donate - Airtm, username: ivandro863auzqg</a></li>
-<li><a href="https://liberapay.com/vr25/">Donate - Liberapay</a></li>
-<li><a href="https://patreon.com/vr25/">Donate - Patreon</a></li>
+<li><a href="https://liberapay.com/vr25">Donate - Liberapay</a></li>
+<li><a href="https://patreon.com/vr25">Donate - Patreon</a></li>
 <li><a href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&amp;business=iprj25@gmail.com&amp;lc=US&amp;item_name=VR25+is+creating+free+and+open+source+software.+Donate+to+suppport+their+work.&amp;no_note=0&amp;cn=&amp;currency_code=USD&amp;bn=PP-DonationsBF:btn_donateCC_LG.gif:NonHosted">Donate - PayPal or Credit/Debit Card</a></li>
-<li><a href="https://fb.me/vr25xda/">Facebook page</a></li>
-<li><a href="https://github.com/vr-25/fbind/">Git repository</a></li>
-<li><a href="https://t.me/vr25_xda/">Telegram channel</a></li>
-<li><a href="https://t.me/fbind_group/">Telegram group</a></li>
-<li><a href="https://t.me/vr25xda/">Telegram profile</a></li>
-<li><a href="https://forum.xda-developers.com/apps/magisk/module-magic-folder-binder-t3621814/">XDA thread</a></li>
+<li><a href="https://fb.me/vr25xda">Facebook Page</a></li>
+<li><a href="https://t.me/vr25_xda">Telegram Channel</a></li>
+<li><a href="https://t.me/fbind_group">Telegram Group</a></li>
+<li><a href="https://t.me/vr25xda">Telegram Profile</a></li>
+<li><a href="https://github.com/vr-25/fbind">Upstream Repository</a></li>
+<li><a href="https://forum.xda-developers.com/apps/magisk/module-magic-folder-binder-t3621814">XDA Thread</a></li>
 </ul>
 <hr>
 <h2 id="latest-changes">LATEST CHANGES</h2>
-<p><strong>v2021.11.15-beta (202111150)</strong></p>
-<ul>
-<li>Added several fallback paths for intsd and extsd for greater out of the box experience</li>
-<li>Enhanced unmount function</li>
-<li>Fixed: fbind hangs when sdcard is unavailable</li>
-<li>General fixes &amp; optimizations</li>
-<li>More Android 11+ specific changes; already working at least on a handful of Android 11 devices</li>
-<li>[Wizard] Rename existing destination directories instead of removing them</li>
-</ul>
-<p><strong>v2021.11.17-beta (202111170)</strong></p>
+<p>v2021.11.17-beta (202111170)</p>
 <ul>
 <li>Enhanced storage paths fallbacks logic</li>
 <li><code>fbind -v|--version</code> prints version code (integer)</li>
@@ -294,11 +285,19 @@ If <code>/sbin</code> is missing (many Android 11 based systems lack it), use th
 <li>Increased loop timeout to 5 minutes to accommodate long boot times</li>
 <li>Updated documentation</li>
 </ul>
-<p><strong>v2021.11.22-beta (202111220)</strong></p>
+<p>v2021.11.22-beta (202111220)</p>
 <ul>
 <li><code>-t|--test-prefixes</code>: test internal storage prefixes (views) and automatically update the config.</li>
 <li>Changed the priorities of emulated storage views to better accommodate Android 11+.</li>
 <li>General optimizations</li>
+</ul>
+<p>v2021.12.2 (202112020)</p>
+<ul>
+<li>Enhanced flashable zip generator;</li>
+<li>Implemented <code>losetup</code> wrapper for greater compatibility;</li>
+<li>Improved partition and image file mount logics;</li>
+<li>Preliminary work on the <em>appdata</em> binding wizard;</li>
+<li>Reordered emulated storage prefix fallbacks to cover another Android 11+ quirk.</li>
 </ul>
 
     </body>

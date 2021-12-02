@@ -47,8 +47,8 @@ By choosing to use/misuse it, you agree to do so at your own risk!
 ---
 ## PRE-REQUISITES
 
-- Android or Android-based OS rooted with [Magisk](https://github.com/topjohnwu/Magisk/)
-- [cryptsetup](https://forum.xda-developers.com/showpost.php?p=82561353&postcount=207/) (for encryption, optional)
+- Android or Android-based OS rooted with [Magisk](https://github.com/topjohnwu/Magisk)
+- [cryptsetup](https://forum.xda-developers.com/showpost.php?p=82561353&postcount=207) (for encryption, optional)
 - Terminal emulator (or adb shell) and/or text editor
 
 Note: executables such as `cryptsetup` can be placed in `/data/adb/vr25/bin/` (with proper permissions) instead of being installed system-wide.
@@ -269,29 +269,21 @@ If `/sbin` is missing (many Android 11 based systems lack it), use the `/dev/.vr
 ## LINKS
 
 - [Donate - Airtm, username: ivandro863auzqg](https://app.airtm.com/send-or-request/send)
-- [Donate - Liberapay](https://liberapay.com/vr25/)
-- [Donate - Patreon](https://patreon.com/vr25/)
+- [Donate - Liberapay](https://liberapay.com/vr25)
+- [Donate - Patreon](https://patreon.com/vr25)
 - [Donate - PayPal or Credit/Debit Card](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=iprj25@gmail.com&lc=US&item_name=VR25+is+creating+free+and+open+source+software.+Donate+to+suppport+their+work.&no_note=0&cn=&currency_code=USD&bn=PP-DonationsBF:btn_donateCC_LG.gif:NonHosted)
-- [Facebook page](https://fb.me/vr25xda/)
-- [Git repository](https://github.com/vr-25/fbind/)
-- [Telegram channel](https://t.me/vr25_xda/)
-- [Telegram group](https://t.me/fbind_group/)
-- [Telegram profile](https://t.me/vr25xda/)
-- [XDA thread](https://forum.xda-developers.com/apps/magisk/module-magic-folder-binder-t3621814/)
+- [Facebook Page](https://fb.me/vr25xda)
+- [Telegram Channel](https://t.me/vr25_xda)
+- [Telegram Group](https://t.me/fbind_group)
+- [Telegram Profile](https://t.me/vr25xda)
+- [Upstream Repository](https://github.com/vr-25/fbind)
+- [XDA Thread](https://forum.xda-developers.com/apps/magisk/module-magic-folder-binder-t3621814)
 
 
 ---
 ## LATEST CHANGES
 
-**v2021.11.15-beta (202111150)**
-- Added several fallback paths for intsd and extsd for greater out of the box experience
-- Enhanced unmount function
-- Fixed: fbind hangs when sdcard is unavailable
-- General fixes & optimizations
-- More Android 11+ specific changes; already working at least on a handful of Android 11 devices
-- [Wizard] Rename existing destination directories instead of removing them
-
-**v2021.11.17-beta (202111170)**
+v2021.11.17-beta (202111170)
 - Enhanced storage paths fallbacks logic
 - `fbind -v|--version` prints version code (integer)
 - Fixed auto-mount
@@ -300,7 +292,14 @@ If `/sbin` is missing (many Android 11 based systems lack it), use the `/dev/.vr
 - Increased loop timeout to 5 minutes to accommodate long boot times
 - Updated documentation
 
-**v2021.11.22-beta (202111220)**
+v2021.11.22-beta (202111220)
 - `-t|--test-prefixes`: test internal storage prefixes (views) and automatically update the config.
 - Changed the priorities of emulated storage views to better accommodate Android 11+.
 - General optimizations
+
+v2021.12.2 (202112020)
+- Enhanced flashable zip generator;
+- Implemented `losetup` wrapper for greater compatibility;
+- Improved partition and image file mount logics;
+- Preliminary work on the _appdata_ binding wizard;
+- Reordered emulated storage prefix fallbacks to cover another Android 11+ quirk.
