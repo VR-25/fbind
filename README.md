@@ -2,6 +2,20 @@
 
 
 ---
+- [DESCRIPTION](#description)
+- [LICENSE](#license)
+- [DISCLAIMER](#disclaimer)
+- [WARNING](#warning)
+- [PRE-REQUISITES](#pre-requisites)
+- [CONFIG SYNTAX](#config-syntax)
+- [CONFIG EXAMPLES](#config-examples)
+- [TERMINAL COMMANDS](#terminal-commands)
+- [NOTES](#notes)
+- [LINKS](#links)
+- [LATEST CHANGES](#latest-changes)
+
+
+---
 ## DESCRIPTION
 
 fbind is a versatile mounting utility for folders, disk images, LUKS/LUKS2 encrypted volumes, regular partitions and more.
@@ -283,11 +297,6 @@ If `/sbin` is missing (many Android 11 based systems lack it), use the `/dev/.vr
 ---
 ## LATEST CHANGES
 
-v2021.11.22-beta (202111220)
-- `-t|--test-prefixes`: test internal storage prefixes (views) and automatically update the config.
-- Changed the priorities of emulated storage views to better accommodate Android 11+.
-- General optimizations
-
 v2021.12.2 (202112020)
 - Enhanced flashable zip generator;
 - Implemented `losetup` wrapper for greater compatibility;
@@ -297,3 +306,8 @@ v2021.12.2 (202112020)
 
 v2021.12.2.1 (202112021)
 - Auto-mount hotfix
+
+v2021.12.6 (202112060)
+- Added TOC to readme;
+- General optimizations;
+- Improved Android 11+ support.

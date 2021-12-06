@@ -29,7 +29,7 @@ apply_config() {
   grep -q '^extsd_path ' $config || default_extsd
 
 # storage paths fallbacks
-  for i in $prefix /mnt/runtime/write /mnt/user/0; do
+  for i in $prefix /mnt/user/0 /mnt/runtime/write; do
     is_mounted $i/emulated && prefix=$i && break || prefix=
   done
   [ -n "$prefix" ] && intsd=$prefix/emulated/0 || intsd=/data/media/0
@@ -44,6 +44,7 @@ apply_config() {
 
 
 bind_mount() {
+  local i=
   if ! is_mounted "$2"; then
     if $interactiveMode; then
       echo
@@ -52,26 +53,33 @@ bind_mount() {
       wait_storage "$@" || return 1
     fi
     mkdir -p "$1" "$2"
-    if which bindfs >/dev/null; then
-      su -Mc bindfs -o nosuid,nodev,noexec,noatime,nonempty -u 0 -g 9997 -p a-rwx,ug+rw,ugo+X \
-        --create-with-perms=a-rwx,ug+rw,ugo+X --xattr-none --chown-ignore \
-        --chgrp-ignore --chmod-ignore \""$1"\" \""$2"\" || {
-          echo "(i) Trying \"mount -o bind\"..."
-          mount -o bind \""$1"\" \""$2"\"
-        }
-    else
-      mount -o bind \""$1"\" \""$2"\"
-    fi
+    for i in 1 2; do
+      if which bindfs >/dev/null; then
+        su -Mc bindfs -o nosuid,nodev,noexec,noatime,nonempty -u 0 -g 9997 -p a-rwx,ug+rw,ugo+X \
+          --create-with-perms=a-rwx,ug+rw,ugo+X --xattr-none --chown-ignore \
+          --chgrp-ignore --chmod-ignore \""$1"\" \""$2"\" || {
+            echo "(i) Trying \"mount -o bind\"..."
+            mount -o bind \""$1"\" \""$2"\"
+          }
+      else
+        mount -o bind \""$1"\" \""$2"\"
+      fi
+      if [ "$prefix" = /mnt/user/0 ] && is_mounted /mnt/runtime/write/emulated; then
+        set -- "$1" "$(echo "$2" | sed "s|$prefix|/mnt/user/0|")"
+        is_mounted "$2" && break
+      fi
+    done
     if is_mounted "$2"; then
-      [ -z "$3" ] && rm -rf "$1/Android" 2>/dev/null
+      [ -z "$3" ] && rm -rf "$1/Android"
     else
-      rmdir "$2" 2>/dev/null
-    fi
+      rmdir "$2"
+    fi 2>/dev/null
   fi
 }
 
 
 bind_mount_wrapper() {
+
   $interactiveMode && echo "Bind-mounting..."
 
   # $extobb <--> $obb
@@ -533,7 +541,7 @@ troubleshooting() {
 
 unmount() {
   local line=
-  local pattern="$(echo "$1" | sed "s|$prefix||")"
+  local pattern="$(echo "$1" | sed -E "s#$prefix|/mnt/runtime/write|/mnt/user/0##")"
   /system/bin/mount | grep "$pattern type " >/dev/null 2>&1 && {
     echo "<...${pattern#/}>"
     /system/bin/mount | grep "$pattern type " | sed -E -e 's|^.* on /|/|' -e "s|($pattern) type .*|\1|" | \
@@ -767,7 +775,7 @@ interactiveMode=true
 dataDir=/data/adb/vr25/fbind-data
 config=$dataDir/config.txt
 : ${prefix:=$(sed -n 's/^prefix=//p' $config 2>/dev/null)}
-: ${prefix:=/mnt/runtime/write}
+: ${prefix:=/mnt/user/0}
 intsd=$prefix/emulated/0
 obb=$intsd/Android/obb
 
@@ -806,7 +814,7 @@ $service || apply_config # & handle LUKS/2
 case $1 in
 
   -a|--auto-mount) toggle_auto_mount;;
-  -b|--bind-mount) bind_mount "$2" "$3" > /dev/null;;
+  -b|--bind-mount) bind_mount "$2" "$3";;
   -c|--config) shift; edit $config "$@";;
   -C|--cryptsetup) shift; cryptsetup "$@";;
   -f|--fuse) force_fuse;;
